@@ -3,14 +3,14 @@
 #define NONSIMPLE_H
 #include "bitbox.h"
 
-#define SCREEN_W 640 // number of regular pixels
-#define SCREEN_H 480
-#define Nx 160      // number of super pixels (4x4 pixels)
-#define Ny 120
+//#define SCREEN_W 640 // number of regular pixels
+//#define SCREEN_H 480
+#define SCREEN_W 160      // number of super pixels (4x4 pixels)
+#define SCREEN_H 120
 
 typedef void (void_fn)(void);
 
-extern uint16_t superpixel[Ny][Nx];
+extern uint16_t superpixel[SCREEN_H][SCREEN_W];
 extern uint16_t bg_color;
 extern void_fn* graph_line_callback;
 

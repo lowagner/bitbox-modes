@@ -14,7 +14,7 @@ void graph_line()
     {
         uint32_t *dst = (uint32_t*)draw_buffer;
         int j = vga_line/4;
-        for (int i=0; i<Nx; ++i)
+        for (int i=0; i<SCREEN_W; ++i)
         {
             uint32_t current_color = superpixel[j][i];
             current_color |= (current_color<<16);
@@ -41,16 +41,16 @@ void background_decay()
     int j = vga_line/4;
     if (vga_frame % 2 == j % 2) // do odd lines on odd frames, even ...
     {
-        for (int i=0; i<Nx; ++i)
+        for (int i=0; i<SCREEN_W; ++i)
         {
             int newcolor = 1*(superpixel[j][i]-bg_color);
             if (i > 0)
                 newcolor += (superpixel[j][i-1]-bg_color);
-            if (i < Nx-1)
+            if (i < SCREEN_W-1)
                 newcolor += (superpixel[j][i+1]-bg_color);
             if (j > 0)
                 newcolor += (superpixel[j-1][i]-bg_color);
-            if (j < Ny-1)
+            if (j < SCREEN_H-1)
                 newcolor += (superpixel[j+1][i]-bg_color);
             superpixel[j][i] = newcolor/5 + bg_color;
         }
@@ -64,7 +64,7 @@ void background_color_decay()
     switch ((vga_frame/2) % 3)
     {
     case 0:
-        for (int i=0; i<Nx; ++i)
+        for (int i=0; i<SCREEN_W; ++i)
         {
             uint8_t bg_r = (bg_color >> 10)&31;
 
@@ -72,11 +72,11 @@ void background_color_decay()
            
             if (i > 0)
                 r += ((superpixel[j][i-1] >> 10)&31) - bg_r;
-            if (i < Nx-1)
+            if (i < SCREEN_W-1)
                 r += ((superpixel[j][i+1] >> 10)&31) - bg_r;
             if (j > 0)
                 r += ((superpixel[j-1][i] >> 10)&31) - bg_r;
-            if (j < Ny-1)
+            if (j < SCREEN_H-1)
                 r += ((superpixel[j+1][i] >> 10)&31) - bg_r;
 
             r = r/8 + bg_r;
@@ -90,7 +90,7 @@ void background_color_decay()
         break;
     case 1:
 
-        for (int i=0; i<Nx; ++i)
+        for (int i=0; i<SCREEN_W; ++i)
         {
             uint8_t bg_g = (bg_color >> 5)&31;
 
@@ -98,11 +98,11 @@ void background_color_decay()
            
             if (i > 0)
                 g += ((superpixel[j][i-1] >> 5)&31) - bg_g;
-            if (i < Nx-1)
+            if (i < SCREEN_W-1)
                 g += ((superpixel[j][i+1] >> 5)&31) - bg_g;
             if (j > 0)
                 g += ((superpixel[j-1][i] >> 5)&31) - bg_g;
-            if (j < Ny-1)
+            if (j < SCREEN_H-1)
                 g += ((superpixel[j+1][i] >> 5)&31) - bg_g;
 
             g = g/8 + bg_g;
@@ -115,7 +115,7 @@ void background_color_decay()
         }
         break;
     case 2:
-        for (int i=0; i<Nx; ++i)
+        for (int i=0; i<SCREEN_W; ++i)
         {
             uint8_t bg_b = (bg_color)&31;
 
@@ -123,11 +123,11 @@ void background_color_decay()
            
             if (i > 0)
                 b += ((superpixel[j][i-1])&31) - bg_b;
-            if (i < Nx-1)
+            if (i < SCREEN_W-1)
                 b += ((superpixel[j][i+1])&31) - bg_b;
             if (j > 0)
                 b += ((superpixel[j-1][i])&31) - bg_b;
-            if (j < Ny-1)
+            if (j < SCREEN_H-1)
                 b += ((superpixel[j+1][i])&31) - bg_b;
 
             b = b/8 + bg_b;

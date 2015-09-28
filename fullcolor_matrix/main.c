@@ -5,7 +5,7 @@
 
 void_fn* graph_line_callback;
 
-uint16_t superpixel[Ny][Nx];
+uint16_t superpixel[SCREEN_H][SCREEN_W];
 uint16_t bg_color;
 
 // for saving/loading the background image
@@ -81,8 +81,8 @@ void game_frame()
             {
                 UINT bytes_get;
                 f_write(&fat_file, "P6\n160 120 31\n", 14, &bytes_get);
-                for (int j=0; j<Ny; j++)
-                for (int i=0; i<Nx; i++)
+                for (int j=0; j<SCREEN_H; j++)
+                for (int i=0; i<SCREEN_W; i++)
                 {
                     uint16_t C = superpixel[j][i];
                     char msg[3];
@@ -111,8 +111,8 @@ void game_frame()
                 char msg[14];
                 f_read(&fat_file, msg, 14, &bytes_get); 
                 if (bytes_get != 14) { f_close(&fat_file); return; }
-                for (int j=0; j<Ny; j++)
-                for (int i=0; i<Nx; i++)
+                for (int j=0; j<SCREEN_H; j++)
+                for (int i=0; i<SCREEN_W; i++)
                 {
                     f_read(&fat_file, msg, 3, &bytes_get);
                     if (bytes_get != 3) { f_close(&fat_file); return; }
