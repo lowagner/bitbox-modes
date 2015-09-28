@@ -2,9 +2,9 @@
 prototype view modes for the bitbox console
 
 
-## fullcolor_matrix  
+## fullcolorbuffer
 
-resolution:  160x120
+*resolution:*  160x120 with 16bit color
 
 uses a 160x120 16bit framebuffer to write to screen.  it quadruples down the 640x480 mode,
 but it could just double down on the 320x240 mode.  it does the former because i still
@@ -19,34 +19,43 @@ also, you can see some input/output here by pressing select (to save a picture) 
 GIMP or some other program capable of dealing with the Netpbm .ppm format.
 
 
+## fullcolorbuffer3d
+
+*resolution:*  160x120 with 16bit color
+
+this is a very simple example of 3d with the fullcolorbuffer described above;
+it doesn't race the beam directly like non-buffered 3d examples (below).
+
+
 ## vertexbuffer3d
 
-resolution is given by a simple mode:
+*NOT WORKING for some reason.*
+*if you are inclined, find out why!*
+*possibly drawing too many vertices at once...*
+
+*resolution* depends on the simple mode chosen in the Makefile:
 - VGA_SIMPLE_MODE=2:  800x600 at 1 bit per pixel (monochrome color palette)
 - VGA_SIMPLE_MODE=3:  640x400 (with black top/bottom bands) at 2 bits per pixel (4 color palette)
 - VGA_SIMPLE_MODE=4:  400x300 with 4BPP (16 colors)
 - VGA_SIMPLE_MODE=5:  320x200 (with black top/bottom bands) at 8BPP (256 colors)
 
-perhaps the simplest 3d example in this set of experimental view modes.
-it doesn't race the beam any fancy way like non-buffered 3d examples.
-check it out!
+another buffered 3d example which doesn't race the beam directly. 
 
 
 ## vertex3d  
 
-resolution:  640x480
+*resolution:*  640x480 with 16bit color
 
-a simple 3d example, where you can look at points in a 3d world.  uses some
+a non-buffered 3d example, where you can look at points in a 3d world.  uses some
 fancy sorting in the y-direction to make sure it only needs to look at the 
-next vertex or two it needs to put on screen.
-
+next vertex or two it needs to put on screen as it races the beam.
 
 
 ## wireframe3d
 
-resolution:  640x480
+*resolution:*  640x480 with 16bit color
 
-a simple 3d example with lines (edges) between points.  and a pretty blue border.
+a non-buffered 3d example with lines (edges) between points.  and a pretty blue border.
 i don't think you can get more than about 20 edges before the current algorithms
 become too much for the bitbox, but i will work on a draw-to-buffer algorithm
 which may be able to do more.

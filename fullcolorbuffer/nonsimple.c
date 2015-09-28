@@ -5,6 +5,11 @@
 #include <stdlib.h> // abs
 #include <string.h> // memset
 
+void_fn *graph_line_callback;
+uint16_t superpixel[SCREEN_H][SCREEN_W];
+uint16_t bg_color;
+
+
 void graph_frame() {}
 // --------------------------------------------------------------
 

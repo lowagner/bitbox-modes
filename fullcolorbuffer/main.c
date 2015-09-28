@@ -3,11 +3,6 @@
 #include "nonsimple.h"
 #include "fatfs/ff.h"
 
-void_fn* graph_line_callback;
-
-uint16_t superpixel[SCREEN_H][SCREEN_W];
-uint16_t bg_color;
-
 // for saving/loading the background image
 FATFS fat_fs;
 FIL fat_file;

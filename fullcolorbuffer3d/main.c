@@ -1,11 +1,34 @@
 #include <stdlib.h> // rand
-#include "simple.h"
+#include "nonsimple.h"
 #include "bb3d.h"
 
 vertex v[64]; // array of vertices
 int numv; // number of vertices
 
 Camera camera;
+
+inline uint16_t dim_color(uint16_t color, float z)
+{
+    if (z < 1.0)
+        return color;
+    if (round(z) > 7)
+    {
+        return (1 << 10)|(1 << 5)|1;
+    }
+    else
+    {
+        uint8_t zz = 8-round(z);
+        uint8_t r,g,b;
+        r = (color >> 10) & 31;
+        g = (color >> 5) & 31;
+        b = color & 31;
+        r = (r*zz) / 8;
+        g = (g*zz) / 8;
+        b = (b*zz) / 8;
+        return (r << 10)|(g << 5)|(b);
+    }
+
+}
 
 inline void get_coordinates(vertex *vv)
 {
@@ -16,6 +39,7 @@ inline void get_coordinates(vertex *vv)
     {
         // put the vertex below the screen, so it won't get drawn.
         vv->iy = 10000;
+        vv->iz = view[2]; // allow for testing behindness
     }
     else
     {
@@ -24,14 +48,16 @@ inline void get_coordinates(vertex *vv)
         view[1] *= camera.magnification / view[2]; 
         vv->ix = SCREEN_W/2 + round(view[0]);
         vv->iy = SCREEN_H/2 + round(view[1]);
+        vv->iz = view[2]; // allow for testing behindness
         // TODO:  
         // could make vertex brighter or bigger if it's closer.
         if (vv->ix >= 0 && vv->ix < SCREEN_W &&
             vv->iy >= 0 && vv->iy < SCREEN_H)
-            draw_pixel(vv->ix, vv->iy, vv->color_index);
+        {
+            superpixel[vv->iy][vv->ix] = dim_color(vv->color, vv->iz);
+        }
 
     }
-    vv->iz = view[2]; // allow for testing behindness
 }
 
 void get_all_coordinates()
@@ -49,22 +75,24 @@ void get_all_coordinates()
 void game_init()
 {
     // setup the game with some random vertices
-    numv = 48; 
-    for (int i=0; i<numv; ++i)
+    numv = 64; 
+    for (int i=0; i<4; ++i)
+    for (int j=0; j<4; ++j)
+    for (int k=0; k<4; ++k)
     {
-        v[i] = (vertex) { 
-            .world = { 0.001*(rand()%2048-1024), 0.001*(rand()%2048-1024), 0.001*(rand()%2048) },
-            .color_index = i % (1 << BPP)
+        v[16*i+4*j+k] = (vertex) { 
+            .world = { -0.75 + 0.5*i, -0.75 + 0.5*j, -0.75 + 0.5*k },
+            .color = RGB(85*i, 85*(3-j), 85*k)
         };
         message("v[%d].(x,y,z) = (%f, %f, %f)\n", i, v[i].world[0], v[i].world[1], v[i].world[2]);
     }
 
     // setup the camera
     camera = (Camera) {
-        .viewer = {0,0,2},
+        .viewer = {0,0,4},
         .viewee = {0,0,0},
         .down = {0,1,0},
-        .magnification = 300
+        .magnification = 200
     };
     // get the view of the camera:
     get_view(&camera);
@@ -121,10 +149,10 @@ void game_frame()
     {
         // clear screen
         clear();
-        // fix the camera at two units away from the origin
+        // fix the camera at four units away from the origin
         normalize(camera.viewer, camera.viewer);
         for (int i=0; i<3; ++i)
-            camera.viewer[i] *= 2;
+            camera.viewer[i] *= 4;
         // need to still update the view matrix of the camera,
         get_view(&camera);
         // and then apply the matrix to all vertex positions:
