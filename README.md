@@ -4,7 +4,7 @@ prototype view modes for the bitbox console
 
 ## fullcolorbuffer
 
-*resolution:*  160x120 with 16bit color
+**resolution:**  160x120 with 16bit color
 
 uses a 160x120 16bit framebuffer to write to screen.  it quadruples down the 640x480 mode,
 but it could just double down on the 320x240 mode.  it does the former because i still
@@ -21,7 +21,7 @@ GIMP or some other program capable of dealing with the Netpbm .ppm format.
 
 ## fullcolorbuffer3d
 
-*resolution:*  160x120 with 16bit color
+**resolution:**  160x120 with 16bit color
 
 this is a very simple example of 3d with the fullcolorbuffer described above;
 it doesn't race the beam directly like non-buffered 3d examples (below).
@@ -29,11 +29,11 @@ it doesn't race the beam directly like non-buffered 3d examples (below).
 
 ## vertexbuffer3d
 
-*NOT WORKING for some reason.*
-*if you are inclined, find out why!*
-*possibly drawing too many vertices at once...*
+**NOT WORKING for some reason.**
 
-*resolution* depends on the simple mode chosen in the Makefile:
+**if you are inclined, find out why!**
+
+**resolution** depends on the simple mode chosen in the Makefile:
 - VGA_SIMPLE_MODE=2:  800x600 at 1 bit per pixel (monochrome color palette)
 - VGA_SIMPLE_MODE=3:  640x400 (with black top/bottom bands) at 2 bits per pixel (4 color palette)
 - VGA_SIMPLE_MODE=4:  400x300 with 4BPP (16 colors)
@@ -44,7 +44,7 @@ another buffered 3d example which doesn't race the beam directly.
 
 ## vertex3d  
 
-*resolution:*  640x480 with 16bit color
+**resolution:**  640x480 with 16bit color
 
 a non-buffered 3d example, where you can look at points in a 3d world.  uses some
 fancy sorting in the y-direction to make sure it only needs to look at the 
@@ -53,7 +53,7 @@ next vertex or two it needs to put on screen as it races the beam.
 
 ## wireframe3d
 
-*resolution:*  640x480 with 16bit color
+**resolution:**  640x480 with 16bit color
 
 a non-buffered 3d example with lines (edges) between points.  and a pretty blue border.
 i don't think you can get more than about 20 edges before the current algorithms
