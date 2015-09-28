@@ -4,7 +4,6 @@
 
 vertex v[128]; // array of vertices
 int numv; // number of vertices
-int vertices_sorted;
 
 Camera camera;
 
