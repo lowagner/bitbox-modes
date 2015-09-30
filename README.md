@@ -20,12 +20,30 @@ GIMP or some other program capable of dealing with the Netpbm .ppm format.
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer.png)
 
+## multimode
+
+**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 2x4 super pixels)
+
+controls:
+* dpad moves text boxes around
+* A and Y switch the full-line background evolution function (lines without text boxes)
+* X and B switch the partial background evolution function (right/left of text boxes)
+* L removes background cascade
+* R starts background cascade
+* R+down-on-dpad starts infinite background cascade
+* select saves the superpixel background to disk (hello.ppm)
+* start loads the hello.ppm file on disk to the background.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode.png)
+
 ## fullcolorbuffer3d
 
 **resolution:**  160x120 with 16bit color
 
 this is a very simple example of 3d with the fullcolorbuffer described above;
 it doesn't race the beam directly like non-buffered 3d examples (below).
+
+a game using fullcolorbuffer3d is [checkers3d](https://github.com/lowagner/bitbox-checkers3d).
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer3d.png)
 
@@ -64,18 +82,3 @@ a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunne
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d.png)
 
-## multimode
-
-**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 2x4 super pixels)
-
-controls:
-* dpad moves text boxes around
-* A and Y switch the full-line background evolution function (lines without text boxes)
-* X and B switch the partial background evolution function (right/left of text boxes)
-* L removes background cascade
-* R starts background cascade
-* R+down-on-dpad starts infinite background cascade
-* select saves the superpixel background to disk (hello.ppm)
-* start loads the hello.ppm file on disk to the background.
-
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode.png)
