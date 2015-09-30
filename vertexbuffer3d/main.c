@@ -48,6 +48,8 @@ void get_all_coordinates()
 
 void game_init()
 {
+    clear(); // double purpose:  puts palette into ccm memory
+
     // setup the game with some random vertices
     numv = 48; 
     for (int i=0; i<numv; ++i)

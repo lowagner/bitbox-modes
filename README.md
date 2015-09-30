@@ -29,10 +29,6 @@ it doesn't race the beam directly like non-buffered 3d examples (below).
 
 ## vertexbuffer3d
 
-**NOT WORKING for some reason.**
-
-**if you are inclined, find out why!**
-
 **resolution** depends on the simple mode chosen in the Makefile:
 - VGA_SIMPLE_MODE=2:  800x600 at 1 bit per pixel (monochrome color palette)
 - VGA_SIMPLE_MODE=3:  640x400 (with black top/bottom bands) at 2 bits per pixel (4 color palette)
