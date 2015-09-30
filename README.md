@@ -18,6 +18,7 @@ also, you can see some input/output here by pressing select (to save a picture) 
 (to load the last picture).  it saves/loads the background image, and you can load it in
 GIMP or some other program capable of dealing with the Netpbm .ppm format.
 
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer.png)
 
 ## fullcolorbuffer3d
 
@@ -26,6 +27,7 @@ GIMP or some other program capable of dealing with the Netpbm .ppm format.
 this is a very simple example of 3d with the fullcolorbuffer described above;
 it doesn't race the beam directly like non-buffered 3d examples (below).
 
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer3d.png)
 
 ## vertexbuffer3d
 
@@ -37,6 +39,7 @@ it doesn't race the beam directly like non-buffered 3d examples (below).
 
 another buffered 3d example which doesn't race the beam directly. 
 
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertexbuffer3d.png)
 
 ## vertex3d  
 
@@ -46,6 +49,7 @@ a non-buffered 3d example, where you can look at points in a 3d world.  uses som
 fancy sorting in the y-direction to make sure it only needs to look at the 
 next vertex or two it needs to put on screen as it races the beam.
 
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertex3d.png)
 
 ## wireframe3d
 
@@ -58,6 +62,7 @@ which may be able to do more.
 
 a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunner).
 
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d.png)
 
 ## multimode
 
