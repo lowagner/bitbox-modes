@@ -8,8 +8,8 @@ prototype view modes for the bitbox console
 
 uses a 160x120 16bit framebuffer to write to screen.  it quadruples down the 640x480 mode,
 but it could just double down on the 320x240 mode.  it does the former because i still
-want higher resolution so as to include some text-based objects, but that will sit in
-another directory.
+want higher resolution so as to include some text-based objects, but that example is in the
+`multimode` directory.
 
 some of the A/B/X/Y buttons do things like change the background evolution function,
 or set the background color temporarily to red.
@@ -55,3 +55,22 @@ a non-buffered 3d example with lines (edges) between points.  and a pretty blue 
 i don't think you can get more than about 20 edges before the current algorithms
 become too much for the bitbox, but i will work on a draw-to-buffer algorithm
 which may be able to do more.
+
+a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunner).
+
+
+## multimode
+
+**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 2x4 super pixels)
+
+controls:
+* dpad moves text boxes around
+* A and Y switch the full-line background evolution function (lines without text boxes)
+* X and B switch the partial background evolution function (right/left of text boxes)
+* L removes background cascade
+* R starts background cascade
+* R+down-on-dpad starts infinite background cascade
+* select saves the superpixel background to disk (hello.ppm)
+* start loads the hello.ppm file on disk to the background.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode.png)
