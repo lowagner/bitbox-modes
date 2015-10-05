@@ -37,14 +37,14 @@ void game_init()
     palette[0] = RGB(255,255,255) | (0 << 16);
     palette[1] = 0 | (RGB(255,200,0) <<16);
 
-    text_box[0].x = 4;
+    text_box[0].x = 0;
     text_box[0].y = 10;
-    text_box[0].width = 50; // MUST BE NONZERO or there will be problems.
-    text_box[0].height = 10;
+    text_box[0].width = 60; // MUST BE NONZERO or there will be problems.
+    text_box[0].height = 8;
     sprintf(text, "who are you?  i dare say not understandable til the last drop.  that is absurd and unintelligible i am afraid, quoth the raven.  NO way hosea.");
     memset(text_attr, 0, sizeof(text_attr)/2);  // use palette 0 for first half
 
-    text_box[1].x = 50;
+    text_box[1].x = 70;
     text_box[1].y = 60;
     text_box[1].width = 10; // MUST BE NONZERO or there will be problems.
     text_box[1].height = 1;

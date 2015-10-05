@@ -191,9 +191,51 @@ void graph_line()
     static uint8_t prev_attr = 0xff;
     uint8_t *text_pos = (uint8_t*) &text[text_box[current_text_box_index].offset+text_box[current_text_box_index].width*(txtj/16)];
     uint8_t *attr_pos = &text_attr[text_box[current_text_box_index].offset+text_box[current_text_box_index].width*(txtj/16)];
-    txtj %= 16; // now figure out which of the 16 horizontal lines of a character it should be
-    for (int txti=0; txti<text_box[current_text_box_index].width; ++txti)
+    // check if we need to draw into the superpixel background
+    if ((txtj == 0) || (txtj == 16*((int)text_box[current_text_box_index].height)-4))
     {
+        // yes, update superpixels all the way across, 
+        // we are at the top and bottom of the text box:
+        txtj %= 16; // now figure out which of the 16 horizontal lines of a character it should be
+        for (int txti=0; txti<text_box[current_text_box_index].width; ++txti)
+        {
+            uint8_t p = font16_data_cached[*text_pos++][txtj];
+            uint8_t attr = *attr_pos++;
+            if (attr != prev_attr)
+            {   // update the cached colors
+                uint32_t c = palette[attr];
+
+                lut_data[0] = (c&0xffff)*0x10001; // AA
+                lut_data[1] = c; // AB
+                lut_data[2] = (c<<16 | c>>16); // BA
+                lut_data[3] = (c>>16)*0x10001; // BB
+
+                prev_attr = attr;
+
+                // set the background here...
+                superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = c&65535;
+                
+            }
+            else 
+            {
+                // set the background here...
+                superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = palette[attr]&65535;
+            }
+            *dst++ = lut_data[(p>>6) & 3];
+            *dst++ = lut_data[(p>>4) & 3];
+            *dst++ = lut_data[(p>>2) & 3];
+            *dst++ = lut_data[(p>>0) & 3];
+            i+=2; // increment two superpixels at a time
+        }
+    }
+    else if (vga_line % 4 == 0) 
+    {
+        // we are drawing somewhere in the middle (vertically speaking) of the textbox, 
+        // but we should update the superpixels at the edges
+
+        txtj %= 16; // now figure out which of the 16 horizontal lines of a character it should be
+        // do first and last char separately:  here the first one:
+        int txti = 0;
         uint8_t p = font16_data_cached[*text_pos++][txtj];
         uint8_t attr = *attr_pos++;
         if (attr != prev_attr)
@@ -208,13 +250,10 @@ void graph_line()
             prev_attr = attr;
 
             // set the background here...
-            if (vga_line % 4 == 0)
-            {
-                superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = c&65535;
-            }
+            superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = c&65535;
             
         }
-        else if (vga_line % 4 == 0)
+        else
         {
             // set the background here...
             superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = palette[attr]&65535;
@@ -223,7 +262,86 @@ void graph_line()
         *dst++ = lut_data[(p>>4) & 3];
         *dst++ = lut_data[(p>>2) & 3];
         *dst++ = lut_data[(p>>0) & 3];
+        
         i+=2; // increment two superpixels at a time
+
+        // now do the middle chars, but don't update superpixels...
+        for (txti=1; txti<text_box[current_text_box_index].width-1; ++txti)
+        {
+            p = font16_data_cached[*text_pos++][txtj];
+            attr = *attr_pos++;
+            if (attr != prev_attr)
+            {   // update the cached colors
+                uint32_t c = palette[attr];
+
+                lut_data[0] = (c&0xffff)*0x10001; // AA
+                lut_data[1] = c; // AB
+                lut_data[2] = (c<<16 | c>>16); // BA
+                lut_data[3] = (c>>16)*0x10001; // BB
+
+                prev_attr = attr;
+            }
+            *dst++ = lut_data[(p>>6) & 3];
+            *dst++ = lut_data[(p>>4) & 3];
+            *dst++ = lut_data[(p>>2) & 3];
+            *dst++ = lut_data[(p>>0) & 3];
+            i+=2; // increment two superpixels at a time
+        }
+
+        // now finally do the last char:
+        p = font16_data_cached[*text_pos++][txtj];
+        attr = *attr_pos++;
+        if (attr != prev_attr)
+        {   // update the cached colors
+            uint32_t c = palette[attr];
+
+            lut_data[0] = (c&0xffff)*0x10001; // AA
+            lut_data[1] = c; // AB
+            lut_data[2] = (c<<16 | c>>16); // BA
+            lut_data[3] = (c>>16)*0x10001; // BB
+
+            prev_attr = attr;
+
+            // set the background here...
+            superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = c&65535;
+            
+        }
+        else
+        {
+            // set the background here...
+            superpixel[vga_line/4][i] = superpixel[vga_line/4][i+1] = row_current[i] = row_current[i+1] = palette[attr]&65535;
+        }
+        *dst++ = lut_data[(p>>6) & 3];
+        *dst++ = lut_data[(p>>4) & 3];
+        *dst++ = lut_data[(p>>2) & 3];
+        *dst++ = lut_data[(p>>0) & 3];
+        
+        i+=2; // increment two superpixels at a time
+    }
+    else // somewhere in the middle of the text block, don't need to update superpixels
+    {
+        txtj %= 16; // now figure out which of the 16 horizontal lines of a character it should be
+        for (int txti=0; txti<text_box[current_text_box_index].width; ++txti)
+        {
+            uint8_t p = font16_data_cached[*text_pos++][txtj];
+            uint8_t attr = *attr_pos++;
+            if (attr != prev_attr)
+            {   // update the cached colors
+                uint32_t c = palette[attr];
+
+                lut_data[0] = (c&0xffff)*0x10001; // AA
+                lut_data[1] = c; // AB
+                lut_data[2] = (c<<16 | c>>16); // BA
+                lut_data[3] = (c>>16)*0x10001; // BB
+
+                prev_attr = attr;
+            }
+            *dst++ = lut_data[(p>>6) & 3];
+            *dst++ = lut_data[(p>>4) & 3];
+            *dst++ = lut_data[(p>>2) & 3];
+            *dst++ = lut_data[(p>>0) & 3];
+            i+=2; // increment two superpixels at a time
+        }
     }
 
     // other side of text box, draw super pixels:
@@ -269,7 +387,8 @@ void graph_line()
                 row_current = row_below;
                 row_below = row_above;
                 row_above = ptr;
-                
+               
+                // DO SOMETHING HERE IF WE STILL CAN'T WING IT!
                 if (vga_line/4 < Ny-2)
                     memcpy(row_below, superpixel[vga_line/4+2], 2*Nx);
                 else if (vga_line/4 == Ny-2)
