@@ -2,7 +2,7 @@
 
 NO_USB=1
 
-NAME = new_mode
+NAME = letterbox
 GAME_C_FILES = main.c nonsimple.c
 GAME_H_FILES = nonsimple.h
 GAME_C_OPTS += -DVGAMODE_320
