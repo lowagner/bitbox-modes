@@ -82,3 +82,9 @@ a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunne
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d.png)
 
+
+## letterbox
+
+one of my first new modes for bitbox, also fullcolor, but with even further-reduced resolution.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/letterbox.png)
