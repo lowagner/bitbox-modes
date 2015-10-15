@@ -6,8 +6,8 @@
 #include <string.h> // memset
 
 void_fn *graph_line_callback;
-uint16_t superpixel[SCREEN_H][SCREEN_W] __attribute__ ((section (".ccm")));
-uint16_t bg_color __attribute__ ((section (".ccm")));
+uint16_t superpixel[SCREEN_H][SCREEN_W] FAST_MEM;
+uint16_t bg_color FAST_MEM;
 
 
 void graph_frame() {}

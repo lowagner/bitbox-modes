@@ -4,6 +4,8 @@
 #include "math.h" // sqrt
 #include "stdint.h" // uint8_t
 
+struct edge; // define after defining the vertex...
+
 struct vertex {
     union {
         struct {
@@ -23,6 +25,7 @@ struct vertex {
             float iz; // remaining z-coordinate
         };
     };
+    struct edge *edges[6]; // somewhat specific to the given map...
 };
 
 struct face; // define after defining the edge...
@@ -30,9 +33,6 @@ struct face; // define after defining the edge...
 struct edge {
     struct vertex *p1, *p2; // ordered by p1->image.y <= p2->image.y
     struct face *f1, *f2; // the two faces which join at this edge
-    int scan_xL, scan_xR; // the non-white points just down and to the left or right of p1 
-    // if p1->iy == p2->iy, then scan_xL = min(p1->ix, p2->ix) 
-    //                           scan_xR = max(p1->ix, p2->ix)
 };
 
 struct face {

@@ -5,6 +5,7 @@
 
 #define SCREEN_W 160      // number of super pixels (4x4 pixels)
 #define SCREEN_H 120
+#define FAST_MEM __attribute__ ((section (".ccm")))
 
 typedef void (void_fn)(void);
 
