@@ -110,7 +110,9 @@ else if superpixel[y][xL+1] is white
 inline void draw_face(struct face *ff)
 {
     //float *p1, *p2, *p3; // image coordinates of the triangle
-    
+    superpixel[ff->v1->iy][ff->v1->ix] = RGB(255,0,0); 
+    superpixel[ff->v2->iy][ff->v2->ix] = RGB(255,0,0); 
+    superpixel[ff->v3->iy][ff->v3->ix] = RGB(255,0,0); 
 }
 
 inline void get_coordinates(struct vertex *vv)
@@ -172,10 +174,11 @@ inline void draw_edge(struct edge *ei)
     if (ei->p2->ix > ei->p1->ix)
     {   // x2 > x1
         dx = ei->p2->ix - ei->p1->ix;
-        int error = (dx>dy ? dx : -dy)/2;
+        //int error = (dx>dy ? dx : -dy)/2;
+        int error = (dx>dy ? dx : -dy/2);
         int x = ei->p1->ix;
         int y = ei->p1->iy;
-        for (; y <= ei->p2->iy; ++y)
+        for (; y < ei->p2->iy; ++y)
         {
             if (x == ei->p2->ix) // we have achieved the final x coordinate
                 superpixel[y][x] = edge_color;
@@ -228,10 +231,11 @@ inline void draw_edge(struct edge *ei)
     else // x2 < x1
     {
         dx = -ei->p2->ix + ei->p1->ix;
-        int error = (dx>dy ? dx : -dy)/2;
+        //int error = (dx>dy ? dx : -dy)/2;
+        int error = (dx>dy ? dx : -dy/2);
         int x = ei->p1->ix;
         int y = ei->p1->iy;
-        for (; y <= ei->p2->iy; ++y)
+        for (; y < ei->p2->iy; ++y)
         {
             if (x == ei->p2->ix) // we have achieved the final x coordinate
                 superpixel[y][x] = edge_color;
@@ -319,8 +323,8 @@ void game_init()
     vertex[numv++] = (struct vertex) { .world = { 1, 1, 0 } };
     face[numf++] = (struct face) { .v1 = &vertex[0], .v2 = &vertex[1], .v3 = &vertex[2], .visible = 1, .color = RGB(255,0,0) };
 
-    vertex[numv++] = (struct vertex) { .world = { 2, 1, 0 } };
-    face[numf++] = (struct face) { .v1 = &vertex[0], .v2 = &vertex[1], .v3 = &vertex[3], .visible = 1, .color = RGB(255,0,0) };
+    vertex[numv++] = (struct vertex) { .world = { -1, 1, 0 } };
+    face[numf++] = (struct face) { .v1 = &vertex[0], .v2 = &vertex[3], .v3 = &vertex[1], .visible = 1, .color = RGB(255,0,0) };
     edge[nume++] = (struct edge) { .p1 = &vertex[0], .p2 = &vertex[1], .f1 = &face[0], .f2 = &face[1] };
 
 
@@ -329,7 +333,7 @@ void game_init()
         .viewer = {0,0,4},
         .viewee = {0,0,0},
         .down = {0,1,0},
-        .magnification = 200
+        .magnification = 130
     };
     // get the view of the camera:
     get_view(&camera);
