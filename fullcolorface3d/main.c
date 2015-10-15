@@ -106,13 +106,12 @@ else if superpixel[y][xL+1] is white
 
 */
 
-
 inline void draw_face(struct face *ff)
 {
     //float *p1, *p2, *p3; // image coordinates of the triangle
     superpixel[ff->v1->iy][ff->v1->ix] = RGB(255,0,0); 
     superpixel[ff->v2->iy][ff->v2->ix] = RGB(255,0,0); 
-    superpixel[ff->v3->iy][ff->v3->ix] = RGB(255,0,0); 
+    superpixel[ff->v3->iy][ff->v3->ix] = RGB(255,0,0);
 }
 
 inline void get_coordinates(struct vertex *vv)
@@ -174,8 +173,7 @@ inline void draw_edge(struct edge *ei)
     if (ei->p2->ix > ei->p1->ix)
     {   // x2 > x1
         dx = ei->p2->ix - ei->p1->ix;
-        //int error = (dx>dy ? dx : -dy)/2;
-        int error = (dx>dy ? dx : -dy/2);
+        int error = (dx>dy ? dx : -dy)/2;
         int x = ei->p1->ix;
         int y = ei->p1->iy;
         for (; y < ei->p2->iy; ++y)
@@ -201,20 +199,11 @@ inline void draw_edge(struct edge *ei)
                 //error > -dx and error >= dy
                 {
                     int xleft, xright;
-                    int moveover = (error - dy)/dy;
-                    error -= dy * moveover;
+                    int moveover = (error)/dy;
+                    error -= dy * (moveover+1);
                     xleft = x;
-                    if (error > -dx) 
-                    {
-                        xright = xleft + moveover;
-                        x = xright + 1;
-                        error -= dy;
-                    }
-                    else
-                    {
-                        xright = xleft + moveover + 1;
-                        x = xright;
-                    }
+                    xright = xleft + moveover;
+                    x = xright + 1;
                     if (xright > ei->p2->ix)
                         xright = ei->p2->ix;
                     // for going down in y
@@ -231,8 +220,7 @@ inline void draw_edge(struct edge *ei)
     else // x2 < x1
     {
         dx = -ei->p2->ix + ei->p1->ix;
-        //int error = (dx>dy ? dx : -dy)/2;
-        int error = (dx>dy ? dx : -dy/2);
+        int error = (dx>dy ? dx : -dy)/2;
         int x = ei->p1->ix;
         int y = ei->p1->iy;
         for (; y < ei->p2->iy; ++y)
@@ -258,21 +246,12 @@ inline void draw_edge(struct edge *ei)
                 //error > -dx and error >= dy
                 {
                     int xleft, xright;
-                    int moveover = (error - dy)/dy;
-                    error -= dy * moveover;
+                    int moveover = (error)/dy;
+                    error -= dy * (moveover+1);
                     // moving left
                     xright = x;
-                    if (error > -dx) 
-                    {
-                        xleft = xright - moveover;
-                        x = xleft - 1;
-                        error -= dy;
-                    }
-                    else
-                    {
-                        xleft = xright - moveover - 1;
-                        x = xleft;
-                    }
+                    xleft = xright - moveover;
+                    x = xleft - 1;
                     if (xleft < ei->p2->ix)
                         xleft = ei->p2->ix;
                     // for going down in y
