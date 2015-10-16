@@ -6,6 +6,8 @@
 
 struct edge; // define after defining the vertex...
 
+#define CONNECTED 6 // max number of edges connected to any vertex
+
 struct vertex {
     union {
         struct {
@@ -25,7 +27,7 @@ struct vertex {
             float iz; // remaining z-coordinate
         };
     };
-    struct edge *edges[6]; // somewhat specific to the given map...
+    struct edge *edge[CONNECTED]; 
 };
 
 struct face; // define after defining the edge...
@@ -37,10 +39,17 @@ struct edge {
 
 struct face {
     struct vertex *v1, *v2, *v3; // do not move these around
-    struct edge *left, *right;
     union {
-        struct edge *bottom; // normal_case
-        struct edge *top; // strange case
+        struct {
+            struct edge *e1, *e2, *e3;
+        };
+        struct {
+            struct edge *left, *right;
+            union {
+                struct edge *bottom; // normal_case
+                struct edge *top; // strange case
+            };
+        };
     };
     uint8_t normal_case; // 1 or 2 if case I or II.
     uint8_t visible; // = is_ccw(v1->image, v2->image, v3->image)

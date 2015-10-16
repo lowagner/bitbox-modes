@@ -1,4 +1,3 @@
-#include <stdlib.h> // rand
 #include "nonsimple.h"
 #include "bb3d.h"
 #include "world.h"
