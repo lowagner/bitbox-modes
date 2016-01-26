@@ -258,7 +258,7 @@ inline void get_coordinates(struct vertex *vv)
     vv->iz = view[2]; // allow for testing behindness
 }
 
-inline void draw_edge(struct edge *ei)
+inline void order_edge(struct edge *ei)
 {
     if (ei->p1->iy == ei->p2->iy)
     {   // horizontal line
@@ -269,13 +269,8 @@ inline void draw_edge(struct edge *ei)
             ei->p1 = ei->p2;
             ei->p2 = old_p1;
         }
-        for (uint16_t *draw = &superpixel[ei->p1->iy][ei->p1->ix];
-             draw <= &superpixel[ei->p1->iy][ei->p2->ix]; draw++)
-            *draw = edge_color;
-        return; // finish drawing horizontal line.
     }
-
-    // otherwise the line has some vertical displacement
+    else
     // enforce p1.y < p2.y:
     if (ei->p2->iy < ei->p1->iy)
     {
@@ -283,15 +278,25 @@ inline void draw_edge(struct edge *ei)
         ei->p1 = ei->p2;
         ei->p2 = old_p1;
     }
+}
 
+inline void draw_edge(struct edge *ei)
+{
+    if (ei->p1->iy == ei->p2->iy)
+    {   // horizontal line.  p1.ix is guaranteed to be <= p2.ix
+        for (uint16_t *draw = &superpixel[ei->p1->iy][ei->p1->ix];
+             draw <= &superpixel[ei->p1->iy][ei->p2->ix]; draw++)
+            *draw = edge_color;
+        return; // finished drawing horizontal line.
+    }
+
+    // otherwise the line has some vertical displacement
     if (ei->p2->ix == ei->p1->ix)
     {   // straight vertical line
-
-        // draw it:
+        // draw it.  p1.iy is guaranteed to be <= p2.iy
         for (int j=ei->p1->iy; j<=ei->p2->iy; ++j)
             superpixel[j][ei->p1->ix] = edge_color;
-
-        return; // finish drawing vertical line.
+        return; // finished drawing vertical line.
     }
 
     // otherwise we have a diagonal line
@@ -402,9 +407,51 @@ void world_draw()
     for (int i=0; i<numv; ++i)
         get_coordinates(&vertex[i]);
 
+    // order edges internally:
+    for (int j=0; j<nume; ++j)
+        order_edge(&edge[j]);
+
     // then compute which faces are visible:
     for (int k=0; k<numf; ++k)
-        face[k].visible = is_ccw(face[k].v1->image, face[k].v2->image, face[k].v3->image);
+    {
+        struct face *fk = &face[k];
+        fk->visible = is_ccw(fk->v1->image, fk->v2->image, fk->v3->image);
+        if (fk->visible)
+        {   
+            // order the face's edges
+            if (fk->left->p1 == fk->right->p1)
+            {
+                if (fk->bottom->p1 == fk->right->p2)
+                {
+                    
+                }
+                else // fk->bottom->p1 == fk->left->p2
+                {
+
+                }
+            }
+            else if (fk->left->p2 == fk->right->p2) // there's a "top" in there
+            {
+
+            }
+            else // fk->left->p1 == fk->right->p2 or left->p2 == right->p1
+            {
+
+            }
+
+            // (top->p1->iy == top->p2->iy) && (top->p1->iy < left->p2->iy) && (top->p1->iy < right->p2->iy)
+
+
+            // check if it's top or bottom is straight horizontal
+            if (fk->top->p1->iy == fk->top->p2->iy)
+            {
+            }
+            else
+            {
+
+            }
+        }
+    }
 
     // draw all the visible edges:
     for (int j=0; j<nume; ++j)

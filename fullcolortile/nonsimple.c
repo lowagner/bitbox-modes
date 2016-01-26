@@ -10,7 +10,7 @@
 uint16_t bg_color FASTMEM;
 uint8_t tile_map[TILE_MAP_MEMORY] FASTMEM;
 uint8_t tile_translator[16] FASTMEM;
-uint16_t tile_draw[15][16][16] FASTMEM;
+uint16_t tile_draw[16][16][16] FASTMEM;
 uint16_t tile_map_x FASTMEM, tile_map_y FASTMEM;
 uint16_t tile_map_width FASTMEM, tile_map_height FASTMEM;
 // tile_map_width * tile_map_height <= TILE_MAP_MEMORY
@@ -23,40 +23,69 @@ void graph_frame() {}
 
 void graph_line() 
 {
-    int tile_j = tile_map_y + vga_line/2;
-    int tile_i = tile_map_x;
-    uint8_t *tile = &tile_map[(tile_j/16)*tile_map_width + tile_i / 16];
-
-    uint32_t *dst = (uint32_t*)draw_buffer;
+    if (vga_odd)
+        return;
+    int tile_j = tile_map_y + vga_line;
+//    if (tile_j < 0 || tile_j >= tile_map_height*16)
+//    {
+//        memset(draw_buffer, bg_color, 2*SCREEN_W);
+//        return;
+//    }   
+    uint16_t *dst = draw_buffer;
     if (tile_map_x % 16)
     {
-
+        uint8_t *tile = &tile_map[(tile_j/16)*tile_map_width + tile_map_x / 16];
+        tile_j %= 16;
+        // draw the first tile (it's somehwat off screen)
+        uint8_t trans = tile_translator[(*tile++)&15];
+        for (int l=tile_map_x%16; l<16; ++l)
+        {
+            uint16_t color = tile_draw[trans][tile_j][l];
+            if (color < 65535)
+                *dst++ = color;
+            else
+                *dst++ = bg_color;
+        }
+        // draw 19 un-broken tiles:
+        for (int k=0; k<19; ++k)
+        {
+            // translate the tile into what tile it should be drawn as:
+            trans = tile_translator[(*tile++)&15];
+            for (int l=0; l<16; ++l)
+            {
+                uint16_t color = tile_draw[trans][tile_j][l];
+                if (color < 65535)
+                    *dst++ = color;
+                else
+                    *dst++ = bg_color;
+            }
+        }
+        // draw 22'nd broken tile:
+        trans = tile_translator[(*tile)&15];
+        for (int l=0; l<(tile_map_x%16); ++l)
+        {
+            uint16_t color = tile_draw[trans][tile_j][l];
+            if (color < 65535)
+                *dst++ = color;
+            else
+                *dst++ = bg_color;
+        }
     }
     else
     {
+        uint8_t *tile = &tile_map[(tile_j/16)*tile_map_width + tile_map_x / 16];
         tile_j %= 16;
         for (int k=0; k<20; ++k)
         {
             // translate the tile into what tile it should be drawn as:
             uint8_t trans = tile_translator[(*tile++)&15];
-            if (trans < 15)
+            for (int l=0; l<16; ++l)
             {
-                for (int l=0; l<16; ++l)
-                {
-                    uint16_t color = tile_draw[trans][tile_j][l];
-                    if (color < 32768)
-                        *dst++ = (color) | (color<<16);
-                    else
-                        *dst++ = (bg_color) | (bg_color<<16);
-                }
-            }
-            else // transparent
-            {
-                uint32_t double_bg = bg_color | (bg_color << 16);
-                for (int l=0; l<16; ++l)
-                {
-                    *dst++ = double_bg;
-                }
+                uint16_t color = tile_draw[trans][tile_j][l];
+                if (color < 65535)
+                    *dst++ = color;
+                else
+                    *dst++ = bg_color;
             }
         }
     }
@@ -66,7 +95,7 @@ void graph_line()
 
 void clear() 
 {
-    memset(tile_map, 15, sizeof(tile_map));
+    memset(tile_map, 0, sizeof(tile_map));
     tile_map_x = 0;
     tile_map_y = 0;
     for (uint8_t i=0; i<16; ++i)

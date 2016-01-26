@@ -9,15 +9,16 @@ void game_init()
     bg_color = RGB(30,100,200);
 
     clear();
-    tile_map_width = 20;
-    tile_map_height = 15;
+    tile_map_width = 26;
+    tile_map_height = 20;
 
 
-    for (uint8_t i=0; i<30; ++i)
+    for (int k=0; k<tile_map_width*tile_map_height; ++k)
     {
-        memset(&tile_map[i*(tile_map_width/2)], i%16, tile_map_width/2);
+        tile_map[k] = k%16;
     }
 
+/*
     // tile 0
     uint16_t *tc = tile_draw[0][0];
     for (int j=0; j<16; ++j)
@@ -94,16 +95,52 @@ void game_init()
     {
         *tc++ = rand()%(1<<16);
     }
+*/
+    uint32_t *tc = (uint32_t*) tile_draw[0][0];
+    uint8_t color_index = 0;
+    for (int tile=0; tile<16; ++tile)
+    {
+        for (int line=0; line<16; ++line)
+        {
+            uint32_t color2 = color_index | (color_index<<8);
+            color2 = color2 | (color2 << 16);
+            for (int col=0; col<8; ++col)
+                *tc++ = color2;
+            ++color_index;
+        }
+    }
 }
 
 void game_frame()
 {
-    //kbd_emulate_gamepad();
+    kbd_emulate_gamepad();
 
-    if (vga_frame % 60 == 0)
+    if (vga_frame % 2 == 1)
     {
-        message("hey %d\n", vga_frame/60);
-        uint16_t *tc = tile_draw[14][0];
+        if (GAMEPAD_PRESSED(0, left))
+        {
+            if (tile_map_x > 0)
+                --tile_map_x;
+        }
+        else if (GAMEPAD_PRESSED(0, right))
+        {
+            if (tile_map_x + SCREEN_W < tile_map_width*16 - 1)
+                ++tile_map_x;
+        }
+        if (GAMEPAD_PRESSED(0, up))
+        {
+            if (tile_map_y > 0)
+                --tile_map_y;
+        }
+        else if (GAMEPAD_PRESSED(0, down))
+        {
+            if (tile_map_y + SCREEN_H < tile_map_height*16 - 1)
+                ++tile_map_y;
+        }
+    } 
+    else if (vga_frame % 60 == 0)
+    {
+        uint16_t *tc = tile_draw[15][0];
         for (int k=0; k<256; ++k)
         {
             *tc++ = rand()%(1<<16);

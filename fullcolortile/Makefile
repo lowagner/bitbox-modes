@@ -5,7 +5,7 @@ USE_SDCARD = 1      # allow use of SD card for io
 NAME = fulltile
 GAME_C_FILES = main.c nonsimple.c
 GAME_H_FILES = nonsimple.h
-GAME_C_OPTS += -DVGAMODE_640
+GAME_C_OPTS += -DVGAMODE_320
 
 # see this file for options
 include $(BITBOX)/lib/bitbox.mk
