@@ -1,7 +1,5 @@
 # DO NOT FORGET to define BITBOX environment variable 
 
-NO_USB=1
-
 NAME = letterbox
 GAME_C_FILES = main.c nonsimple.c
 GAME_H_FILES = nonsimple.h
