@@ -440,11 +440,13 @@ void background_decay(int istart, int iend)
 void background_color_decay(int istart, int iend)
 {
     int j = vga_line/4;
-    if (vga_frame % 2 == j%2) // do even lines on even frames, odd lines on odd frames...
+    // skip every other superpixel to render faster (i += 2 down below),
+    // but start odd/even every other time:
+    istart += (vga_frame + j)%2; 
     switch ((vga_frame/2) % 3) // only do one color each line...
     {
     case 0:
-        for (int i=istart; i<iend; ++i)
+        for (int i=istart; i<iend; i+=2)
         {
             uint8_t bg_r = (bg_color >> 10)&31;
 
@@ -466,7 +468,7 @@ void background_color_decay(int istart, int iend)
         break;
     case 1:
 
-        for (int i=istart; i<iend; ++i)
+        for (int i=istart; i<iend; i+=2)
         {
             uint8_t bg_g = (bg_color >> 5)&31;
 
@@ -487,7 +489,7 @@ void background_color_decay(int istart, int iend)
         }
         break;
     case 2:
-        for (int i=istart; i<iend; ++i)
+        for (int i=istart; i<iend; i+=2)
         {
             uint8_t bg_b = (bg_color)&31;
 
