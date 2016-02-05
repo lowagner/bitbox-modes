@@ -56,7 +56,7 @@ controls:
 * start loads the hello.ppm file on disk to the background.
 
 constraints:
-* any text box A whose top is higher than any box B's top must also have its bottom finish at or before box B.
+* any text box A whose top is higher than any box B's top must also have its bottom above or at the same y-position as B's bottom.
 * other than that, you can have multiple text boxes on a line.
 * do not allow text boxes to go offscreen in the x-direction, or bad things happen.  (you can go above and below without issue.)
 
