@@ -34,8 +34,33 @@ controls:
 * select saves the superpixel background to disk (hello.ppm)
 * start loads the hello.ppm file on disk to the background.
 
+constraints:
+* only 1 text box in any given horizontal line of the screen 
+(though see multimode320 code for a work around...)
+* do not allow text boxes to go offscreen in the x-direction, or bad things happen.  (you can go above and below without issue.)
+
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode.png)
 
+## multimode320
+
+**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 4x4 super pixels)
+
+controls:
+* dpad moves text boxes around
+* A and Y switch the full-line background evolution function (lines without text boxes)
+* X and B switch the partial background evolution function (right/left of text boxes)
+* L removes background cascade
+* R starts background cascade
+* R+down-on-dpad starts infinite background cascade
+* select saves the superpixel background to disk (hello.ppm)
+* start loads the hello.ppm file on disk to the background.
+
+constraints:
+* any text box A whose top is higher than any box B's top must also have its bottom finish at or before box B.
+* other than that, you can have multiple text boxes on a line.
+* do not allow text boxes to go offscreen in the x-direction, or bad things happen.  (you can go above and below without issue.)
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode320.png)
 ## fullcolorbuffer3d
 
 **resolution:**  160x120 with 16bit color
