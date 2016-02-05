@@ -7,8 +7,8 @@
 
 #define FASTMEM __attribute__ ((section (".ccm")))
 
-uint16_t bg_color;
-uint8_t tile_map[TILE_MAP_MEMORY];
+uint16_t bg_color FASTMEM;
+uint8_t tile_map[TILE_MAP_MEMORY] FASTMEM;
 uint8_t tile_translator[16] FASTMEM;
 //uint16_t tile_properties[16] FASTMEM;
 uint16_t tile_draw[16][16][16] FASTMEM;
@@ -19,18 +19,18 @@ uint16_t tile_map_width FASTMEM, tile_map_height FASTMEM;
 // tile_map_y < tile_map_height - 240
 
 // break sprites up into 16x16 tiles:
-//uint8_t sprite_translator[16];
-uint16_t sprite_draw[16][16][16];
+uint16_t sprite_frames[16][8][16][16]; // 16 sprites, 8 frames, 16x16 pixels...
+uint16_t sprite_draw[16][16][16] FASTMEM; // copy a frame into here to draw it
 
-struct object object[MAX_OBJECTS];
-uint8_t first_free_object;
-uint8_t first_used_object;
-uint8_t object_count; 
+struct object object[MAX_OBJECTS] FASTMEM;
+uint8_t first_free_object FASTMEM;
+uint8_t first_used_object FASTMEM;
+uint8_t object_count FASTMEM; 
 
-uint8_t draw_order[MAX_OBJECTS];
-uint8_t drawing_count; 
-uint8_t first_drawing_index; 
-uint8_t last_drawing_index; 
+uint8_t draw_order[MAX_OBJECTS] FASTMEM;
+uint8_t drawing_count FASTMEM; 
+uint8_t first_drawing_index FASTMEM; 
+uint8_t last_drawing_index FASTMEM; 
 
 
 static inline void swap_draw_order_k_kminus1(int k);
@@ -205,18 +205,6 @@ void clear()
 
 static inline void swap_draw_order_k_kminus1(int k)
 {
-//    // move the pointers around for the objects draw_index:
-//    int object_kminus1 = draw_order[k-1].ix_object >> 10;
-//    int object_k = draw_order[k].ix_object >> 10;
-//    object[object_kminus1].draw_index = k;
-//    object[object_k].draw_index = k-1;
-//
-//    // swap draw_order:
-//    int old_k_value = draw_order[k].value;
-//    draw_order[k].value = draw_order[k-1].value;
-//    draw_order[k-1].value = old_k_value;
-    // move the pointers around for the objects draw_index:
-
     int object_kminus1 = draw_order[k-1];
     int object_k = draw_order[k];
 
@@ -230,33 +218,11 @@ static inline void swap_draw_order_k_kminus1(int k)
 static inline void make_unseen_object_viewable(int i)
 {
     // object is viewable, but hasn't gone on the drawing list:
-    draw_order[drawing_count] = i;
     object[i].iy = object[i].y - tile_map_y;
     object[i].ix = object[i].x - tile_map_x;
-
-    /*
-    draw_order[drawing_count].iy = object[i].y - tile_map_y;
-    draw_order[drawing_count].ix_object = ((object[i].x - tile_map_x) & 1023) | (i << 10);
-    draw_order[drawing_count].index_z = object[i].index_z;
-    */
-    /*
-    // assume everything is sorted from 0 to drawing_count-1
-    int k=drawing_count;
-    while ( k > 0 && (draw_order[k-1].iy > draw_order[k].iy) )
-    {
-        swap_draw_order_k_kminus1(k);
-        --k;
-    }
-    
-    while ( k > 0 && 
-        (draw_order[k-1].iy == draw_order[k].iy) && 
-        (draw_order[k-1].index_z&240 > draw_order[k].index_z&240) )
-    {
-        swap_draw_order_k_kminus1(k);
-        --k;
-    }
-    */
     object[i].draw_index = drawing_count;
+    draw_order[drawing_count] = i;
+
     ++drawing_count;
 }
 
@@ -295,7 +261,6 @@ int create_object(int sprite_draw_index, int16_t x, int16_t y, uint8_t z)
 
 void move_object(int i, int16_t x, int16_t y)
 {
-    // NEED TO CHECK FOR x < tile_map_x - 16... instead!
     if (object[i].draw_index < 255) // object was visible...
     {
         if (on_screen(x, y))
@@ -335,4 +300,14 @@ void move_object(int i, int16_t x, int16_t y)
     }
     object[i].y = y;
     object[i].x = x;
+}
+
+void update_objects()
+{
+    uint8_t ok = first_used_object; // object index
+    while (ok < 255)
+    {
+        move_object(ok, object[ok].x, object[ok].y);
+        ok = object[ok].next_used_object;
+    }
 }

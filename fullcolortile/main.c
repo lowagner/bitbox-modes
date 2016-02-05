@@ -191,14 +191,7 @@ void game_frame()
         }
 
         if (moved)
-        {
-            uint8_t ok = first_used_object; // object index
-            while (ok < 255)
-            {
-                move_object(ok, object[ok].x, object[ok].y);
-                ok = object[ok].next_used_object;
-            }
-        }
+            update_objects();
     } 
     else if (vga_frame % 60 == 0)
     {
