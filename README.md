@@ -108,13 +108,6 @@ a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunne
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d/wireframe3d.png)
 
 
-## letterbox
-
-one of my first new modes for bitbox, also fullcolor, but with even further-reduced resolution.
-
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/letterbox/letterbox.png)
-
-
 ## fullcolortile
 
 **resolution:** 320x240 with 16bit color using 16x16 pixel tiles
@@ -122,4 +115,26 @@ one of my first new modes for bitbox, also fullcolor, but with even further-redu
 also sprites are available at 16x16 pixels.
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolortile/fullcolortile.png)
+
+
+## letterbox
+
+**resolution:** 128x84 with 16bit color
+
+one of my first new modes for bitbox, also fullcolor, but with even further-reduced resolution, 128x84, but with room on the top and bottom for other information.
+
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/letterbox/letterbox.png)
+
+
+## superletterbox 
+
+**resolution:** 320x100 with 16bit color
+
+also fullcolor, with room on the top and bottom for other information.
+note however, that the buffer takes up all the fast CCM memory 
+(320*100 pixels * 2 bytes/pixel = 64 kB) so drawing other stuff may be slower.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/superletterbox/superletterbox.png)
+
 
