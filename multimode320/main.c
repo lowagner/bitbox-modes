@@ -5,11 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-char text[1024];
-uint8_t text_attr[1024];
-struct text_box text_box[NUM_TEXT_BOXES];
-
 FATFS fat_fs;
 FIL fat_file;
 FRESULT fat_result;
@@ -28,22 +23,54 @@ void game_init()
     //palette:  bg | (fg << 16)
     palette[0] = RGB(255,255,255) | (0 << 16);
     palette[1] = 0 | (RGB(255,200,0) <<16);
+    palette[2] = RGB(255,230,230) | (RGB(50,0,0) <<16);
+    palette[3] = 0 | (RGB(255,255,255) <<16);
+    palette[4] = RGB(200,230,255) | (RGB(0,50,0) <<16);
 
-    text_box[0].x = 0;
-    text_box[0].y = 10;
-    text_box[0].width = 30; // MUST BE NONZERO or there will be problems.
-    text_box[0].height = 8;
+    box[0].y = 5;
+    box[0].width = 30; // MUST BE NONZERO or there will be problems.
+    box[0].x = 18;
+    box[0].height = 4;
     sprintf(text, "who are you? ");
-    memset(text_attr, 0, sizeof(text_attr)/2);  // use palette 0 for first half
+    memset(text_attr, 0, sizeof(text_attr)/4);  // use palette 0 for first quarter
 
-    text_box[1].x = 10;
-    text_box[1].y = 84;
-    text_box[1].width = 10; // MUST BE NONZERO or there will be problems.
-    text_box[1].height = 1;
-    text_box[1].offset = 512;
+    box[1].x = 10;
+    box[1].y = 84;
+    box[1].width = 10; // MUST BE NONZERO or there will be problems.
+    box[1].height = 1;
+    box[1].offset = 256;
+   
+    sprintf(text+box[1].offset, "next box.");
+    memset(text_attr+box[1].offset, 1, sizeof(text_attr)/4); // use palette 1 for second
+
+    box[2].x = 10;
+    box[2].y = 155;
+    box[2].width = 9; // MUST BE NONZERO or there will be problems.
+    box[2].height = 8;
+    box[2].offset = 512;
+
+    sprintf(text+box[2].offset, "third box.");
+    memset(text_attr+box[2].offset, 2, sizeof(text_attr)/8); // use palette 2
     
-    sprintf(text+512, "next box.");
-    memset(text_attr+512, 1, sizeof(text_attr)/2); // use palette 1 for second
+    box[3].x = 60;
+    box[3].y = 155;
+    box[3].width = 9; // MUST BE NONZERO or there will be problems.
+    box[3].height = 8;
+    box[3].offset = 640;
+
+    sprintf(text+box[3].offset, "fourth box.");
+    memset(text_attr+box[3].offset, 3, sizeof(text_attr)/8); // use palette 3
+    
+    box[4].x = 110;
+    box[4].y = 145;
+    box[4].width = 9; // MUST BE NONZERO or there will be problems.
+    box[4].height = 8;
+    box[4].offset = 768;
+
+    sprintf(text+box[4].offset, "fifth box.");
+    memset(text_attr+box[4].offset, 4, sizeof(text_attr)/8); // use palette 4
+
+    box_count = 5;
 
 }
 
@@ -102,28 +129,28 @@ void game_frame()
 
     if (GAMEPAD_PRESSED(0, left))
     {
-        if (text_box[0].x > 0) // assumes text_box[0] is furthest left.
-            for (int i=0; i<NUM_TEXT_BOXES; ++i)
-                text_box[i].x -= 1;
+        if (box[0].x > 0) // assumes box[0] is furthest left.
+            for (int i=0; i<MAX_BOXES; ++i)
+                box[i].x -= 1;
     }
     else if (GAMEPAD_PRESSED(0, right))
     {
-        if (2*text_box[NUM_TEXT_BOXES-1].x + 2*text_box[NUM_TEXT_BOXES-1].width < Nx-1) // assumes text_box[-1] is furthest right.
-            for (int i=0; i<NUM_TEXT_BOXES; ++i)
-                text_box[i].x += 1;
+        if (box[box_count-1].x + 4*box[box_count-1].width < Nx-1) // assumes box[-1] is furthest right.
+            for (int i=0; i<box_count; ++i)
+                box[i].x += 1;
 
     }
 
 
     if (GAMEPAD_PRESSED(0, down))
     {
-        for (int i=0; i<NUM_TEXT_BOXES; ++i)
-            text_box[i].y += 1;
+        for (int i=0; i<box_count; ++i)
+            box[i].y += 1;
     }
     else if (GAMEPAD_PRESSED(0, up))
     {
-        for (int i=0; i<NUM_TEXT_BOXES; ++i)
-            text_box[i].y -= 1;
+        for (int i=0; i<box_count; ++i)
+            box[i].y -= 1;
     }
 
 
