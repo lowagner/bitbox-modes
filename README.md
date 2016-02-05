@@ -18,7 +18,7 @@ also, you can see some input/output here by pressing select (to save a picture) 
 (to load the last picture).  it saves/loads the background image, and you can load it in
 GIMP or some other program capable of dealing with the Netpbm .ppm format.
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer/fullcolorbuffer.png)
 
 ## multimode
 
@@ -39,11 +39,11 @@ constraints:
 (though see multimode320 code for a work around...)
 * do not allow text boxes to go offscreen in the x-direction, or bad things happen.  (you can go above and below without issue.)
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode/multimode.png)
 
 ## multimode320
 
-**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 4x4 super pixels)
+**resolution:** 160x120 framebuffer with 16bit color, plus text at a higher resolution (color palette, a character takes up 4x4 super pixels), though text is lower resolution than in `multimode`.
 
 controls:
 * dpad moves text boxes around
@@ -60,7 +60,7 @@ constraints:
 * other than that, you can have multiple text boxes on a line.
 * do not allow text boxes to go offscreen in the x-direction, or bad things happen.  (you can go above and below without issue.)
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode320.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/multimode320/multimode320.png)
 ## fullcolorbuffer3d
 
 **resolution:**  160x120 with 16bit color
@@ -70,7 +70,7 @@ it doesn't race the beam directly like non-buffered 3d examples (below).
 
 a game using fullcolorbuffer3d is [checkers3d](https://github.com/lowagner/bitbox-checkers3d).
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer3d.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorbuffer3d/fullcolorbuffer3d.png)
 
 ## vertexbuffer3d
 
@@ -82,7 +82,7 @@ a game using fullcolorbuffer3d is [checkers3d](https://github.com/lowagner/bitbo
 
 another buffered 3d example which doesn't race the beam directly. 
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertexbuffer3d.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertexbuffer3d/vertexbuffer3d.png)
 
 ## vertex3d  
 
@@ -92,7 +92,7 @@ a non-buffered 3d example, where you can look at points in a 3d world.  uses som
 fancy sorting in the y-direction to make sure it only needs to look at the 
 next vertex or two it needs to put on screen as it races the beam.
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertex3d.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/vertex3d/vertex3d.png)
 
 ## wireframe3d
 
@@ -105,16 +105,21 @@ which may be able to do more.
 
 a game with wireframe3d is [bbgunner](https://github.com/lowagner/bitbox-bbgunner).
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/wireframe3d/wireframe3d.png)
 
 
 ## letterbox
 
 one of my first new modes for bitbox, also fullcolor, but with even further-reduced resolution.
 
-![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/letterbox.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/letterbox/letterbox.png)
 
 
 ## fullcolortile
 
-**resolution:** 320x240 with 16bit color using tiles
+**resolution:** 320x240 with 16bit color using 16x16 pixel tiles
+
+also sprites are available at 16x16 pixels.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolortile/fullcolortile.png)
+
