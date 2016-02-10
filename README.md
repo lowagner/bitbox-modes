@@ -138,3 +138,12 @@ note however, that the buffer takes up all the fast CCM memory
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/superletterbox/superletterbox.png)
 
 
+## verticallines
+
+**resolution:** 320x??? with 8bit color
+
+variable vertical resolution, you can have up to MAX_V vertical pixels in each column (currently MAX_V is 32 in nonsimple.h).  
+memory usage:  `320*MAX_V*3 + 256*2` (vertical pixels and overhead for variable pixel location, then palette).
+if you have more than 66 vertical pixels, you should probably go with the 320x200 simple mode (with 8bit palette)
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/verticallines/verticallines.png)
