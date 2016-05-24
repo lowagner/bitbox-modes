@@ -157,3 +157,14 @@ memory usage:  `320*MAX_V*3 + 320` (vertical pixels and overhead for variable pi
 if you have more than 66 vertical pixels, you will run out of CCM memory.
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/fullcolorvertical/fullcolorvertical.png)
+
+## palette16 
+
+**resolution:** 320x240 with a 16 color palette
+(160*240 = 38.4 kB for framebuffer, 1024 bytes for a quickly drawing palette).
+
+I used the palette from http://androidarts.com/palette/16pal.htm
+though adding a purple (INDIGO) instead of NIGHTBLUE.
+(the original NIGHTBLUE, if you are interested, is RGB(27, 38, 50)).
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16/palette16.png)
