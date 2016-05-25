@@ -4,13 +4,9 @@
 #include <stdlib.h> // abs
 #include <string.h> // memset
 
-void_fn* graph_line_callback;
-
 uint8_t superpixel[SCREEN_H][SCREEN_W/2] CCM_MEMORY;
 
 uint32_t palette[256] CCM_MEMORY;
-
-int graph_debug;
 
 void graph_frame() {}
 
@@ -57,3 +53,18 @@ void clear_screen()
 void propagate() {
 }
 
+void set_color(int x, int y, int c) 
+{
+    if (x % 2) 
+        superpixel[y][x/2] = (superpixel[y][x/2]&15)|((c&15)<<4);
+    else 
+        superpixel[y][x/2] = (c&15)|(superpixel[y][x/2]&(15<<4));
+}
+
+int get_color(int x, int y) 
+{
+    if (x % 2) 
+        return (superpixel[y][x/2]>>4)&15;
+    else 
+        return superpixel[y][x/2]&15;
+}

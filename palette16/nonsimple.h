@@ -8,10 +8,10 @@
 typedef void (void_fn)(void);
 
 void clear_screen();
+void set_color(int x, int y, int c);
+int get_color(int x, int y);
 
 extern uint8_t superpixel[SCREEN_H][SCREEN_W/2];
-extern int graph_debug;
-extern int wind_y, wind_x;
 
 extern void_fn* graph_line_callback;
 

@@ -4,8 +4,8 @@
 USE_SDCARD = 1
 
 NAME = paddle16
-GAME_C_FILES = main.c nonsimple.c
-GAME_H_FILES = nonsimple.h
+GAME_C_FILES = fill.c nonsimple.c main.c
+GAME_H_FILES = fill.h nonsimple.h
 
 GAME_C_OPTS += -DVGAMODE_320
 
