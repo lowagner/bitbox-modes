@@ -14,4 +14,4 @@ include $(BITBOX)/lib/bitbox.mk
 
 
 clean::
-	rm -rf 16pal*.pxl
+	rm -rf 16pal*.pxl 16PAL*.PXL

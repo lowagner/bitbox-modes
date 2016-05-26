@@ -10,6 +10,7 @@ typedef void (void_fn)(void);
 void clear_screen();
 void set_color(int x, int y, int c);
 int get_color(int x, int y);
+void draw_box(int x, int y, int w, int h, int c);
 
 extern uint8_t superpixel[SCREEN_H][SCREEN_W/2];
 extern uint32_t palette[256];

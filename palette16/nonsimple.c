@@ -70,3 +70,14 @@ int get_color(int x, int y)
     else 
         return superpixel[y][x/2]&15;
 }
+
+void draw_box(int x, int y, int w, int h, int c) 
+{
+    x /= 2;
+    c &= 15;
+    c |= (c<<4);
+    for (int i=x; i<x+w/2; ++i) 
+    for (int j=y; j<y+h; ++j)
+        superpixel[j][i] = c;
+}
+

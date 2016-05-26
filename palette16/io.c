@@ -26,7 +26,7 @@ int save_picture()
             return 1;
     }
     char count[3] = { '0', '0', '0' };
-    fat_result = f_open(&fat_file, "pal16i.txt", FA_READ | FA_WRITE | FA_OPEN_ALWAYS); 
+    fat_result = f_open(&fat_file, "info16.txt", FA_READ | FA_WRITE | FA_OPEN_ALWAYS); 
     if (fat_result==FR_OK) 
     {
         UINT bytes_read;
@@ -138,30 +138,24 @@ int load_picture(int previous)
             return 1;
     }
     char count[3] = { '0', '0', '0' };
-    fat_result = f_open(&fat_file, "pal16i.txt", FA_READ); 
+    fat_result = f_open(&fat_file, "info16.txt", FA_READ | FA_OPEN_EXISTING); 
     if (fat_result==FR_OK) 
     {
         if (f_read(&fat_file, &count, 3, &bytes_read) == FR_OK && bytes_read == 3 && previous) 
         {
-            --count[2];
-            if (count[2] < '0')
-            {
-                count[2] = '9';
-                --count[1];
-                if (count[1] < '0')
-                {
-                    count[1] = '9';
-                    --count[0];
-                    if (count[0] < '0')
-                    {
-                        count[0] = '9';
-                    }
-                }
-            }
+            int value = (count[0]-'0')*100 + (count[1]-'0')*10 + (count[2]-'0');
+            value -= previous;
+            if (value < 0)
+                value = 999;
+            else if (value > 999)
+                value = 0;
+            count[0] = '0' + value/100;
+            value %= 100;
+            count[1] = '0' + value/10;
+            count[2] = '0' + value%10;
         } 
         f_close(&fat_file);
     }
-
 
     char filename[13] = { '1', '6', 'p', 'a', 'l', count[0], count[1], count[2], '.', 'p', 'b', 'm', 0 };
     // save in pbm format
@@ -169,15 +163,15 @@ int load_picture(int previous)
     return 1;
     #else
     filename[10] = 'x'; filename[11] = 'l';
-    fat_result = f_open(&fat_file, filename, FA_READ);
+    fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
     if (fat_result != FR_OK)
     {
         message("could not open file %s\n", filename);
         goto file_error;
     }
-    uint8_t buffer[512];
+    uint8_t buffer[256];
     f_read(&fat_file, &buffer, sizeof(buffer), &bytes_read);
-    if (bytes_read < 512 || buffer[0] != 'p' || buffer[1] != 'x' || buffer[2] != 'l')
+    if (bytes_read < 256 || buffer[0] != 'p' || buffer[1] != 'x' || buffer[2] != 'l')
     {
         message("not a valid file format, or too small\n");
         goto file_error;
@@ -186,13 +180,13 @@ int load_picture(int previous)
     int i=3, palette_count = 0; 
     if (buffer[i] < '0' || buffer[i] > '9')
     {
-        message("expected a palette for this program.  (otherwise it might be valid .pxl file.)\n");
-        goto file_error; // expected a palette map, file format error
+        message("expected a palette for this program.\n");
+        goto file_error; // expected a palette count, file format error
     }
     else
         palette_count = buffer[i] - '0';
     
-    while (i < 512 - 1)
+    while (i < 256 - 1)
     {
         ++i;
         if (buffer[i] == ' ') // end palette
@@ -220,12 +214,12 @@ int load_picture(int previous)
     int index_bits = 4;
     int color_depth = 16;
     int width = 0, height = 0;
-    while (i < 512 - 1)
+    while (i < 256 - 1)
     {
         ++i;
         // look for a key/value pair in the form i16 or c24
         uint8_t key = 0;
-        while (i < 512)
+        while (i < 256)
         {
             key = buffer[i];
             if (key == ' ' || key == '\n' || key == '\t')
@@ -233,7 +227,7 @@ int load_picture(int previous)
             else
                 break;
         }
-        if (i == 512)
+        if (i == 256)
         {
             message("got to end of header without width and height info\n");
             goto file_error;
@@ -246,14 +240,14 @@ int load_picture(int previous)
         }
         ++i;
         
-        if (i >= 512 || buffer[i] < '0' || buffer[i] > '9')
+        if (i >= 256 || buffer[i] < '0' || buffer[i] > '9')
         {
             message("got key but expected value immediately after it\n");
             goto file_error; // expected a number here
         }
         int value = buffer[i] - '0';
         
-        while (i < 512 - 1)
+        while (i < 256 - 1)
         {
             ++i;
             if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t')
@@ -280,7 +274,7 @@ int load_picture(int previous)
         }
     }
     // get rest of width until space
-    while (i < 512 - 1)
+    while (i < 256 - 1)
     {
         ++i;
         if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t')
@@ -294,7 +288,7 @@ int load_picture(int previous)
             width = (width*10) + buffer[i] - '0';
     }
     // get space until height starts
-    while (i < 512 - 1)
+    while (i < 256 - 1)
     {
         ++i;
         if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t') {}
@@ -310,7 +304,7 @@ int load_picture(int previous)
         }
     }
     // get rest of height
-    while (i < 512 - 1)
+    while (i < 256 - 1)
     {
         ++i;
         if (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\t')
@@ -345,10 +339,10 @@ int load_picture(int previous)
     }
 
     ++i; // now arrived at start of palette section
-    if (i + palette_count*2 >= 512)
+    if (i + palette_count*2 >= 256)
     {
-        message("expected palette within the first 512 bytes of the file, or file truncated.\n");
-        goto file_error; // still need data and palette, expecting it in the first 512 bytes
+        message("expected palette within the first 256 bytes of the file, or file truncated.\n");
+        goto file_error; // still need data and palette, expecting it in the first 256 bytes
     }
 
     for (int k=0; k<palette_count; ++k)
@@ -364,15 +358,16 @@ int load_picture(int previous)
 
     // now arrived at the start of the data section
     uint8_t *dst = superpixel[0];
-    memcpy(dst, &buffer[i], 512-i);
-    i = 512 - i; // now let i manager where we are in superpixel, byte-wise:
+    memcpy(dst, &buffer[i], 256-i);
+    i = 256 - i; // now let i manager where we are in superpixel, byte-wise:
     dst += i;
     do
     {
-        int size = 512;
+        int size = 256;
         if (i + size > sizeof(superpixel))
             size = sizeof(superpixel) - i;
         f_read(&fat_file, dst, size, &bytes_read);
+        //f_read(&fat_file, buffer, size, &bytes_read);
         i += bytes_read;
         dst += bytes_read;
         if (bytes_read != size)
@@ -380,7 +375,7 @@ int load_picture(int previous)
             message("probably done with file, but unexpectedly. (filled %d / %d)\n", i, sizeof(superpixel));
             goto file_error; // probably done with file, but something seems wrong
         }
-    } while (bytes_read == 512 && i < sizeof(superpixel));
+    } while (bytes_read == 256 && i < sizeof(superpixel));
 
     #endif
 

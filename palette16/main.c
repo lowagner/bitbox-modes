@@ -8,17 +8,6 @@
 
 int player_x, player_y, player_c, original_c, player_s;
 
-void draw_box(int x, int y, int c) 
-{
-    x /= 2;
-    c &= 15;
-    c |= (c<<4);
-    for (int i=x; i<x+8; ++i) 
-    for (int j=y; j<y+16; ++j)
-        superpixel[j][i] = c;
-
-}
-
 void game_init()
 { 
     player_x = 0;
@@ -31,12 +20,14 @@ void game_init()
     int k=0;
     for (int i=0; i<SCREEN_W/16; ++i) 
     for (int j=0; j<SCREEN_H/16; ++j)
-        draw_box(i*16, j*16, k++);
+        draw_box(i*16, j*16, 16, 16, k++);
     io_init();
 }
 
 void game_frame()
 {
+    static int previous_picture = 0;
+
     kbd_emulate_gamepad();
 
     if (vga_frame % player_s == 0) 
@@ -88,7 +79,7 @@ void game_frame()
     }
 
   
-    if (vga_frame % 8 == 0)
+    if (vga_frame % 10 == 0)
     {
         if (GAMEPAD_PRESSED(0, A)) 
         {  
@@ -119,11 +110,11 @@ void game_frame()
 
         if (GAMEPAD_PRESSED(0, select))
         {
-            load_picture(0);
-        }
-        
-        if (GAMEPAD_PRESSED(0, start))
+            load_picture(previous_picture++);
+        } 
+        else if (GAMEPAD_PRESSED(0, start))
         {
+            previous_picture = 0;
             save_picture();            
         }
     }
