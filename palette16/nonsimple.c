@@ -43,6 +43,8 @@ void clear_screen()
         [SEABLUE]=RGB(0, 87, 132),
         [INDIGO]=RGB(28, 20, 40),
     };
+    for (int k=0; k<16; ++k)
+        message("init palette %d -> %d\n", k, colors[k]);
     for (int k=0; k<256; ++k) {
         // little endian stuff
         palette[k] = colors[k%16] | (colors[k/16]<<16);

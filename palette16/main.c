@@ -2,6 +2,7 @@
 #include <math.h>
 #include "nonsimple.h"
 #include "fill.h"
+#include "io.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -31,6 +32,7 @@ void game_init()
     for (int i=0; i<SCREEN_W/16; ++i) 
     for (int j=0; j<SCREEN_H/16; ++j)
         draw_box(i*16, j*16, k++);
+    io_init();
 }
 
 void game_frame()
@@ -117,10 +119,12 @@ void game_frame()
 
         if (GAMEPAD_PRESSED(0, select))
         {
+            load_picture(0);
         }
         
         if (GAMEPAD_PRESSED(0, start))
         {
+            save_picture();            
         }
     }
 
