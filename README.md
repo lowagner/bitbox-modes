@@ -170,9 +170,10 @@ though adding a purple (INDIGO) instead of NIGHTBLUE.
 It's also like an Etch-A-Sketch, so you can move a little drawing particle (the 'player') around.
 
 Controls:
-* dpad - move cursor and paint
+* dpad - move player particle and paint
 * B/Y - cycle player colors forward/back
-* A - flood fill
+* A - flood fill area to current color
+* L/R - decrease/increase speed of particle
 * Start - save the file to 16PAL000.PXL (where 000 will increment if you save more than one).
 * Select - load the last saved file.  (or if you continue hitting select, move further back in history.)
 
