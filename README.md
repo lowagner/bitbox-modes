@@ -167,4 +167,13 @@ I used the palette from http://androidarts.com/palette/16pal.htm
 though adding a purple (INDIGO) instead of NIGHTBLUE.
 (the original NIGHTBLUE, if you are interested, is RGB(27, 38, 50)).
 
+It's also like an Etch-A-Sketch, so you can move a little drawing particle (the 'player') around.
+
+Controls:
+* dpad - move cursor and paint
+* B/Y - cycle player colors forward/back
+* A - flood fill
+* Start - save the file to 16PAL000.PXL (where 000 will increment if you save more than one).
+* Select - load the last saved file.  (or if you continue hitting select, move further back in history.)
+
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16/palette16.png)
