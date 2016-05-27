@@ -416,79 +416,129 @@ void graph_line()
     {
         struct object *o = &object[draw_order[k]];
         int sprite_draw_row = vga16 - o->iy;
-        if (o->ix < 0)
+        if (o->ix < 0) // object left of screen but still visible
         {
             uint16_t *dst = draw_buffer;
             uint8_t *src = &sprite_frame[o->sprite_index][o->sprite_frame][sprite_draw_row][-o->ix/2];
             uint8_t invisible_color = o->invisible_color;
-            int odd = ((-o->ix)%2);
-            for (int pxl=-o->ix; pxl<16; ++pxl)
+            if ((-o->ix)%2)
             {
-                uint8_t color;
-                if (odd)
+                // if -o->ix == 15
+                // this executes no matter what:
+                uint8_t color = ((*src)>>4); //&15; //unnecessary!
+                if (color != invisible_color)
+                    *dst = palette[color]; // &65535; // unnecessary...
+                ++dst;
+                // if (o->ix == -13)
+                // we run from 7 to <8, which is just once:
+                for (int pxl=(-o->ix+1)/2; pxl<16/2; ++pxl) // 
                 {
-                    color = ((*src++)>>4); //&15; //unnecessary!
-                    odd = 0;
+                    color = ((*(++src)))&15;
+                    if (color != invisible_color)
+                        *dst = palette[color]; // &65535; // unnecessary...
+                    ++dst; 
+                    color = ((*src)>>4); //&15; //unnecessary!
+                    if (color != invisible_color)
+                        *dst = palette[color]; // &65535; // unnecessary...
+                    ++dst; 
                 }
-                else
+            }
+            else // not odd
+            {
+                --src;
+                for (int pxl=-o->ix/2; pxl<16/2; ++pxl)
                 {
-                    color = ((*src))&15;
-                    odd = 1;
+                    uint8_t color = (*(++src))&15;
+                    if (color != invisible_color)
+                        *dst = palette[color]; // &65535; // unnecessary...
+                    ++dst; 
+                    color = ((*src)>>4); //&15; //unnecessary!
+                    if (color != invisible_color)
+                        *dst = palette[color]; // &65535; // unnecessary...
+                    ++dst; 
                 }
+
+            }
+            //int odd = ((-o->ix)%2);
+            //for (int pxl=-o->ix; pxl<16; ++pxl)
+            //{
+            //    uint8_t color;
+            //    if (odd)
+            //    {
+            //        color = ((*src++)>>4); //&15; //unnecessary!
+            //        odd = 0;
+            //    }
+            //    else
+            //    {
+            //        color = ((*src))&15;
+            //        odd = 1;
+            //    }
+            //    if (color != invisible_color)
+            //        *dst = palette[color]; // &65535; // unnecessary...
+            //    ++dst; 
+            //}
+        }
+        else if (o->ix > SCREEN_W-16)
+        {
+            // object right of screen but still visible
+            int num_pxls = 1 + (SCREEN_W-1) - o->ix;
+            uint16_t *dst = draw_buffer + o->ix;
+            uint8_t *src = &sprite_frame[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
+            uint8_t invisible_color = o->invisible_color;
+            uint8_t color;
+            for (int pxl=0; pxl<num_pxls/2; ++pxl)
+            {
+                color = (*(++src))&15;
+                if (color != invisible_color)
+                    *dst = palette[color]; // &65535; // unnecessary...
+                ++dst; 
+                color = ((*src)>>4); //&15; //unnecessary!
                 if (color != invisible_color)
                     *dst = palette[color]; // &65535; // unnecessary...
                 ++dst; 
             }
-        }
-        else if (o->ix > SCREEN_W-16)
-        {
-            int num_pxls = 1 + (SCREEN_W-1) - o->ix;
-            uint16_t *dst = draw_buffer + o->ix;
-            uint8_t *src = &sprite_frame[o->sprite_index][o->sprite_frame][sprite_draw_row][0];
-            uint8_t invisible_color = o->invisible_color;
-            int odd = 0;
-            for (int pxl=0; pxl<num_pxls; ++pxl)
+            if (num_pxls%2)
             {
-                uint8_t color;
-                if (odd)
-                {
-                    color = ((*src++)>>4); //&15; //unnecessary!
-                    odd = 0;
-                }
-                else
-                {
-                    color = ((*src))&15;
-                    odd = 1;
-                }
+                color = (*(++src))&15;
                 if (color != invisible_color)
                     *dst = palette[color]; // &65535; // unnecessary...
-                ++dst; 
             }
         }
         else
         {
             uint16_t *dst = draw_buffer + o->ix;
-            uint8_t *src = &sprite_frame[o->sprite_index][o->sprite_frame][sprite_draw_row][0];
+            uint8_t *src = &sprite_frame[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
             uint8_t invisible_color = o->invisible_color;
-            int odd = 0;
-            // process through the nibbles (half bytes) individually:
-            for (int pxl=0; pxl<16; ++pxl)
+            for (int pxl=0; pxl<8; ++pxl)
             {
-                uint8_t color;
-                if (odd)
-                {
-                    color = ((*src++)>>4); //&15; //unnecessary!
-                    odd = 0;
-                }
-                else
-                {
-                    color = ((*src))&15;
-                    odd = 1;
-                }
+                uint8_t color = (*(++src))&15;
+                if (color != invisible_color)
+                    *dst = palette[color]; // &65535; // unnecessary...
+                ++dst; 
+                color = ((*src)>>4); //&15; //unnecessary!
                 if (color != invisible_color)
                     *dst = palette[color]; // &65535; // unnecessary...
                 ++dst; 
             }
+            //int odd = 0;
+            //// process through the nibbles (half bytes) individually:
+            //for (int pxl=0; pxl<16; ++pxl)
+            //{
+            //    uint8_t color;
+            //    if (odd)
+            //    {
+            //        color = ((*src++)>>4); //&15; //unnecessary!
+            //        odd = 0;
+            //    }
+            //    else
+            //    {
+            //        color = ((*src))&15;
+            //        odd = 1;
+            //    }
+            //    if (color != invisible_color)
+            //        *dst = palette[color]; // &65535; // unnecessary...
+            //    ++dst; 
+            //}
         }
     }
 }
