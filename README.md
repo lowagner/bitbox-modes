@@ -178,3 +178,12 @@ Controls:
 * Select - load the last saved file.  (or if you continue hitting select, move further back in history.)
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16/palette16.png)
+
+## palette16tile
+
+**resolution:** 320x240 with a 16 color palette, 16 16x16 background tiles, and 16 sprites 16x16 with 8 frames,
+and some 8192 bytes for a tile map.  Tried to keep everything under 32kB, in case we want to port it to micro.
+
+Everything is based on nibbles (half-bytes), so you'll see lots of (X&15) and (X>>4) for some (unsigned) byte X.
+
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile.png)
