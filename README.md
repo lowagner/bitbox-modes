@@ -186,4 +186,10 @@ and some 8192 bytes for a tile map.  Tried to keep everything under 32kB, in cas
 
 Everything is based on nibbles (half-bytes), so you'll see lots of (X&15) and (X>>4) for some (unsigned) byte X.
 
+There's also a tile viewer if you hit select.
+
+Controls:
+* dpad - move around
+* select - switch to a different view mode
+
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile.png)
