@@ -13,6 +13,8 @@ void game_init()
     old_gamepad[1] = 65535;
     visual_mode = TilesAndSprites;
 
+    edit_color = 16;
+
     reset_colors_and_map();
     tile_map_width = 26;
     tile_map_height = 20;
@@ -20,7 +22,7 @@ void game_init()
     for (int j=0; j<tile_map_height; ++j)
     for (int i=0; i<tile_map_width/2; ++i)
     {
-        if (j < (tile_map_height-16))
+        if (j <= (tile_map_height-16))
             tile_map[j*(tile_map_width/2)+i] = 0;
         else
             tile_map[j*(tile_map_width/2)+i] = ((j - tile_map_height + 16)%16)|(((j - tile_map_height + 16)%16)<<4);
@@ -49,6 +51,12 @@ void game_init()
     for (int i=0; i<8; ++i)
     {
         *tc++ = SKYBLUE|(SKYBLUE<<4);
+    }
+    // next tiles are mostly solid colors
+    for (int k=0; k<9; ++k)
+    for (int l=0; l<128; ++l)
+    {
+        *tc++ = (2+k)|((3+k)<<4);
     }
     // next tile
     for (int j=0; j<16; ++j)
@@ -128,12 +136,6 @@ void game_init()
         else
             *tc++ = BLUEGREEN|(BLUEGREEN<<4);
     }
-    // next tiles are random
-    for (int k=0; k<8; ++k)
-    for (int l=0; l<128; ++l)
-    {
-        *tc++ = rand()%256;
-    }
 
     // setup the objects and the linked list:
     for (int i=0; i<MAX_OBJECTS; ++i)
@@ -164,15 +166,6 @@ void game_frame()
         edit_tile_controls();
         break;
     }
-    
-    if (vga_frame % 60 == 0)
-    {
-        uint8_t *tc = tile_draw[15][0];
-        for (int k=0; k<128; ++k)
-        {
-            *tc++ = rand()%256;
-        }
-    } 
     
     old_gamepad[0] = gamepad_buttons[0];
     old_gamepad[1] = gamepad_buttons[1];

@@ -1,15 +1,18 @@
 #include "bitbox.h"
-#include "edit.h"
 #include "nonsimple.h"
+#include "edit.h"
 #include "tiles.h"
+#include "fill.h"
 #include "sprites.h"
 #include <string.h> // memset
 
 uint8_t edit_tile CCM_MEMORY;
 uint8_t edit_sprite CCM_MEMORY;
 
-uint8_t edit_spot CCM_MEMORY;
+int edit_x CCM_MEMORY;
+int edit_y CCM_MEMORY;
 uint8_t edit_color CCM_MEMORY;
+uint8_t edit_previous_color CCM_MEMORY;
 
 void edit_tile_line() 
 {
@@ -18,8 +21,14 @@ void edit_tile_line()
         if (vga_line < 4)
         {
             if (vga_line/2 == 0)
-            for (int i=0; i<SCREEN_W; ++i)
-                draw_buffer[i] = palette[(vga_frame/(60*5))&15];
+            {
+                if (edit_color < 16)
+                    for (int i=0; i<SCREEN_W; ++i)
+                        draw_buffer[i] = palette[edit_color];
+                else
+                    for (int i=0; i<SCREEN_W; ++i)
+                        draw_buffer[i] = palette[(vga_frame/(60*5))&15];
+            }
         }
         else if (vga_line < 20)
         {
@@ -79,8 +88,14 @@ void edit_tile_line()
         if (vga_line >= SCREEN_H - 4)
         {
             if (vga_line/2 == (SCREEN_H-4)/2)
-            for (int i=0; i<SCREEN_W; ++i)
-                draw_buffer[i] = palette[(vga_frame/(60*5))&15];
+            {
+                if (edit_color < 16)
+                    for (int i=0; i<SCREEN_W; ++i)
+                        draw_buffer[i] = palette[edit_color];
+                else
+                    for (int i=0; i<SCREEN_W; ++i)
+                        draw_buffer[i] = palette[(vga_frame/(60*5))&15];
+            }
         }
         else if (vga_line >= SCREEN_H - 20)
         {
@@ -137,9 +152,6 @@ void edit_tile_line()
 
     // separate block to limit scope of variables therein:
     {
-        int edit_x = edit_spot&15;
-        int edit_y = edit_spot>>4;
-
         // draw big tile
         int tile_j = (vga_line-32)/11;
         uint32_t *dst = ((uint32_t *)draw_buffer) + 32/2;
@@ -261,44 +273,31 @@ void edit_sprite_line()
     
 }
 
+void edit_paint()
+{
+    if (edit_x % 2)
+    {
+        uint8_t color = tile_draw[edit_tile][edit_y][edit_x/2];
+        edit_previous_color = color >> 4;
+        tile_draw[edit_tile][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
+    }
+    else
+    {
+        uint8_t color = tile_draw[edit_tile][edit_y][edit_x/2];
+        edit_previous_color = color & 15;
+        tile_draw[edit_tile][edit_y][edit_x/2] = edit_color | (color & 240);
+    }
+}
 
 void edit_tile_controls()
 {
-    if (vga_frame % 4 == 0)
-    {
-        if (GAMEPAD_PRESSED(0, left))
-        {
-            if ((edit_spot & 15) > 0)
-            {
-                --edit_spot;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, right))
-        {
-            if ((edit_spot & 15) < 15)
-            {
-                ++edit_spot;
-            }
-        }
-        if (GAMEPAD_PRESSED(0, up))
-        {
-            if (edit_spot >= 16)
-            {
-                edit_spot -= 16;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, down))
-        {
-            if (edit_spot < 240)
-            {
-                edit_spot += 16;
-            }
-        }
-    }
     if (GAMEPAD_PRESS(0, select))
     {
+        fill_stop();
         visual_mode = TilesAndSprites;
+        return;
     }
+
     int movement = 0;
     if (GAMEPAD_PRESS(0, R))
     {
@@ -307,11 +306,158 @@ void edit_tile_controls()
     else if (GAMEPAD_PRESS(0, L))
     {
         movement = 15;
-    }
-    
+    }    
     if (movement)
     {
+        fill_stop();
         edit_tile = (edit_tile + movement)&15; 
+        return;
         //edit_sprite = (edit_sprite + movement)&15; 
+    }
+    
+    if (GAMEPAD_PRESS(0, X))
+    {
+        if (edit_color < 16)
+        {
+            // was painting, stop painting
+            edit_previous_color = edit_color;
+            edit_color = 16;
+        }
+        else
+        {
+            edit_color = edit_previous_color;
+            edit_paint();
+        }
+        return;
+    }
+    
+    int moved = 0;
+    if (edit_color < 16)
+    {
+        if (GAMEPAD_PRESS(0, A))
+        {
+            if (fill_can_start() && edit_previous_color != edit_color)
+            {
+                fill_init(tile_draw[edit_tile][0], 16, 16, 
+                    edit_previous_color, edit_x, edit_y, edit_color);
+                return;
+            }
+        }
+
+        if (GAMEPAD_PRESS(0, Y))
+        {
+            edit_color = (edit_color + 1)&15;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+        else if (GAMEPAD_PRESS(0, B))
+        {
+            edit_color = (edit_color - 1)&15;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (GAMEPAD_PRESS(0, left))
+    {
+        if (edit_x > 0)
+        {
+            --edit_x;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    else if (GAMEPAD_PRESS(0, right))
+    {
+        if (edit_x < 15)
+        {
+            ++edit_x;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (GAMEPAD_PRESS(0, up))
+    {
+        if (edit_y > 0)
+        {
+            --edit_y;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    else if (GAMEPAD_PRESS(0, down))
+    {
+        if (edit_y < 15)
+        {
+            ++edit_y;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (moved)
+    {
+        if (edit_color < 16)
+            edit_paint();
+        return;
+    }
+    if (gamepad_press_wait)
+    {
+        --gamepad_press_wait;
+        return;
+    }
+    if (edit_color < 16)
+    {
+        if (GAMEPAD_PRESSED(0, Y))
+        {
+            edit_color = (edit_color + 1)&15;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+        else if (GAMEPAD_PRESSED(0, B))
+        {
+            edit_color = (edit_color - 1)&15;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (GAMEPAD_PRESSED(0, left))
+    {
+        if (edit_x > 0)
+        {
+            --edit_x;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    else if (GAMEPAD_PRESSED(0, right))
+    {
+        if (edit_x < 15)
+        {
+            ++edit_x;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (GAMEPAD_PRESSED(0, up))
+    {
+        if (edit_y > 0)
+        {
+            --edit_y;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    else if (GAMEPAD_PRESSED(0, down))
+    {
+        if (edit_y < 15)
+        {
+            ++edit_y;
+            gamepad_press_wait = 8;
+            moved = 1;
+        }
+    }
+    if (moved && edit_color < 16)
+    {
+        edit_paint();
+        return;
     }
 }

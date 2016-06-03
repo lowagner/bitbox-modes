@@ -18,6 +18,7 @@ extern uint16_t palette[16];
 
 #define GAMEPAD_PRESS(id, key) ((gamepad_buttons[id]) & (~old_gamepad[id]) & (gamepad_##key))
 extern uint16_t old_gamepad[2];
+extern uint8_t gamepad_press_wait;
 
 void reset_colors_and_map();
 

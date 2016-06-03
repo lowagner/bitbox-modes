@@ -1,4 +1,5 @@
 #include "tiles.h"
+#include "sprites.h"
 #include "bitbox.h"
 
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
@@ -11,7 +12,7 @@ uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
 // tile_map_x < tile_map_width - 320
 // tile_map_y < tile_map_height - 240
 
-void map_line()
+void tiles_line()
 {
     if (tile_map_x % 16)
     {

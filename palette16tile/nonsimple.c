@@ -10,6 +10,7 @@
 VisualMode visual_mode CCM_MEMORY; 
 uint16_t palette[16] CCM_MEMORY; 
 uint16_t old_gamepad[2];
+uint8_t gamepad_press_wait CCM_MEMORY;
 
 void graph_frame() 
 {
@@ -30,7 +31,7 @@ void graph_line()
     switch (visual_mode)
     {
     case TilesAndSprites:
-        map_line();
+        tiles_line();
         sprite_line();
         break;
     case EditTile:

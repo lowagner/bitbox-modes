@@ -46,9 +46,9 @@ int fill_get_color(int x, int y)
 {
     int index = y*fill_width + x;
     if (index % 2)
-        return (fill_memory[index/2] & 15);
-    else
         return (fill_memory[index/2] >> 4);
+    else
+        return (fill_memory[index/2] & 15);
 }
 
 void fill_add_row_to_stack(int y, int xmin, int xmax)
@@ -65,7 +65,7 @@ void fill_add_row_to_stack(int y, int xmin, int xmax)
             fill_stack[i] = fill_stack[j];
             fill_stack[j] = old_value_i;
         }
-        fill_stack_index = i;
+        fill_stack_index = i-1;
     }
     fill_stack[++fill_stack_index] = xmin + (y<<10) + (xmax<<20);
 }
@@ -74,20 +74,19 @@ void fill_row(int y, int xmin, int xmax)
 {
     if (xmax - xmin >= 4)
     {
-        int index_min = y*fill_width;
-        int index_max = index_min + xmax;
-        index_min += xmin;
+        int index_min = y*fill_width + xmin;
+        int index_max = y*fill_width + xmax;
         if (index_min % 2)
         {
             fill_memory[index_min/2] = (fill_memory[index_min/2] & 15) | (fill_new_color<<4);
             fill_set_matrix(xmin, y);
-            ++xmin;
+            ++index_min;
         }
         if (index_max % 2 == 0)
         {
             fill_memory[index_max/2] = fill_new_color | (fill_memory[index_max/2] & 240);
             fill_set_matrix(xmax, y);
-            --xmax;
+            --index_max;
         }
         // for example, if index_min == 3 and index_max == 6
         // then index_min -> 4 and index_max -> 5
@@ -97,8 +96,8 @@ void fill_row(int y, int xmin, int xmax)
         // another example, index_min = 3 and index_max == 9
         // then index_min -> 4, index_min/2 -> 2, and index_max/2 -> 4.
         // need to set bytes 2, 3, and 4, so counting 3 in total
-        int c = (fill_new_color) | ((fill_new_color) << 4);
-        memset(&fill_memory[index_min/2], c, 1 + xmax/2-xmin/2);
+        uint8_t c = (fill_new_color) | ((fill_new_color) << 4);
+        memset(&fill_memory[index_min/2], c, 1 + index_max/2-index_min/2);
         
         while (index_min <= index_max && (index_min % 8)) 
         {
@@ -106,7 +105,7 @@ void fill_row(int y, int xmin, int xmax)
             fill_matrix[index_min/8] |= 1 << (index_min % 8);
             ++index_min;
         }
-        while (index_min < index_max && ((index_max % 8)<7)) 
+        while (index_min <= index_max && ((index_max % 8)<7)) 
         {
             fill_matrix[index_max/8] |= 1 << (index_max % 8);
             --index_max;
@@ -140,26 +139,36 @@ void fill_stop()
 
 void fill_init(uint8_t *memory, int height, int width, int old_c, int x, int y, int new_c)
 {
+    if (!memory)
+        return;
+    if (height == 0 || width == 0)
+        return;
+    if (height*width/8 > sizeof(fill_matrix))
+        return;
     fill_memory = memory;
     fill_height = height;
     fill_width = width;
+    
+    old_c &= 15;
+    new_c &= 15;
 
-    memset(fill_matrix, 0, sizeof(fill_matrix));
+    memset(fill_matrix, 0, height*width/8);
     // so that fill color will work:
     int xmin = x;
     while (xmin > 0 && fill_get_color(xmin-1, y) == old_c)
         --xmin;
     int xmax = x;
-    while (xmax < SCREEN_W-1 && fill_get_color(xmax+1, y) == old_c)
+    while (xmax < fill_width-1 && fill_get_color(xmax+1, y) == old_c)
         ++xmax;
+    message("init spot (%d, %d) got row from %d to %d, color %d to %d\n", x, y, xmin, xmax, old_c, new_c);
     
     if (y > 0)
         fill_add_row_to_stack(y-1, xmin, xmax);
-    if (y < SCREEN_H-1)
+    if (y < fill_height-1)
         fill_add_row_to_stack(y+1, xmin, xmax);
     
-    fill_old_color = old_c & 15;
-    fill_new_color = new_c & 15;
+    fill_old_color = old_c;
+    fill_new_color = new_c;
     
     fill_row(y, xmin, xmax);
 }
@@ -200,6 +209,9 @@ void fill_frame()
     int xmax = (z >> 20) & 1023;
     int y = (z >> 10) &1023;
     int xmin = z & 1023;
+    #ifdef NDEBUG
+    message("checking row %d from %d to %d\n", y, xmin, xmax);
+    #endif
 
     // the rows will be tested from xmin to xmax_current,
     // then you can add [y, xmin, xmax_current] to the stack
@@ -235,7 +247,7 @@ void fill_frame()
     {
         // xmin to xmax_current is currently a valid paintable row,
         // push the right side of the as far as possible:
-        while (xmax_current < SCREEN_W-1 && fill_test(xmax_current+1, y))
+        while (xmax_current < fill_width-1 && fill_test(xmax_current+1, y))
             ++xmax_current;
        
         if (xmin == xmax_current)
@@ -250,7 +262,7 @@ void fill_frame()
                 if (fill_test(xmin, y-1))
                     fill_add_row_to_stack(y-1, xmin, xmin);
             }
-            if (y < SCREEN_H-1)
+            if (y < fill_height-1)
             {
                 if (fill_test(xmin, y+1))
                     fill_add_row_to_stack(y+1, xmin, xmin);
@@ -262,7 +274,7 @@ void fill_frame()
             // add stuff to the stack
             if (y > 0)
                 fill_add_row_to_stack(y-1, xmin, xmax_current);
-            if (y < SCREEN_H-1)
+            if (y < fill_height-1)
                 fill_add_row_to_stack(y+1, xmin, xmax_current);
         }
 
@@ -286,8 +298,7 @@ void fill_frame()
         if (xmin == xmax && fill_test(xmax, y) == 0)
         {
             // nothing left paintable in this row
-            ++xmin;
-            break;
+            return;
         }
         else
         {
