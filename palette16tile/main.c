@@ -1,12 +1,19 @@
-#include <stdlib.h> // rand
-#include <math.h>
+#include "bitbox.h"
 #include "nonsimple.h"
+#include "sprites.h"
+#include "tiles.h"
+#include "edit.h"
+#include "fill.h"
 
-#include <string.h> // memset
+#include <stdlib.h> // rand
 
 void game_init()
 { 
-    clear();
+    old_gamepad[0] = 65535;
+    old_gamepad[1] = 65535;
+    visual_mode = TilesAndSprites;
+
+    reset_colors_and_map();
     tile_map_width = 26;
     tile_map_height = 20;
 
@@ -20,7 +27,7 @@ void game_init()
     }
 
     // create some random sprites...
-    uint8_t *sc = sprite_frame[0][0][0];
+    uint8_t *sc = sprite_draw[0][0][0];
     int color_index = 0;
     for (int tile=0; tile<15; ++tile)
     for (int frame=0; frame<8; ++frame)
@@ -148,47 +155,17 @@ void game_init()
 void game_frame()
 {
     kbd_emulate_gamepad();
-
-    if (vga_frame % 2 == 1)
+    switch (visual_mode)
     {
-        int moved = 0;
-        if (GAMEPAD_PRESSED(0, left))
-        {
-            if (tile_map_x > 0)
-            {
-                --tile_map_x;
-                moved = 1;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, right))
-        {
-            if (tile_map_x + SCREEN_W < tile_map_width*16 - 1)
-            {
-                ++tile_map_x;
-                moved = 1;
-            }
-        }
-        if (GAMEPAD_PRESSED(0, up))
-        {
-            if (tile_map_y > 0)
-            {
-                --tile_map_y;
-                moved = 1;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, down))
-        {
-            if (tile_map_y + SCREEN_H < tile_map_height*16 - 1)
-            {
-                ++tile_map_y;
-                moved = 1;
-            }
-        }
-
-        if (moved)
-            update_objects();
-    } 
-    else if (vga_frame % 60 == 0)
+    case TilesAndSprites:
+        map_controls();
+        break;
+    case EditTile:
+        edit_tile_controls();
+        break;
+    }
+    
+    if (vga_frame % 60 == 0)
     {
         uint8_t *tc = tile_draw[15][0];
         for (int k=0; k<128; ++k)
@@ -196,4 +173,9 @@ void game_frame()
             *tc++ = rand()%256;
         }
     } 
+    
+    old_gamepad[0] = gamepad_buttons[0];
+    old_gamepad[1] = gamepad_buttons[1];
+
+    fill_frame();
 }
