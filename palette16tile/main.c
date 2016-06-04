@@ -13,7 +13,7 @@ void game_init()
     old_gamepad[1] = 65535;
     visual_mode = TilesAndSprites;
 
-    edit_color = 16;
+    edit_color = 0;
 
     reset_colors_and_map();
     tile_map_width = 26;
@@ -171,4 +171,7 @@ void game_frame()
     old_gamepad[1] = gamepad_buttons[1];
 
     fill_frame();
+    
+    if (gamepad_press_wait)
+        --gamepad_press_wait;
 }

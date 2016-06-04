@@ -3,6 +3,7 @@
 #include "sprites.h"
 #include "tiles.h"
 #include "edit.h"
+#include "font.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
 #include <string.h> // memset
@@ -71,4 +72,5 @@ void reset_colors_and_map()
     tile_map_y = 0;
     for (int j=0; j<16; ++j)
         tile_translator[j] = j; 
+    memcpy(font, font_cache, sizeof(font_cache));
 }

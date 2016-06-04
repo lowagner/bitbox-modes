@@ -7,6 +7,8 @@
 #define SCREEN_W 320
 #define SCREEN_H 240
 
+#define GAMEPAD_PRESS_WAIT 8
+
 typedef enum {
     TilesAndSprites=0,
     EditTile,
@@ -17,6 +19,7 @@ extern VisualMode visual_mode;
 extern uint16_t palette[16]; 
 
 #define GAMEPAD_PRESS(id, key) ((gamepad_buttons[id]) & (~old_gamepad[id]) & (gamepad_##key))
+#define GAMEPAD_PRESSING(id, key) ((gamepad_buttons[id]) & (gamepad_##key) & (~old_gamepad[id] | ((gamepad_press_wait == 0)*gamepad_##key)))
 extern uint16_t old_gamepad[2];
 extern uint8_t gamepad_press_wait;
 
