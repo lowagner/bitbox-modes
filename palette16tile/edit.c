@@ -83,10 +83,9 @@ void edit_tile_line()
         else // goes from 22 to 30
         {
             int line = vga_line - 22;
-            uint8_t text[] = { 't', 'i', 'l', 'e', ':', ' ', hex[edit_tile], 
-                ' ', '<', 'L', '/', 'R', '>',
+            uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ', 
                 0 };
-            font_render_line_doubled(text, 8, line, 2);
+            font_render_line_doubled(text, 16, line, 65535, 0);
         }
         return;
     }
@@ -163,7 +162,6 @@ void edit_tile_line()
                     X/Y/ cycle
                     A: mode
                     B: paint
-
             */
             if (edit_paint_mode)
             {
@@ -172,7 +170,7 @@ void edit_tile_line()
                     'A', ':', 'm', 'o', 'd', 'e', ' ',
                     'B', ':', 'f', 'i', 'l', 'l',
                     0 };
-                font_render_line_doubled(text, 20, line, 2);
+                font_render_line_doubled(text, 20, line, 65535, 0);
             }
             else
             {
@@ -181,17 +179,105 @@ void edit_tile_line()
                     'A', ':', 'm', 'o', 'd', 'e', ' ',
                     'B', ':', 'p', 'a', 'i', 'n', 't',
                     0 };
-                font_render_line_doubled(text, 20, line, 2);
+                font_render_line_doubled(text, 20, line, 65535, 0);
             }
         }
         return;
     }
 
+    switch (vga_line/2)
+    {
+        case ((SCREEN_H/2 - 8)/2):
+        {
+            // draw a small color swatch
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[edit_color] | (palette[edit_color]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 + 8)/2):
+        {
+            // remove swatch
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = 0;
+            break;
+        }
+        case ((SCREEN_H/2 - 8 - 8 - 16 + 4)/2):
+        case ((SCREEN_H/2 - 8 - 8 - 16 + 6)/2):
+        case ((SCREEN_H/2 - 8 - 8 - 16 + 8)/2):
+        case ((SCREEN_H/2 - 8 - 8 - 16 + 10)/2):
+        {
+            // render a previous color "X" button
+            uint8_t button[] = { 'X', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 8 - 8 - 16 + 4), 
+                ~palette[(edit_color-1)&15],
+                palette[(edit_color-1)&15]);
+            break;
+        }
+        case ((SCREEN_H/2 - 8 - 8 - 16)/2):
+        case ((SCREEN_H/2 - 8 - 8 - 16 + 8+ 4)/2):
+        {
+            // draw a small color swatch for previous edit color, and kill text
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[(edit_color-1)&15] | (palette[(edit_color-1)&15]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 - 8 - 8)/2):
+        {
+            // remove swatch
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = 0;
+            break;
+        }
+        case ((SCREEN_H/2 + 8 + 8 + 4)/2):
+        case ((SCREEN_H/2 + 8 + 8 + 6)/2):
+        case ((SCREEN_H/2 + 8 + 8 + 8)/2):
+        case ((SCREEN_H/2 + 8 + 8 + 10)/2):
+        {
+            // render a next color "Y" button
+            uint8_t button[] = { 'Y', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 8 + 8 + 4), 
+                ~palette[(edit_color+1)&15],
+                palette[(edit_color+1)&15]);
+            break;
+        }
+        case ((SCREEN_H/2 + 8 + 8)/2):
+        case ((SCREEN_H/2 + 8 + 8 + 8 + 4)/2):
+        {
+            // draw a small color swatch for next edit color
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[(edit_color+1)&15] | (palette[(edit_color+1)&15]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 + 8 + 8 + 16)/2):
+        {
+            // remove swatch
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = 0;
+            break;
+        }
+        default:
+            break;
+    }
     // separate block to limit scope of variables therein:
     {
         // draw big tile
         int tile_j = (vga_line-32)/11;
-        uint32_t *dst = ((uint32_t *)draw_buffer) + 32/2;
+        uint32_t *dst = ((uint32_t *)draw_buffer) + 40/2;
         uint8_t *tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
         int draw_crosshair = (edit_y == tile_j) && (((vga_line-32)%11)/2 == 2);
         
@@ -236,7 +322,7 @@ void edit_tile_line()
 
     {
         // draw other tiles scrolling
-        uint32_t *dst = ((uint32_t *)draw_buffer) + 32/2 + 8*11 + 16/2;
+        uint32_t *dst = ((uint32_t *)draw_buffer) + 40/2 + 8*11 + 16/2;
         int tile_j = vga_line-32 + vga_frame/20;
    
         if (tile_j/16 % 2)

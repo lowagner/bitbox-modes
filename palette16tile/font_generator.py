@@ -414,7 +414,7 @@ with open("font.c", 'w') as f:
     if len(characters) + starting_index > 256:
         print "WARNING, overflow!"
     f.write("""
-void font_render_line_doubled(const uint8_t *text, int x, int y, int color)
+void font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg)
 {
     #ifdef EMULATOR
     if (y < 0 || y >= 8)
@@ -430,7 +430,7 @@ void font_render_line_doubled(const uint8_t *text, int x, int y, int color)
     #endif
     y = ((y/2))*4; // make y now how much to shift
     uint16_t *dst = draw_buffer + x;
-    uint16_t color_choice[2] = { ~palette[color], palette[color] };
+    uint16_t color_choice[2] = { color_bg, color_fg };
     *dst = color_choice[0];
     --text;
     int c;
@@ -450,7 +450,7 @@ void font_render_line_doubled(const uint8_t *text, int x, int y, int color)
 
 with open("font.h", 'w') as f:
     f.write("#ifndef FONT_H\n#define FONT_H\n#include <stdint.h>\n")
-    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, int c);\n#endif\n")
+    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n#endif\n")
 
 """
 some characters left to implement
