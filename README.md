@@ -193,9 +193,10 @@ Controls:
 * select - switch to a different view mode
 
 In tile-edit mode:
-* X - toggle painting with cursor
-* B/Y - cycle color of cursor
-* A - fill (if cursor is painting)
+* X/Y - cycle color of cursor
+* A - toggle painting with cursor
+* B - paint (if cursor isn't painting) or fill (if cursor is painting)
 * L/R - switch tile to edit
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-editing.png)
