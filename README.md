@@ -200,3 +200,4 @@ In tile-edit mode:
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile.png)
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-editing.png)
+![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-save.png)
