@@ -3,12 +3,16 @@
 #include "sprites.h"
 #include "tiles.h"
 #include "edit.h"
+#include "save.h"
 #include "fill.h"
 
 #include <stdlib.h> // rand
 
 void game_init()
 { 
+    base_filename[0] = 't';
+    base_filename[1] = 'm';
+    base_filename[2] = 'p';
     old_gamepad[0] = 65535;
     old_gamepad[1] = 65535;
     visual_mode = TilesAndSprites;
@@ -164,6 +168,9 @@ void game_frame()
         break;
     case EditTile:
         edit_tile_controls();
+        break;
+    case SaveScreen:
+        save_controls();
         break;
     }
     

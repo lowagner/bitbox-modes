@@ -3,6 +3,7 @@
 #include "sprites.h"
 #include "tiles.h"
 #include "edit.h"
+#include "save.h"
 #include "font.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
@@ -40,6 +41,9 @@ void graph_line()
         break;
     case EditSprite:
         edit_sprite_line();
+        break;
+    case SaveScreen:
+        save_line();
         break;
     default:
         break;

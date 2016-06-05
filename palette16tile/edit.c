@@ -388,7 +388,7 @@ void edit_tile_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         fill_stop();
-        visual_mode = TilesAndSprites;
+        visual_mode = SaveScreen;
         return;
     }
 
@@ -400,17 +400,15 @@ void edit_tile_controls()
     else if (GAMEPAD_PRESS(0, L))
     {
         movement = 15;
-    }    
+    }
     if (movement)
     {
         fill_stop();
-        edit_tile = (edit_tile + movement)&15; 
+        edit_tile = (edit_tile + movement)&15;
         return;
-        //edit_sprite = (edit_sprite + movement)&15; 
     }
    
-    int moved = 0, paint_if_moved = 0;
-    
+    int moved = 0, paint_if_moved = 0; 
     if (GAMEPAD_PRESSING(0, Y))
     {
         edit_color = (edit_color + 1)&15;

@@ -12,7 +12,8 @@
 typedef enum {
     TilesAndSprites=0,
     EditTile,
-    EditSprite
+    EditSprite,
+    SaveScreen
 } VisualMode;
 
 extern VisualMode visual_mode;
