@@ -5,11 +5,12 @@
 
 #include <string.h> // memset
 
-
 #define OFFSET_X 40
+#define SAVE_COLOR 5 // a uint8_t, uint16_t color is (SAVE_COLOR)|(SAVE_COLOR<<8)
 
 char base_filename[9] CCM_MEMORY; // up to 8 characters, plus a zero
 uint8_t save_position CCM_MEMORY; // position in the base filename
+uint8_t save_not_load CCM_MEMORY; // whether to be in save (1) or load (0)
 
 uint8_t save_x CCM_MEMORY, save_y CCM_MEMORY; // position in alphabet table (below):
 static const uint8_t allowed_chars[6][7] = {
@@ -21,6 +22,11 @@ static const uint8_t allowed_chars[6][7] = {
     {'4', '5', '6', '7', '8', '9', 0}
 };
 
+static const uint16_t save_colors[2][2] = {
+    { RGB(255, 0, 0), RGB(0, 255, 0) }, // load colors 
+    { RGB(0, 0, 0), RGB(0, 255, 255) }  // save colors
+};
+
 uint8_t save_message[32];
 
 void save_line()
@@ -28,31 +34,36 @@ void save_line()
     if (vga_line < 22)
     {
         if (vga_line/2 == 0)
-            memset(draw_buffer, 0, 2*SCREEN_W);
+            memset(draw_buffer, SAVE_COLOR*save_not_load, 2*SCREEN_W);
         return;
     }
     else if (vga_line/2 == (SCREEN_H - 20)/2)
     {
-        memset(draw_buffer, 0, 2*SCREEN_W);
+        memset(draw_buffer, SAVE_COLOR*save_not_load, 2*SCREEN_W);
         return;
     }
     else if (vga_line >= 22 + 12*10)
     {
         if (vga_line/2 == (22 + 12*10)/2)
-            memset(draw_buffer, 0, 2*SCREEN_W);
+            memset(draw_buffer, SAVE_COLOR*save_not_load, 2*SCREEN_W);
+        else if (save_not_load == 0)
+        {
+            // load mode
+
+        }
         return;
     }
     int line = (vga_line-22) / 10;
     int internal_line = (vga_line-22) % 10;
     if (internal_line == 0 || internal_line == 9)
     {
-        memset(draw_buffer, 0, 2*SCREEN_W);
+        memset(draw_buffer, SAVE_COLOR*save_not_load, 2*SCREEN_W);
         // also check for character selector
         if (line == 0)
         {
             // spot in the filename to write to
             uint16_t *dst = draw_buffer + OFFSET_X + 11*9 + 1 + save_position * 9;
-            const uint16_t color = RGB(255, 0, 0);
+            const uint16_t color = save_colors[save_not_load][0];;
             *dst++ = color;
             *dst++ = color;
             *dst++ = color;
@@ -65,7 +76,7 @@ void save_line()
         else if (save_y+1 == line)
         {
             uint16_t *dst = draw_buffer + 20*9 + 1 + save_x * 9 + OFFSET_X;
-            const uint16_t color = RGB(255, 0, 0);
+            const uint16_t color = save_colors[save_not_load][0];
             *dst++ = color;
             *dst++ = color;
             *dst++ = color;
@@ -78,7 +89,7 @@ void save_line()
         else if (line == 6 && internal_line == 9)
         {
             uint16_t *dst = draw_buffer + 20*9 + 1 + save_x * 9 + OFFSET_X;
-            const uint16_t color = RGB(0, 255, 0);
+            const uint16_t color = save_colors[save_not_load][1];
             *dst++ = color;
             *dst++ = color;
             *dst++ = color;
@@ -94,26 +105,29 @@ void save_line()
         --internal_line;
         if (line == 0)
         {
-            font_render_line_doubled((const uint8_t *)"save file:", OFFSET_X, internal_line, 65535, 0);
-            font_render_line_doubled((uint8_t *)base_filename, 9*11 + OFFSET_X, internal_line, 65535, 0);
+            if (save_not_load)
+                font_render_line_doubled((const uint8_t *)"save file:", OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            else
+                font_render_line_doubled((const uint8_t *)"load file:", OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            font_render_line_doubled((uint8_t *)base_filename, 9*11 + OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
         }
         else if (line <= 6)
         {
-            font_render_line_doubled((const uint8_t *)allowed_chars[line-1], OFFSET_X + 20*9, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)allowed_chars[line-1], OFFSET_X + 20*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             if (line-1 == save_y)
             {
                 if (save_x < 5)
                 {
                     {
                     uint16_t *dst = draw_buffer + (20*9 + save_x * 9 + OFFSET_X);
-                    const uint16_t color = RGB(255, 0, 0);
+                    const uint16_t color = save_colors[save_not_load][0];
                     *dst = color;
                     dst += 9;
                     *dst = color;
                     }
                     {
                     uint32_t *dst = (uint32_t *)draw_buffer + (20*9 + 1 + 6 * 9 + OFFSET_X)/2;
-                    const uint32_t color = RGB(0, 255, 0);
+                    const uint32_t color = save_not_load ? (save_colors[1][1] | ((SAVE_COLOR*257) << 16)) : save_colors[0][1];
                     *dst++ = color;
                     *dst++ = color;
                     *dst++ = color;
@@ -125,12 +139,12 @@ void save_line()
                 {
                     {
                     uint16_t *dst = draw_buffer + (20*9 + save_x * 9 + OFFSET_X);
-                    const uint16_t color = RGB(255, 0, 0);
+                    const uint16_t color = save_colors[save_not_load][0];
                     *dst = color;
                     }
                     {
                     uint32_t *dst = (uint32_t *)draw_buffer + (20*9 + 1 + 6 * 9 + OFFSET_X)/2;
-                    const uint32_t color = RGB(255, 0, 0);
+                    const uint32_t color = save_not_load ? (save_colors[1][0] | ((SAVE_COLOR*257) << 16)) : save_colors[0][0];
                     *dst++ = color;
                     *dst++ = color;
                     *dst++ = color;
@@ -144,18 +158,18 @@ void save_line()
         switch (line)
         {
         case 7:
-            font_render_line_doubled((const uint8_t *)"Y:insert    X:delete", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"Y:insert    X:delete", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"A:overwrite B:backspace", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"A:overwrite B:backspace", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         case 9:
-            font_render_line_doubled((const uint8_t *)"<L/R>:move cursor", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"<L/R>:move cursor", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         case 10:
             break;
         case 11:
-            font_render_line_doubled(save_message, 32, internal_line, 65535, 0);
+            font_render_line_doubled(save_message, 32, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         }
     }
@@ -319,17 +333,29 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, select))
     {
-        visual_mode = TilesAndSprites;
+        if (save_not_load)
+        {
+            visual_mode = TilesAndSprites;
+            save_not_load = 0;
+            save_message[0] = 0;
+        }
+        else
+        {
+            save_not_load = 1;
+            save_message[0] = 0;
+        }
         return;
     }
     if (GAMEPAD_PRESS(0, start))
     {
-        //visual_mode = TilesAndSprites;
-        FileError result = io_save_tile(16);
+        FileError result = save_not_load ? io_save_tile(16) : io_load_tile(16);
         switch (result)
         {
         case NoError:
-            strcpy((char *)save_message, "tiles saved!");
+            if (save_not_load)
+                strcpy((char *)save_message, "tiles saved!");
+            else
+                strcpy((char *)save_message, "tiles loaded!");
             break;
         case MountError:
             strcpy((char *)save_message, "file-system not mounted!");
