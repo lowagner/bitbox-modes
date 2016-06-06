@@ -50,7 +50,7 @@ void graph_line()
     }
 }
 
-void reset_colors_and_map() 
+void palette_reset()
 {
     static const uint16_t colors[16] = {
         [BLACK]=RGB(0, 0, 0),
@@ -71,10 +71,19 @@ void reset_colors_and_map()
         [INDIGO]=RGB(28, 20, 40),
     };
     memcpy(palette, colors, sizeof(colors));
-    memset(tile_map, 0, sizeof(tile_map));
-    tile_map_x = 0;
-    tile_map_y = 0;
-    for (int j=0; j<16; ++j)
-        tile_translator[j] = j; 
-    memcpy(font, font_cache, sizeof(font_cache));
+}
+
+void map_reset()
+{
+    tile_map_width = 26;
+    tile_map_height = 20;
+
+    for (int j=0; j<tile_map_height; ++j)
+    for (int i=0; i<tile_map_width/2; ++i)
+    {
+        if (j <= (tile_map_height-16))
+            tile_map[j*(tile_map_width/2)+i] = 0;
+        else
+            tile_map[j*(tile_map_width/2)+i] = ((j - tile_map_height + 16)%16)|(((j - tile_map_height + 16)%16)<<4);
+    }
 }

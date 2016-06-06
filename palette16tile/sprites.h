@@ -46,5 +46,6 @@ void update_objects();
 void sprite_line();
 void sprite_frame();
 
+void sprites_reset();
 
 #endif

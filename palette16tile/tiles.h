@@ -12,5 +12,6 @@ extern uint16_t tile_map_width, tile_map_height;
 
 void tiles_line();
 void map_controls();
+void tiles_reset();
 
 #endif

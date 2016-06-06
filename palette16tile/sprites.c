@@ -2,6 +2,8 @@
 #include "sprites.h"
 #include "tiles.h"
 
+#include <stdlib.h> // rand
+
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[16][8][16][8]; // 16 sprites, 8 frames, 16x16 pixels...
 
@@ -295,4 +297,27 @@ void sprite_frame()
     
     first_drawing_index = 0;
     last_drawing_index = 0;
+}
+
+void sprites_reset()
+{
+    // create some random sprites...
+    uint8_t *sc = sprite_draw[0][0][0];
+    int color_index = 0;
+    for (int tile=0; tile<15; ++tile)
+    for (int frame=0; frame<8; ++frame)
+    for (int line=0; line<16; ++line)
+    {
+        for (int col=0; col<8; ++col)
+            *sc++ = (((color_index+1)>>(tile/2))&15)|(((color_index>>(tile/2))&15)<<4);
+        ++color_index;
+    }
+    // 16th sprite is random
+    for (int l=0; l<256/2; ++l)
+    {
+        *sc++ = rand()%256;
+    }
+    
+    for (int k=0; k<MAX_OBJECTS; ++k)
+        create_object(k%16, rand()%(tile_map_width*16+16)-16, rand()%(tile_map_height*16+16)-16, rand()%256);
 }

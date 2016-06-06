@@ -1,6 +1,8 @@
 #include "bitbox.h"
 #include "nonsimple.h"
 #include "font.h"
+#include "io.h"
+
 #include <string.h> // memset
 
 
@@ -19,6 +21,8 @@ static const uint8_t allowed_chars[6][7] = {
     {'4', '5', '6', '7', '8', '9', 0}
 };
 
+uint8_t save_message[32];
+
 void save_line()
 {
     if (vga_line < 22)
@@ -32,9 +36,9 @@ void save_line()
         memset(draw_buffer, 0, 2*SCREEN_W);
         return;
     }
-    else if (vga_line >= 22 + 10*10)
+    else if (vga_line >= 22 + 12*10)
     {
-        if (vga_line/2 == (22 + 10*10)/2)
+        if (vga_line/2 == (22 + 12*10)/2)
             memset(draw_buffer, 0, 2*SCREEN_W);
         return;
     }
@@ -148,9 +152,13 @@ void save_line()
         case 9:
             font_render_line_doubled((const uint8_t *)"<L/R>:move cursor", 16, internal_line, 65535, 0);
             break;
+        case 10:
+            break;
+        case 11:
+            font_render_line_doubled(save_message, 32, internal_line, 65535, 0);
+            break;
         }
     }
-
 }
 
 void save_controls()
@@ -212,6 +220,7 @@ void save_controls()
         }
         else
             base_filename[8] = 0;
+        save_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, B))
@@ -252,6 +261,7 @@ void save_controls()
             // shouldn't be necessary, but doesn't cost much:
             base_filename[7] = 0;
         }
+        save_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, X))
@@ -273,6 +283,7 @@ void save_controls()
             // shouldn't be necessary, but doesn't cost much:
             base_filename[7] = 0;
         }
+        save_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, Y))
@@ -291,6 +302,7 @@ void save_controls()
         {
             base_filename[save_position] = allowed_chars[save_y][save_x];
         }
+        save_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, L))
@@ -308,6 +320,39 @@ void save_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         visual_mode = TilesAndSprites;
+        return;
+    }
+    if (GAMEPAD_PRESS(0, start))
+    {
+        //visual_mode = TilesAndSprites;
+        FileError result = io_save_tile(16);
+        switch (result)
+        {
+        case NoError:
+            strcpy((char *)save_message, "tiles saved!");
+            break;
+        case MountError:
+            strcpy((char *)save_message, "file-system not mounted!");
+            break;
+        case ConstraintError:
+            strcpy((char *)save_message, "constraints not satisfied!");
+            break;
+        case OpenError:
+            strcpy((char *)save_message, "could not open file!");
+            break;
+        case ReadError:
+            strcpy((char *)save_message, "could not read file!");
+            break;
+        case WriteError:
+            strcpy((char *)save_message, "could not write file!");
+            break;
+        case NoDataError:
+            strcpy((char *)save_message, "no data read/written!");
+            break;
+        case MissingDataError:
+            strcpy((char *)save_message, "not all data read/written!");
+            break;
+        }
         return;
     }
 }
