@@ -1,7 +1,7 @@
 #ifndef SPRITES_H
 #define SPRITES_H
 
-#include "nonsimple.h"
+#include "common.h"
 
 // break objects up into 16x16 tiles:
 extern uint8_t sprite_draw[16][8][16][8]; 

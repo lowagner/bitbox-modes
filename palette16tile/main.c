@@ -1,5 +1,5 @@
 #include "bitbox.h"
-#include "nonsimple.h"
+#include "common.h"
 #include "sprites.h"
 #include "tiles.h"
 #include "edit.h"
@@ -9,6 +9,10 @@
 #include "io.h"
 
 #include "string.h" // memcpy
+
+VisualMode visual_mode CCM_MEMORY; 
+uint16_t old_gamepad[2];
+uint8_t gamepad_press_wait CCM_MEMORY;
 
 void game_init()
 { 
@@ -66,7 +70,7 @@ void game_init()
         {
             map_reset();
         }
-        //if (io_load_sprites())
+        //if (io_load_sprites(16))
         {
             sprites_reset();
         }
@@ -96,4 +100,40 @@ void game_frame()
     
     if (gamepad_press_wait)
         --gamepad_press_wait;
+}
+
+void graph_frame() 
+{
+    switch (visual_mode)
+    {
+    case (TilesAndSprites):
+        sprite_frame();
+        break;
+    default:
+        break;
+    }
+}
+
+void graph_line() 
+{
+    if (vga_odd)
+        return;
+    switch (visual_mode)
+    {
+    case TilesAndSprites:
+        tiles_line();
+        sprite_line();
+        break;
+    case EditTile:
+        edit_tile_line();
+        break;
+    case EditSprite:
+        edit_sprite_line();
+        break;
+    case SaveScreen:
+        save_line();
+        break;
+    default:
+        break;
+    }
 }

@@ -1,11 +1,10 @@
-#include "tiles.h"
-#include "sprites.h"
+#include "common.h"
 #include "bitbox.h"
 
+uint8_t tile_draw[16][16][8] CCM_MEMORY;
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
 uint8_t tile_translator[16] CCM_MEMORY;
 //uint16_t tile_properties[256] CCM_MEMORY;
-uint8_t tile_draw[16][16][8] CCM_MEMORY;
 int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
 uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
 // tile_map_width * tile_map_height <= TILE_MAP_MEMORY
@@ -232,53 +231,6 @@ void tiles_line()
             }
 
         }
-    }
-}
-
-void map_controls()
-{
-    if (vga_frame % 2 == 0)
-    {
-        int moved = 0;
-        if (GAMEPAD_PRESSED(0, left))
-        {
-            if (tile_map_x > 0)
-            {
-                --tile_map_x;
-                moved = 1;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, right))
-        {
-            if (tile_map_x + SCREEN_W < tile_map_width*16 - 1)
-            {
-                ++tile_map_x;
-                moved = 1;
-            }
-        }
-        if (GAMEPAD_PRESSED(0, up))
-        {
-            if (tile_map_y > 0)
-            {
-                --tile_map_y;
-                moved = 1;
-            }
-        }
-        else if (GAMEPAD_PRESSED(0, down))
-        {
-            if (tile_map_y + SCREEN_H < tile_map_height*16 - 1)
-            {
-                ++tile_map_y;
-                moved = 1;
-            }
-        }
-
-        if (moved)
-            update_objects(); 
-    }
-    if (GAMEPAD_PRESS(0, select))
-    {
-        visual_mode = EditTile;
     }
 }
 

@@ -3,8 +3,8 @@
 USE_SDCARD = 1      # allow use of SD card for io
 
 NAME = 16tiles
-GAME_C_FILES = io.c font.c edit.c save.c fill.c nonsimple.c tiles.c sprites.c main.c
-GAME_H_FILES = io.h font.h edit.h save.h fill.h nonsimple.h tiles.h sprites.h
+GAME_C_FILES = font.c io.c map.c palette.c edit.c save.c fill.c tiles.c sprites.c main.c
+GAME_H_FILES = font.h io.h map.h palette.h edit.h save.h fill.h tiles.h sprites.h common.h 
 GAME_C_OPTS += -DVGAMODE_320
 
 # see this file for options
