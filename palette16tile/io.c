@@ -1,5 +1,5 @@
 #include "bitbox.h"
-#include "nonsimple.h"
+#include "common.h"
 #include "tiles.h"
 #include "save.h"
 #include "io.h"

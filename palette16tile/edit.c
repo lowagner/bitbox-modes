@@ -10,6 +10,7 @@
 
 uint8_t edit_tile CCM_MEMORY;
 uint8_t edit_sprite CCM_MEMORY;
+uint8_t edit_sprite_not_tile CCM_MEMORY;
 
 int edit_x CCM_MEMORY;
 int edit_y CCM_MEMORY;
@@ -31,50 +32,102 @@ void edit_tile_line()
         }
         else if (vga_line < 20)
         {
-            int tile_j = vga_line-4;
-            uint32_t *dst = (uint32_t *)draw_buffer;
-            
-            uint8_t *tile_color;
-           
-            // draw a border, some of the edited tile, plus all other tiles
-            for (int step=0; step<2; ++step)
+            if (edit_sprite_not_tile)
             {
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                int tile_j = vga_line-4;
+                uint32_t *dst = (uint32_t *)draw_buffer;
+                
+                uint8_t *tile_color;
+               
+                // draw a border, some of the edited sprite, plus all other tiles
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                }
+        
+                // alternate edit tile and other tiles:
+                for (int tile=0; tile<8; ++tile)
+                {
+                    tile_color = &tile_draw[tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                }
+                
+                for (int step=0; step<2; ++step)
+                {
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
             }
-    
-            // alternate edit tile and other tiles:
-            for (int tile=0; tile<8; ++tile)
+            else // editing a tile
             {
-                tile_color = &tile_draw[tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                int tile_j = vga_line-4;
+                uint32_t *dst = (uint32_t *)draw_buffer;
+                
+                uint8_t *tile_color;
+               
+                // draw a border, some of the edited tile, plus all other tiles
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+        
+                // alternate edit tile and other tiles:
+                for (int tile=0; tile<8; ++tile)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
-            }
-            
-            for (int step=0; step<2; ++step)
-            {
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
             }
         }
@@ -83,9 +136,18 @@ void edit_tile_line()
         else // goes from 22 to 30
         {
             int line = vga_line - 22;
-            uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ', 
-                0 };
-            font_render_line_doubled(text, 16, line, 65535, 0);
+            if (edit_sprite_not_tile)
+            {
+                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_sprite/8], ':', hex[edit_sprite%8], 
+                    0 };
+                font_render_line_doubled(text, 16, line, 65535, 0);
+            }
+            else
+            {
+                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ', 
+                    0 };
+                font_render_line_doubled(text, 16, line, 65535, 0);
+            }
         }
         return;
     }
@@ -101,49 +163,100 @@ void edit_tile_line()
         }
         else if (vga_line >= SCREEN_H - 20)
         {
-            int tile_j = vga_line-(SCREEN_H - 20);
-            uint32_t *dst = (uint32_t *)draw_buffer;
-            
-            uint8_t *tile_color;
-            // draw a border, some of the edited tile, plus all other tiles
-            for (int step=0; step<2; ++step)
+            if (edit_sprite_not_tile)
             {
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                int tile_j = vga_line-(SCREEN_H - 20);
+                uint32_t *dst = (uint32_t *)draw_buffer;
+                
+                uint8_t *tile_color;
+                // draw a border, some of the edited sprite, plus all other tiles
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                }
+        
+                // alternate edit tile and other tiles:
+                for (int tile=8; tile<16; ++tile)
+                {
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                    tile_color = &tile_draw[tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                }
+                
+                for (int step=0; step<2; ++step)
+                {
+                    tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
             }
-    
-            // alternate edit tile and other tiles:
-            for (int tile=8; tile<16; ++tile)
+            else
             {
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                int tile_j = vga_line-(SCREEN_H - 20);
+                uint32_t *dst = (uint32_t *)draw_buffer;
+                
+                uint8_t *tile_color;
+                // draw a border, some of the edited tile, plus all other tiles
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
-                tile_color = &tile_draw[tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+        
+                // alternate edit tile and other tiles:
+                for (int tile=8; tile<16; ++tile)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                    tile_color = &tile_draw[tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
-            }
-            
-            for (int step=0; step<2; ++step)
-            {
-                tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
-                for (int l=0; l<8; ++l) 
+                
+                for (int step=0; step<2; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
             }
         }
@@ -278,7 +391,9 @@ void edit_tile_line()
         // draw big tile
         int tile_j = (vga_line-32)/11;
         uint32_t *dst = ((uint32_t *)draw_buffer) + 40/2;
-        uint8_t *tile_color = &tile_draw[edit_tile][tile_j][0] - 1;
+        uint8_t *tile_color = edit_sprite_not_tile ?
+            &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j][0] - 1 
+          : &tile_draw[edit_tile][tile_j][0] - 1;
         int draw_crosshair = (edit_y == tile_j) && (((vga_line-32)%11)/2 == 2);
         
         for (int l=0; l<8; ++l)
@@ -340,14 +455,30 @@ void edit_tile_line()
         }
         else
         {
-            for (int step=0; step<4; ++step)
+            if (edit_sprite_not_tile)
             {
-                uint8_t *tile_color = &tile_draw[edit_tile][tile_j&15][0] - 1;
-                for (int l=0; l<8; ++l) 
+                for (int step=0; step<4; ++step)
                 {
-                    uint32_t color = palette[(*(++tile_color))&15];
-                    color |= palette[(*tile_color)>>4] << 16;
-                    *dst++ = color;
+                    uint8_t *tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j&15][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                }
+            }
+            else
+            {
+                for (int step=0; step<4; ++step)
+                {
+                    uint8_t *tile_color = &tile_draw[edit_tile][tile_j&15][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
                 }
             }
         }
@@ -361,26 +492,52 @@ void edit_sprite_line()
 
 void edit_spot_paint()
 {
-    if (edit_x % 2)
+    if (edit_sprite_not_tile)
     {
-        int color = tile_draw[edit_tile][edit_y][edit_x/2];
-        previous_canvas_color = color >> 4;
-        tile_draw[edit_tile][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
+        int color = sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2];
+        if (edit_x % 2)
+        {
+            previous_canvas_color = color >> 4;
+            sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
+        }
+        else
+        {
+            previous_canvas_color = color & 15;
+            sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] = edit_color | (color & 240);
+        }
     }
     else
     {
         int color = tile_draw[edit_tile][edit_y][edit_x/2];
-        previous_canvas_color = color & 15;
-        tile_draw[edit_tile][edit_y][edit_x/2] = edit_color | (color & 240);
+        if (edit_x % 2)
+        {
+            previous_canvas_color = color >> 4;
+            tile_draw[edit_tile][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
+        }
+        else
+        {
+            previous_canvas_color = color & 15;
+            tile_draw[edit_tile][edit_y][edit_x/2] = edit_color | (color & 240);
+        }
     }
 }
 
-static inline int edit_spot_color()
+int edit_spot_color()
 {
-    if (edit_x % 2)
-        return tile_draw[edit_tile][edit_y][edit_x/2] >> 4;
+    if (edit_sprite_not_tile)
+    {
+        if (edit_x % 2)
+            return sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] >> 4;
+        else
+            return sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] & 15;
+    }
     else
-        return tile_draw[edit_tile][edit_y][edit_x/2] & 15;
+    {
+        if (edit_x % 2)
+            return tile_draw[edit_tile][edit_y][edit_x/2] >> 4;
+        else
+            return tile_draw[edit_tile][edit_y][edit_x/2] & 15;
+    }
 }
 
 void edit_tile_controls()
@@ -388,7 +545,16 @@ void edit_tile_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         fill_stop();
-        visual_mode = SaveScreen;
+        if (edit_sprite_not_tile)
+        {
+            visual_mode = SaveScreen;
+            edit_sprite_not_tile = 0;
+        }
+        else
+        {
+            edit_sprite_not_tile = 1;
+            previous_canvas_color = edit_spot_color();
+        }
         return;
     }
 
@@ -399,12 +565,15 @@ void edit_tile_controls()
     }
     else if (GAMEPAD_PRESS(0, L))
     {
-        movement = 15;
+        movement = -1;
     }
     if (movement)
     {
         fill_stop();
-        edit_tile = (edit_tile + movement)&15;
+        if (edit_sprite_not_tile)
+            edit_sprite = (edit_sprite + movement)&127;
+        else
+            edit_tile = (edit_tile + movement)&15;
         return;
     }
    
@@ -431,8 +600,16 @@ void edit_tile_controls()
         {
             if (fill_can_start() && previous_canvas_color != edit_color)
             {
-                fill_init(tile_draw[edit_tile][0], 16, 16, 
-                    previous_canvas_color, edit_x, edit_y, edit_color);
+                if (edit_sprite_not_tile)
+                {
+                    fill_init(tile_draw[edit_tile][0], 16, 16, 
+                        previous_canvas_color, edit_x, edit_y, edit_color);
+                }
+                else
+                {
+                    fill_init(sprite_draw[edit_sprite/8][edit_sprite%8][0], 16, 16, 
+                        previous_canvas_color, edit_x, edit_y, edit_color);
+                }
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }

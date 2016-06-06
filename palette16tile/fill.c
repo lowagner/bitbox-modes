@@ -1,5 +1,5 @@
 #include "bitbox.h"
-#include "nonsimple.h"
+#include "common.h"
 #include "fill.h"
 #include <stdint.h>
 #include <stdlib.h> // rand
