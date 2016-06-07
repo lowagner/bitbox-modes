@@ -19,5 +19,7 @@ FileError io_save_palette();
 FileError io_load_palette();
 FileError io_save_tile(unsigned int i);
 FileError io_load_tile(unsigned int i);
+FileError io_save_sprite(unsigned int i);
+FileError io_load_sprite(unsigned int i);
 
 #endif
