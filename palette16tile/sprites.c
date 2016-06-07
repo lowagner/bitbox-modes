@@ -5,7 +5,8 @@
 #include <stdlib.h> // rand
 
 // break sprites up into 16x16 tiles:
-uint8_t sprite_draw[16][8][16][8]; // 16 sprites, 8 frames, 16x16 pixels...
+uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
+uint16_t sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;
 uint8_t first_free_object CCM_MEMORY;
@@ -114,7 +115,7 @@ void update_objects()
     }
 }
 
-void sprite_line()
+void sprites_line()
 {
     if (!drawing_count) // none to draw...
         return;
@@ -147,7 +148,7 @@ void sprite_line()
         {
             uint16_t *dst = draw_buffer;
             uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][-o->ix/2];
-            uint8_t invisible_color = o->invisible_color;
+            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
             if ((-o->ix)%2)
             {
                 // if -o->ix == 15
@@ -211,7 +212,7 @@ void sprite_line()
             int num_pxls = 1 + (SCREEN_W-1) - o->ix;
             uint16_t *dst = draw_buffer + o->ix;
             uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-            uint8_t invisible_color = o->invisible_color;
+            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
             uint8_t color;
             for (int pxl=0; pxl<num_pxls/2; ++pxl)
             {
@@ -235,7 +236,7 @@ void sprite_line()
         {
             uint16_t *dst = draw_buffer + o->ix;
             uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-            uint8_t invisible_color = o->invisible_color;
+            uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
             for (int pxl=0; pxl<8; ++pxl)
             {
                 uint8_t color = (*(++src))&15;
@@ -282,7 +283,7 @@ static inline void swap_draw_order_k_kminus1(int k)
     draw_order[k] = object_kminus1;
 }
 
-void sprite_frame()
+void sprites_frame()
 {
     // insertion sort all the drawing objects on the map
     for (int j=0; j<drawing_count-1; ++j)
@@ -305,19 +306,26 @@ void sprites_reset()
     uint8_t *sc = sprite_draw[0][0][0];
     int color_index = 0;
     for (int tile=0; tile<15; ++tile)
-    for (int frame=0; frame<8; ++frame)
-    for (int line=0; line<16; ++line)
     {
-        for (int col=0; col<8; ++col)
-            *sc++ = (((color_index+1)>>(tile/2))&15)|(((color_index>>(tile/2))&15)<<4);
+        for (int frame=0; frame<8; ++frame)
+        {
+            sprite_info[tile][frame] = 16;
+            int forward = frame % 2;
+            for (int line=0; line<16; ++line)
+            {
+                for (int col=0; col<8; ++col)
+                    *sc++ = (((color_index+1)>>(tile/4))&15)|((((color_index - forward)>>(tile/4))&15)<<4);
+                ++color_index;
+            }
+            color_index -= 16;
+        }
         ++color_index;
     }
     // 16th sprite is random
-    for (int l=0; l<256/2; ++l)
+    for (int l=0; l<8; ++l)
     {
-        *sc++ = rand()%256;
+        sprite_info[15][l] = 0; // with black as invisible for all frames
+        for (int k=0; k<256/2; ++k)
+            *sc++ = rand()%256;
     }
-    
-    for (int k=0; k<MAX_OBJECTS; ++k)
-        create_object(k%16, rand()%(tile_map_width*16+16)-16, rand()%(tile_map_height*16+16)-16, rand()%256);
 }

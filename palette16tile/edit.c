@@ -15,8 +15,6 @@ uint8_t edit_sprite_not_tile CCM_MEMORY;
 int edit_x CCM_MEMORY;
 int edit_y CCM_MEMORY;
 uint8_t edit_color CCM_MEMORY;
-uint8_t previous_canvas_color CCM_MEMORY;
-uint8_t edit_paint_mode CCM_MEMORY;
 
 static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
@@ -138,13 +136,16 @@ void edit_tile_line()
             int line = vga_line - 22;
             if (edit_sprite_not_tile)
             {
-                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_sprite/8], ':', hex[edit_sprite%8], 
+                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_sprite/8], '.', hex[edit_sprite%8], 
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
+                uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
+                if (invisible < 16)
+                    font_render_line_doubled((uint8_t *)"invisible", 222, line, palette[invisible], ~palette[invisible]);
             }
             else
             {
-                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ', 
+                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
@@ -265,34 +266,14 @@ void edit_tile_line()
         else // goes from SCREEN_H-30 to SCREEN_H-22
         {
             int line = vga_line - (SCREEN_H-30);
-            /*
-                controls:
-                edit_paint_mode:
-                    X/Y cycle
-                    A: mode
-                    B: fill
-                else:
-                    X/Y/ cycle
-                    A: mode
-                    B: paint
-            */
-            if (edit_paint_mode)
+            if (game_message[0])
             {
-                uint8_t text[] = { 
-                    'X', '/', 'Y', ':', 'c', 'y', 'c', 'l', 'e', ' ', 'c', 'o', 'l', 'o', 'r', 's', ' ',
-                    'A', ':', 'm', 'o', 'd', 'e', ' ',
-                    'B', ':', 'f', 'i', 'l', 'l',
-                    0 };
-                font_render_line_doubled(text, 20, line, 65535, 0);
+                font_render_line_doubled((uint8_t *)game_message, 20, line, 65535, 0);
             }
             else
             {
-                uint8_t text[] = { 
-                    'X', '/', 'Y', ':', 'c', 'y', 'c', 'l', 'e', ' ', 'c', 'o', 'l', 'o', 'r', 's', ' ',
-                    'A', ':', 'm', 'o', 'd', 'e', ' ',
-                    'B', ':', 'p', 'a', 'i', 'n', 't',
-                    0 };
-                font_render_line_doubled(text, 20, line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"B:paint A:fill start:save tile", 
+                    20, line, 65535, 0);
             }
         }
         return;
@@ -457,9 +438,19 @@ void edit_tile_line()
         {
             if (edit_sprite_not_tile)
             {
-                for (int step=0; step<4; ++step)
+                int base = (edit_sprite % 8)/2; 
+                // TODO:  show all animations (frames) for a given sprite
+                // show them in pairs (0-1, 2-3, 4-5, 6-7) on different lines
+                for (int step=0; step<2; ++step)
                 {
-                    uint8_t *tile_color = &sprite_draw[edit_sprite/8][edit_sprite%8][tile_j&15][0] - 1;
+                    uint8_t *tile_color = &sprite_draw[edit_sprite/8][2*base+(vga_frame/60)%2][tile_j&15][0] - 1;
+                    for (int l=0; l<8; ++l) 
+                    {
+                        uint32_t color = palette[(*(++tile_color))&15];
+                        color |= palette[(*tile_color)>>4] << 16;
+                        *dst++ = color;
+                    }
+                    tile_color = &sprite_draw[edit_sprite/8][2*base+1-((vga_frame/60)%2)][tile_j&15][0] - 1;
                     for (int l=0; l<8; ++l) 
                     {
                         uint32_t color = palette[(*(++tile_color))&15];
@@ -485,75 +476,76 @@ void edit_tile_line()
     }
 }
 
-void edit_sprite_line() 
-{
-    
-}
-
 void edit_spot_paint()
 {
-    if (edit_sprite_not_tile)
-    {
-        int color = sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2];
-        if (edit_x % 2)
-        {
-            previous_canvas_color = color >> 4;
-            sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
-        }
-        else
-        {
-            previous_canvas_color = color & 15;
-            sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] = edit_color | (color & 240);
-        }
-    }
+    uint8_t *memory = edit_sprite_not_tile ? 
+        &sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] :
+        &tile_draw[edit_tile][edit_y][edit_x/2];
+
+    if (edit_x % 2)
+        *memory = ((*memory)&15) | (edit_color<<4);
     else
-    {
-        int color = tile_draw[edit_tile][edit_y][edit_x/2];
-        if (edit_x % 2)
-        {
-            previous_canvas_color = color >> 4;
-            tile_draw[edit_tile][edit_y][edit_x/2] = (color & 15) | (edit_color<<4);
-        }
-        else
-        {
-            previous_canvas_color = color & 15;
-            tile_draw[edit_tile][edit_y][edit_x/2] = edit_color | (color & 240);
-        }
-    }
+        *memory = (edit_color) | ((*memory) & 240);
 }
 
 int edit_spot_color()
 {
-    if (edit_sprite_not_tile)
-    {
-        if (edit_x % 2)
-            return sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] >> 4;
-        else
-            return sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] & 15;
-    }
+    uint8_t *memory = edit_sprite_not_tile ? 
+        &sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] :
+        &tile_draw[edit_tile][edit_y][edit_x/2];
+
+    if (edit_x % 2)
+        return (*memory) >> 4;
     else
-    {
-        if (edit_x % 2)
-            return tile_draw[edit_tile][edit_y][edit_x/2] >> 4;
-        else
-            return tile_draw[edit_tile][edit_y][edit_x/2] & 15;
-    }
+        return (*memory) & 15;
 }
 
 void edit_tile_controls()
 {
     if (GAMEPAD_PRESS(0, select))
     {
+        game_message[0] = 0;
         fill_stop();
         if (edit_sprite_not_tile)
         {
-            visual_mode = SaveScreen;
+            visual_mode = SaveLoadScreen;
             edit_sprite_not_tile = 0;
         }
         else
         {
             edit_sprite_not_tile = 1;
-            previous_canvas_color = edit_spot_color();
+        }
+        return;
+    }
+    if (GAMEPAD_PRESS(0, start))
+    {
+        FileError result = edit_sprite_not_tile ? WriteError : io_save_tile(edit_tile);
+        switch (result)
+        {
+        case NoError:
+            strcpy((char *)game_message, "saved!");
+            break;
+        case MountError:
+            strcpy((char *)game_message, "no mount!");
+            break;
+        case ConstraintError:
+            strcpy((char *)game_message, "bad constr!");
+            break;
+        case OpenError:
+            strcpy((char *)game_message, "no open!");
+            break;
+        case ReadError:
+            strcpy((char *)game_message, "no read!");
+            break;
+        case WriteError:
+            strcpy((char *)game_message, "no write!");
+            break;
+        case NoDataError:
+            strcpy((char *)game_message, "no data!");
+            break;
+        case MissingDataError:
+            strcpy((char *)game_message, "miss data!");
+            break;
         }
         return;
     }
@@ -561,14 +553,15 @@ void edit_tile_controls()
     int movement = 0;
     if (GAMEPAD_PRESS(0, R))
     {
-        movement = 1;
+        ++movement;
     }
-    else if (GAMEPAD_PRESS(0, L))
+    if (GAMEPAD_PRESS(0, L))
     {
-        movement = -1;
+        --movement;
     }
     if (movement)
     {
+        game_message[0] = 0;
         fill_stop();
         if (edit_sprite_not_tile)
             edit_sprite = (edit_sprite + movement)&127;
@@ -580,56 +573,36 @@ void edit_tile_controls()
     int moved = 0, paint_if_moved = 0; 
     if (GAMEPAD_PRESSING(0, Y))
     {
+        game_message[0] = 0;
         edit_color = (edit_color + 1)&15;
         moved = 1;
     }
     else if (GAMEPAD_PRESSING(0, X))
     {
+        game_message[0] = 0;
         edit_color = (edit_color - 1)&15;
         moved = 1;
     }
-    if (edit_paint_mode)
+    if (GAMEPAD_PRESSING(0, A))
     {
-        if (GAMEPAD_PRESS(0, A))
+        game_message[0] = 0;
+        uint8_t previous_canvas_color = edit_spot_color();
+        if (fill_can_start() && previous_canvas_color != edit_color)
         {
-            edit_paint_mode = 0;
+            uint8_t *memory = edit_sprite_not_tile ? 
+                sprite_draw[edit_sprite/8][edit_sprite%8][0] :
+                tile_draw[edit_tile][0];
+            fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color);
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;
         }
-        
-        if (GAMEPAD_PRESSING(0, B))
-        {
-            if (fill_can_start() && previous_canvas_color != edit_color)
-            {
-                if (edit_sprite_not_tile)
-                {
-                    fill_init(tile_draw[edit_tile][0], 16, 16, 
-                        previous_canvas_color, edit_x, edit_y, edit_color);
-                }
-                else
-                {
-                    fill_init(sprite_draw[edit_sprite/8][edit_sprite%8][0], 16, 16, 
-                        previous_canvas_color, edit_x, edit_y, edit_color);
-                }
-                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-                return;
-            }
-        }
     }
-    else
+    if (GAMEPAD_PRESSING(0, B))
     {
-        if (GAMEPAD_PRESS(0, A))
-        {
-            edit_paint_mode = 1;
-            edit_spot_paint();
-            return;
-        }
-        
-        if (GAMEPAD_PRESSING(0, B))
-        {
-            edit_spot_paint();
-            paint_if_moved = 1;
-        }        
-    }
+        game_message[0] = 0;
+        edit_spot_paint();
+        paint_if_moved = 1;
+    }        
     
     if (GAMEPAD_PRESSING(0, left))
     {
@@ -654,7 +627,7 @@ void edit_tile_controls()
     if (moved)
     {
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-        if (edit_paint_mode || paint_if_moved)
+        if (paint_if_moved)
             edit_spot_paint();
         return;
     }

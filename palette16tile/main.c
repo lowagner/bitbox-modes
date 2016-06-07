@@ -11,8 +11,9 @@
 #include "string.h" // memcpy
 
 VisualMode visual_mode CCM_MEMORY; 
-uint16_t old_gamepad[2];
+uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
+uint8_t game_message[32] CCM_MEMORY;
 
 void game_init()
 { 
@@ -20,7 +21,8 @@ void game_init()
     memcpy(font, font_cache, sizeof(font_cache));
 
     // init game mode
-    visual_mode = TilesAndSprites;
+    visual_mode = SaveLoadScreen;
+    save_not_load = 0;
    
     // init tile mapping
     for (int j=0; j<16; ++j)
@@ -32,7 +34,6 @@ void game_init()
         object[i] = (struct object) {
             .next_free_object = i+1,
             .next_used_object = 255,
-            .invisible_color = 16 // won't match anything
         };
     }
     object[MAX_OBJECTS-1].next_free_object = 255;
@@ -85,10 +86,10 @@ void game_frame()
     case TilesAndSprites:
         map_controls();
         break;
-    case EditTile:
+    case EditTileOrSprite:
         edit_tile_controls();
         break;
-    case SaveScreen:
+    case SaveLoadScreen:
         save_controls();
         break;
     }
@@ -107,7 +108,7 @@ void graph_frame()
     switch (visual_mode)
     {
     case (TilesAndSprites):
-        sprite_frame();
+        sprites_frame();
         break;
     default:
         break;
@@ -122,15 +123,12 @@ void graph_line()
     {
     case TilesAndSprites:
         tiles_line();
-        sprite_line();
+        sprites_line();
         break;
-    case EditTile:
+    case EditTileOrSprite:
         edit_tile_line();
         break;
-    case EditSprite:
-        edit_sprite_line();
-        break;
-    case SaveScreen:
+    case SaveLoadScreen:
         save_line();
         break;
     default:

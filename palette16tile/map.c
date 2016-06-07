@@ -22,6 +22,9 @@ void map_reset()
         else
             tile_map[j*(tile_map_width/2)+i] = ((j - tile_map_height + 16)%16)|(((j - tile_map_height + 16)%16)<<4);
     }
+   
+    for (int k=0; k<MAX_OBJECTS; ++k)
+        create_object(k%16, rand()%(tile_map_width*16+16)-16, rand()%(tile_map_height*16+16)-16, rand()%256);
 }
 
 void map_controls()
@@ -67,7 +70,7 @@ void map_controls()
     }
     if (GAMEPAD_PRESS(0, select))
     {
-        visual_mode = EditTile;
+        visual_mode = EditTileOrSprite;
     }
 }
 

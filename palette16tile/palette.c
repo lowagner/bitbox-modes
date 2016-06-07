@@ -1,5 +1,6 @@
 #include "palette.h"
 #include "bitbox.h"
+#include "string.h" //memcpy
 
 uint16_t palette[16] CCM_MEMORY; 
 

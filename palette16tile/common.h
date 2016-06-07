@@ -16,9 +16,8 @@
 
 typedef enum {
     TilesAndSprites=0,
-    EditTile,
-    EditSprite,
-    SaveScreen
+    EditTileOrSprite,
+    SaveLoadScreen
 } VisualMode;
 
 extern VisualMode visual_mode;
@@ -27,4 +26,6 @@ extern VisualMode visual_mode;
 #define GAMEPAD_PRESSING(id, key) ((gamepad_buttons[id]) & (gamepad_##key) & (~old_gamepad[id] | ((gamepad_press_wait == 0)*gamepad_##key)))
 extern uint16_t old_gamepad[2];
 extern uint8_t gamepad_press_wait;
+
+extern uint8_t game_message[32];
 #endif

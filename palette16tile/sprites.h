@@ -5,6 +5,9 @@
 
 // break objects up into 16x16 tiles:
 extern uint8_t sprite_draw[16][8][16][8]; 
+// sprite info:
+// 5 bits for which color is invisible (>=16 for no invisible)
+extern uint16_t sprite_info[16][8];  
 
 struct object {
     // first 32 bits:
@@ -14,7 +17,7 @@ struct object {
     // third 32 bits
     uint8_t draw_index;
     uint8_t z;
-    uint8_t invisible_color;
+    uint8_t health;
     uint8_t properties;
     // fourth
     uint8_t sprite_index;
@@ -43,8 +46,8 @@ void make_unseen_object_viewable(int i);
 int on_screen(int16_t x, int16_t y);
 void update_objects();
 
-void sprite_line();
-void sprite_frame();
+void sprites_line();
+void sprites_frame();
 
 void sprites_reset();
 

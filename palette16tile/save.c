@@ -27,8 +27,6 @@ static const uint16_t save_colors[2][2] = {
     { RGB(0, 0, 0), RGB(0, 255, 255) }  // save colors
 };
 
-uint8_t save_message[32];
-
 void save_line()
 {
     if (vga_line < 22)
@@ -169,7 +167,7 @@ void save_line()
         case 10:
             break;
         case 11:
-            font_render_line_doubled(save_message, 32, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            font_render_line_doubled(game_message, 32, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         }
     }
@@ -234,7 +232,7 @@ void save_controls()
         }
         else
             base_filename[8] = 0;
-        save_message[0] = 0;
+        game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, B))
@@ -275,7 +273,7 @@ void save_controls()
             // shouldn't be necessary, but doesn't cost much:
             base_filename[7] = 0;
         }
-        save_message[0] = 0;
+        game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, X))
@@ -297,7 +295,7 @@ void save_controls()
             // shouldn't be necessary, but doesn't cost much:
             base_filename[7] = 0;
         }
-        save_message[0] = 0;
+        game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, Y))
@@ -316,7 +314,7 @@ void save_controls()
         {
             base_filename[save_position] = allowed_chars[save_y][save_x];
         }
-        save_message[0] = 0;
+        game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, L))
@@ -335,14 +333,14 @@ void save_controls()
     {
         if (save_not_load)
         {
-            visual_mode = TilesAndSprites;
             save_not_load = 0;
-            save_message[0] = 0;
+            game_message[0] = 0;
         }
         else
         {
-            save_not_load = 1;
-            save_message[0] = 0;
+            visual_mode = TilesAndSprites; // switch visual mode
+            save_not_load = 1; // but next time we'll come back to save
+            game_message[0] = 0;
         }
         return;
     }
@@ -353,30 +351,30 @@ void save_controls()
         {
         case NoError:
             if (save_not_load)
-                strcpy((char *)save_message, "tiles saved!");
+                strcpy((char *)game_message, "tiles saved!");
             else
-                strcpy((char *)save_message, "tiles loaded!");
+                strcpy((char *)game_message, "tiles loaded!");
             break;
         case MountError:
-            strcpy((char *)save_message, "file-system not mounted!");
+            strcpy((char *)game_message, "file-system not mounted!");
             break;
         case ConstraintError:
-            strcpy((char *)save_message, "constraints not satisfied!");
+            strcpy((char *)game_message, "constraints not satisfied!");
             break;
         case OpenError:
-            strcpy((char *)save_message, "could not open file!");
+            strcpy((char *)game_message, "could not open file!");
             break;
         case ReadError:
-            strcpy((char *)save_message, "could not read file!");
+            strcpy((char *)game_message, "could not read file!");
             break;
         case WriteError:
-            strcpy((char *)save_message, "could not write file!");
+            strcpy((char *)game_message, "could not write file!");
             break;
         case NoDataError:
-            strcpy((char *)save_message, "no data read/written!");
+            strcpy((char *)game_message, "no data read/written!");
             break;
         case MissingDataError:
-            strcpy((char *)save_message, "not all data read/written!");
+            strcpy((char *)game_message, "not all data read/written!");
             break;
         }
         return;
