@@ -5,12 +5,14 @@
 
 #include <string.h> // memset
 
-#define OFFSET_X 40
+#define OFFSET_X 230 // offset for alphabet square
 #define SAVE_COLOR 5 // a uint8_t, uint16_t color is (SAVE_COLOR)|(SAVE_COLOR<<8)
 
 char base_filename[9] CCM_MEMORY; // up to 8 characters, plus a zero
 uint8_t save_position CCM_MEMORY; // position in the base filename
 uint8_t save_not_load CCM_MEMORY; // whether to be in save (1) or load (0)
+uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
+int save_text_offset CCM_MEMORY;
 
 uint8_t save_x CCM_MEMORY, save_y CCM_MEMORY; // position in alphabet table (below):
 static const uint8_t allowed_chars[6][7] = {
@@ -59,9 +61,11 @@ void save_line()
         // also check for character selector
         if (line == 0)
         {
+            if (save_text_offset < 0 || save_text_offset > SCREEN_W - 20)
+                save_text_offset = 0;
             // spot in the filename to write to
-            uint16_t *dst = draw_buffer + OFFSET_X + 11*9 + 1 + save_position * 9;
-            const uint16_t color = save_colors[save_not_load][0];;
+            uint16_t *dst = draw_buffer + save_text_offset + 1 + save_position * 9;
+            const uint16_t color = save_colors[save_not_load][0];
             *dst++ = color;
             *dst++ = color;
             *dst++ = color;
@@ -73,7 +77,7 @@ void save_line()
         }
         else if (save_y+1 == line)
         {
-            uint16_t *dst = draw_buffer + 20*9 + 1 + save_x * 9 + OFFSET_X;
+            uint16_t *dst = draw_buffer + 1 + save_x * 9 + OFFSET_X;
             const uint16_t color = save_colors[save_not_load][0];
             *dst++ = color;
             *dst++ = color;
@@ -86,7 +90,7 @@ void save_line()
         }
         else if (line == 6 && internal_line == 9)
         {
-            uint16_t *dst = draw_buffer + 20*9 + 1 + save_x * 9 + OFFSET_X;
+            uint16_t *dst = draw_buffer + 1 + save_x * 9 + OFFSET_X;
             const uint16_t color = save_colors[save_not_load][1];
             *dst++ = color;
             *dst++ = color;
@@ -103,28 +107,53 @@ void save_line()
         --internal_line;
         if (line == 0)
         {
+            save_text_offset = 16 + 5*9;
             if (save_not_load)
-                font_render_line_doubled((const uint8_t *)"save file:", OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                font_render_line_doubled((const uint8_t *)"save", 16, internal_line, 65535, SAVE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"load file:", OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
-            font_render_line_doubled((uint8_t *)base_filename, 9*11 + OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                font_render_line_doubled((const uint8_t *)"load", 16, internal_line, 65535, 0);
+            switch (save_only)
+            {
+            case 0:
+                font_render_line_doubled((const uint8_t *)"all:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                save_text_offset += 5*9;
+                break;
+            case 1:
+                font_render_line_doubled((const uint8_t *)"tiles:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                save_text_offset += 7*9;
+                break;
+            case 2:
+                font_render_line_doubled((const uint8_t *)"sprites:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                save_text_offset += 9*9;
+                break;
+            case 3:
+                font_render_line_doubled((const uint8_t *)"map:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                save_text_offset += 5*9;
+                break;
+            case 4:
+                font_render_line_doubled((const uint8_t *)"palette:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+                save_text_offset += 9*9;
+                break;
+                
+            }
+            font_render_line_doubled((uint8_t *)base_filename, save_text_offset, internal_line, 65535, SAVE_COLOR*257*save_not_load);
         }
         else if (line <= 6)
         {
-            font_render_line_doubled((const uint8_t *)allowed_chars[line-1], OFFSET_X + 20*9, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            font_render_line_doubled((const uint8_t *)allowed_chars[line-1], OFFSET_X, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             if (line-1 == save_y)
             {
                 if (save_x < 5)
                 {
                     {
-                    uint16_t *dst = draw_buffer + (20*9 + save_x * 9 + OFFSET_X);
+                    uint16_t *dst = draw_buffer + (save_x * 9 + OFFSET_X);
                     const uint16_t color = save_colors[save_not_load][0];
                     *dst = color;
                     dst += 9;
                     *dst = color;
                     }
                     {
-                    uint32_t *dst = (uint32_t *)draw_buffer + (20*9 + 1 + 6 * 9 + OFFSET_X)/2;
+                    uint32_t *dst = (uint32_t *)draw_buffer + (1 + 6 * 9 + OFFSET_X)/2;
                     const uint32_t color = save_not_load ? (save_colors[1][1] | ((SAVE_COLOR*257) << 16)) : save_colors[0][1];
                     *dst++ = color;
                     *dst++ = color;
@@ -136,12 +165,12 @@ void save_line()
                 else
                 {
                     {
-                    uint16_t *dst = draw_buffer + (20*9 + save_x * 9 + OFFSET_X);
+                    uint16_t *dst = draw_buffer + (save_x * 9 + OFFSET_X);
                     const uint16_t color = save_colors[save_not_load][0];
                     *dst = color;
                     }
                     {
-                    uint32_t *dst = (uint32_t *)draw_buffer + (20*9 + 1 + 6 * 9 + OFFSET_X)/2;
+                    uint32_t *dst = (uint32_t *)draw_buffer + (1 + 6 * 9 + OFFSET_X)/2;
                     const uint32_t color = save_not_load ? (save_colors[1][0] | ((SAVE_COLOR*257) << 16)) : save_colors[0][0];
                     *dst++ = color;
                     *dst++ = color;
@@ -156,13 +185,16 @@ void save_line()
         switch (line)
         {
         case 7:
-            font_render_line_doubled((const uint8_t *)"Y:insert    X:delete", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"A:overwrite B:backspace", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            font_render_line_doubled((const uint8_t *)"A:advance B:backtrack", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         case 9:
-            font_render_line_doubled((const uint8_t *)"<L/R>:move cursor", 16, internal_line, 65535, SAVE_COLOR*257*save_not_load);
+            if (save_not_load)
+                font_render_line_doubled((const uint8_t *)"<L/R>:selective save", 16, internal_line, 65535, SAVE_COLOR*257);
+            else
+                font_render_line_doubled((const uint8_t *)"<L/R>:selective load", 16, internal_line, 65535, 0);
             break;
         case 10:
             break;
@@ -170,6 +202,98 @@ void save_line()
             font_render_line_doubled(game_message, 32, internal_line, 65535, SAVE_COLOR*257*save_not_load);
             break;
         }
+    }
+}
+
+void save_overwrite_character()
+{
+    char previous = base_filename[save_position];
+    base_filename[save_position] = allowed_chars[save_y][save_x];
+    if (save_position < 7) 
+    {
+        ++save_position;
+        if (previous == 0)
+            base_filename[save_position] = 0;
+    }
+    else
+        base_filename[8] = 0;
+}
+
+void save_backspace_character()
+{
+    if (save_position == 7)
+    {
+        if (base_filename[save_position])
+            base_filename[save_position] = 0;
+        else
+            base_filename[--save_position] = 0;
+    }
+    else
+        // if inside, move everything back
+    if (save_position) // somewhere in the middle
+    {
+        for (int i=save_position-1; i<7; ++i)
+        {
+            base_filename[i] = base_filename[i+1];
+            if (base_filename[i] == 0)
+                break;
+        }
+        // ensure that we took something out, the end is zeroed.
+        // shouldn't be necessary, but doesn't cost much:
+        base_filename[7] = 0;
+        // also move back
+        --save_position;
+    }
+    else
+    {
+        for (int i=0; i<7; ++i)
+        {
+            base_filename[i] = base_filename[i+1];
+            if (base_filename[i] == 0)
+                break;
+        }
+        // ensure that we took something out, the end is zeroed.
+        // shouldn't be necessary, but doesn't cost much:
+        base_filename[7] = 0;
+    }
+}
+
+void save_delete_character()
+{
+    // delete (and move other elements down), don't move cursor
+    if (save_position == 7)
+    {
+        base_filename[save_position] = 0;
+    }
+    else
+    {   
+        for (int i=save_position; i<7; ++i)
+        {
+            base_filename[i] = base_filename[i+1];
+            if (base_filename[i] == 0)
+                break;
+        }
+        // ensure that we took something out, the end is zeroed.
+        // shouldn't be necessary, but doesn't cost much:
+        base_filename[7] = 0;
+    }
+}
+
+void save_insert_character()
+{
+    // insert (and move up everything else)
+    if (save_position < 7)
+    {
+        base_filename[8] = 0; // override anything that would get moved up here
+        for (int i=6; i>=save_position; --i)
+        {
+            base_filename[i+1] = base_filename[i];
+        }
+        base_filename[save_position++] = allowed_chars[save_y][save_x];
+    }
+    else
+    {
+        base_filename[save_position] = allowed_chars[save_y][save_x];
     }
 }
 
@@ -211,126 +335,74 @@ void save_controls()
     if (make_wait)
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
 
-    /*
-    controls:
-        A - overwrite (and advance)
-        X - delete (and move everything back)
-        Y - insert (and advance)
-        B - backspace (and move everything back)
-        select - switch to a different mode (without saving)
-        start - save (NOT IMPLEMENTED)
-     */
     if (GAMEPAD_PRESS(0, A))
     {
-        char previous = base_filename[save_position];
-        base_filename[save_position] = allowed_chars[save_y][save_x];
-        if (save_position < 7) 
-        {
+        //save_overwrite_character();
+        if (base_filename[save_position] != 0 && save_position < 7)
             ++save_position;
-            if (previous == 0)
-                base_filename[save_position] = 0;
-        }
-        else
-            base_filename[8] = 0;
         game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, B))
     {
-        // backspace
-        if (save_position == 7)
-        {
-            if (base_filename[save_position])
-                base_filename[save_position] = 0;
-            else
-                base_filename[--save_position] = 0;
-        }
-        else
-            // if inside, move everything back
-        if (save_position) // somewhere in the middle
-        {
-            for (int i=save_position-1; i<7; ++i)
-            {
-                base_filename[i] = base_filename[i+1];
-                if (base_filename[i] == 0)
-                    break;
-            }
-            // ensure that we took something out, the end is zeroed.
-            // shouldn't be necessary, but doesn't cost much:
-            base_filename[7] = 0;
-            // also move back
+        //save_backspace_character();
+        if (save_position)
             --save_position;
-        }
-        else
-        {
-            for (int i=0; i<7; ++i)
-            {
-                base_filename[i] = base_filename[i+1];
-                if (base_filename[i] == 0)
-                    break;
-            }
-            // ensure that we took something out, the end is zeroed.
-            // shouldn't be necessary, but doesn't cost much:
-            base_filename[7] = 0;
-        }
         game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, X))
     {
-        // delete (and move other elements down), don't move cursor
-        if (save_position == 7)
-        {
-            base_filename[save_position] = 0;
-        }
-        else
-        {   
-            for (int i=save_position; i<7; ++i)
-            {
-                base_filename[i] = base_filename[i+1];
-                if (base_filename[i] == 0)
-                    break;
-            }
-            // ensure that we took something out, the end is zeroed.
-            // shouldn't be necessary, but doesn't cost much:
-            base_filename[7] = 0;
-        }
+        save_delete_character();
         game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, Y))
     {
-        // insert (and move up everything else)
-        if (save_position < 7)
-        {
-            base_filename[8] = 0; // override anything that would get moved up here
-            for (int i=6; i>=save_position; --i)
-            {
-                base_filename[i+1] = base_filename[i];
-            }
-            base_filename[save_position++] = allowed_chars[save_y][save_x];
-        }
-        else
-        {
-            base_filename[save_position] = allowed_chars[save_y][save_x];
-        }
+        //save_insert_character();
+        save_overwrite_character();
         game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, L))
     {
-        if (save_position)
-            --save_position;
+        //if (save_position)
+        //    --save_position;
+        if (save_not_load) // consider SAVE to the left of LOAD
+        {
+            if (save_only < 4) // and save_only is "absolute value"
+                ++save_only; // go from tiles to sprites to map to palette 
+        }
+        else
+        {
+            if (save_only)
+                --save_only;
+            else
+                save_not_load = 1; // switch over into save
+        }
         return;
     } 
     if (GAMEPAD_PRESS(0, R))
     {
-        if (base_filename[save_position] != 0 && save_position < 7)
-            ++save_position;
+        //if (base_filename[save_position] != 0 && save_position < 7)
+        //    ++save_position;
+        if (save_not_load) // consider SAVE to the left of LOAD
+        {
+            if (save_only)
+                --save_only;
+            else
+                save_not_load = 0; // switch over into load
+        }
+        else
+        {
+            if (save_only < 4)
+                ++save_only; // go from tiles to sprites to map to palette 
+        }
         return;
     }
     if (GAMEPAD_PRESS(0, select))
     {
+        save_only = 0;
         if (save_not_load)
         {
             save_not_load = 0;
@@ -346,35 +418,105 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, start))
     {
-        FileError result = save_not_load ? io_save_tile(16) : io_load_tile(16);
+        FileError result = BotchedIt;
+        int offset = 0;
+        switch (save_only)
+        {
+        case 0: // save all
+            result = save_not_load ? io_save_tile(16) : io_load_tile(16);
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "tiles ");
+                offset = 6;
+                break;
+            }
+            result = save_not_load ? io_save_sprite(16) : io_load_sprite(16);
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "sprites ");
+                offset = 8;
+                break;
+            }
+            result = save_not_load ? io_save_map() : io_load_map();
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "map ");
+                offset = 4;
+                break;
+            }
+            result = save_not_load ? io_save_palette() : io_load_palette();
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "palette ");
+                offset = 8;
+                break;
+            }
+            break;
+        case 1:
+            result = save_not_load ? io_save_tile(16) : io_load_tile(16);
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "tiles ");
+                offset = 6;
+            }
+            break;
+        case 2:
+            result = save_not_load ? io_save_sprite(16) : io_load_sprite(16);
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "sprites ");
+                offset = 8;
+            }
+            break;
+        case 3:
+            result = save_not_load ? io_save_map() : io_load_map();
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "map ");
+                offset = 4;
+            }
+            break;
+        case 4:
+            result = save_not_load ? io_save_palette() : io_load_palette();
+            if (result != NoError)
+            {
+                strcpy((char *)game_message, "palette ");
+                offset = 8;
+            }
+            break;
+        }
+       
         switch (result)
         {
         case NoError:
             if (save_not_load)
-                strcpy((char *)game_message, "tiles saved!");
+                strcpy((char *)game_message + offset, "saved!");
             else
-                strcpy((char *)game_message, "tiles loaded!");
+                strcpy((char *)game_message + offset, "loaded!");
             break;
         case MountError:
-            strcpy((char *)game_message, "file-system not mounted!");
+            strcpy((char *)game_message + offset, "fs unmounted!");
             break;
         case ConstraintError:
-            strcpy((char *)game_message, "constraints not satisfied!");
+            strcpy((char *)game_message + offset, "unconstrained!");
             break;
         case OpenError:
-            strcpy((char *)game_message, "could not open file!");
+            strcpy((char *)game_message + offset, "no open!");
             break;
         case ReadError:
-            strcpy((char *)game_message, "could not read file!");
+            strcpy((char *)game_message + offset, "no read!");
             break;
         case WriteError:
-            strcpy((char *)game_message, "could not write file!");
+            strcpy((char *)game_message + offset, "no write!");
             break;
         case NoDataError:
-            strcpy((char *)game_message, "no data read/written!");
+            strcpy((char *)game_message + offset, "no data!");
             break;
         case MissingDataError:
-            strcpy((char *)game_message, "not all data read/written!");
+            strcpy((char *)game_message + offset, "miss data!");
+            break;
+        case BotchedIt:
+            strcpy((char *)game_message + offset, "fully bungled.");
             break;
         }
         return;

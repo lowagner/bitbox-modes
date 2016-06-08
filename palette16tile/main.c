@@ -23,6 +23,7 @@ void game_init()
     // init game mode
     visual_mode = SaveLoadScreen;
     save_not_load = 0;
+    save_only = 0;
    
     // init tile mapping
     for (int j=0; j<16; ++j)

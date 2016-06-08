@@ -9,7 +9,8 @@ typedef enum {
     ReadError,
     WriteError,
     NoDataError,
-    MissingDataError
+    MissingDataError,
+    BotchedIt
 } FileError;
 
 
@@ -21,5 +22,7 @@ FileError io_save_tile(unsigned int i);
 FileError io_load_tile(unsigned int i);
 FileError io_save_sprite(unsigned int i);
 FileError io_load_sprite(unsigned int i);
+FileError io_save_map();
+FileError io_load_map();
 
 #endif

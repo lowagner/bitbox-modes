@@ -417,3 +417,13 @@ FileError io_load_sprite(unsigned int i)
         return NoError;
     }
 }
+
+FileError io_save_map()
+{
+    return WriteError; 
+}
+
+FileError io_load_map()
+{
+    return ConstraintError; 
+}
