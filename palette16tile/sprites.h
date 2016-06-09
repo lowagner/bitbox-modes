@@ -3,11 +3,9 @@
 
 #include "common.h"
 
-// break objects up into 16x16 tiles:
+// break objects up into 16x16 sprites with 8 possible frames (down/right/left/up * 2 for animation):
 extern uint8_t sprite_draw[16][8][16][8]; 
-// sprite info:
-// 5 bits for which color is invisible (>=16 for no invisible)
-extern uint16_t sprite_info[16][8];  
+extern uint32_t sprite_info[16][8];  
 
 struct object {
     // first 32 bits:

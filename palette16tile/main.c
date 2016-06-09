@@ -21,7 +21,7 @@ void game_init()
     memcpy(font, font_cache, sizeof(font_cache));
 
     // init game mode
-    visual_mode = SaveLoadScreen;
+    visual_mode = TilesAndSprites;
     save_not_load = 0;
     save_only = 0;
    
@@ -65,15 +65,17 @@ void game_init()
         }
         if (io_load_tile(16))
         {
-            // had troubles loading a palette
+            // had troubles loading tiles...
             tiles_reset();
         }
-        //if (io_load_map())
+        if (io_load_map())
         {
+            // etc...
             map_reset();
         }
-        //if (io_load_sprites(16))
+        if (io_load_sprite(16))
         {
+            // and so on...
             sprites_reset();
         }
     }

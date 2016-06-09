@@ -519,7 +519,7 @@ void edit_tile_controls()
     }
     if (GAMEPAD_PRESS(0, start))
     {
-        FileError result = edit_sprite_not_tile ? WriteError : io_save_tile(edit_tile);
+        FileError result = edit_sprite_not_tile ? io_save_sprite(edit_sprite/8) : io_save_tile(edit_tile);
         switch (result)
         {
         case NoError:
@@ -545,6 +545,9 @@ void edit_tile_controls()
             break;
         case MissingDataError:
             strcpy((char *)game_message, "miss data!");
+            break;
+        case BotchedIt:
+            strcpy((char *)game_message, "fully bungled.");
             break;
         }
         return;

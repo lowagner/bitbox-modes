@@ -337,7 +337,6 @@ void save_controls()
 
     if (GAMEPAD_PRESS(0, A))
     {
-        //save_overwrite_character();
         if (base_filename[save_position] != 0 && save_position < 7)
             ++save_position;
         game_message[0] = 0;
@@ -345,7 +344,6 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, B))
     {
-        //save_backspace_character();
         if (save_position)
             --save_position;
         game_message[0] = 0;
@@ -359,15 +357,12 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, Y))
     {
-        //save_insert_character();
         save_overwrite_character();
         game_message[0] = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, L))
     {
-        //if (save_position)
-        //    --save_position;
         if (save_not_load) // consider SAVE to the left of LOAD
         {
             if (save_only < 4) // and save_only is "absolute value"
@@ -384,8 +379,6 @@ void save_controls()
     } 
     if (GAMEPAD_PRESS(0, R))
     {
-        //if (base_filename[save_position] != 0 && save_position < 7)
-        //    ++save_position;
         if (save_not_load) // consider SAVE to the left of LOAD
         {
             if (save_only)

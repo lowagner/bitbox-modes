@@ -94,8 +94,8 @@ FileError io_save_palette()
         --k;
         filename[++k] = '.';
         filename[++k] = 'P';
-        filename[++k] = 'L';
-        filename[++k] = 'T';
+        filename[++k] = '1';
+        filename[++k] = '6';
         filename[++k] = 0;
     }
     fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
@@ -131,8 +131,8 @@ FileError io_load_palette()
         --k;
         filename[++k] = '.';
         filename[++k] = 'P';
-        filename[++k] = 'L';
-        filename[++k] = 'T';
+        filename[++k] = '1';
+        filename[++k] = '6';
         filename[++k] = 0;
     }
     fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
@@ -167,7 +167,7 @@ FileError io_save_tile(unsigned int i)
         }
         --k;
         filename[++k] = '.';
-        filename[++k] = 'P';
+        filename[++k] = 'T';
         filename[++k] = '1';
         filename[++k] = '6';
         filename[++k] = 0;
@@ -182,6 +182,17 @@ FileError io_save_tile(unsigned int i)
         for (i=0; i<16; ++i)
         {
             UINT bytes_get; 
+            fat_result = f_write(&fat_file, &tile_info[i], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError;
+            }
+            if (bytes_get != sizeof(tile_draw[0]))
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_write(&fat_file, tile_draw[i], sizeof(tile_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -200,7 +211,18 @@ FileError io_save_tile(unsigned int i)
     else
     {
         UINT bytes_get; 
-        f_lseek(&fat_file, i*sizeof(tile_draw[0])); 
+        f_lseek(&fat_file, i*(sizeof(tile_draw[0])+4)); 
+        fat_result = f_write(&fat_file, &tile_info[i], 4, &bytes_get);
+        if (fat_result != FR_OK)
+        {
+            f_close(&fat_file);
+            return WriteError;
+        }
+        if (bytes_get != sizeof(tile_draw[0]))
+        {
+            f_close(&fat_file);
+            return MissingDataError;
+        }
         fat_result = f_write(&fat_file, tile_draw[i], sizeof(tile_draw[0]), &bytes_get);
         f_close(&fat_file);
         if (fat_result != FR_OK)
@@ -228,16 +250,14 @@ FileError io_load_tile(unsigned int i)
         }
         --k;
         filename[++k] = '.';
-        filename[++k] = 'P';
+        filename[++k] = 'T';
         filename[++k] = '1';
         filename[++k] = '6';
         filename[++k] = 0;
     }
     fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
     if (fat_result != FR_OK)
-    {
         return OpenError;
-    }
     
     if (i >= 16)
     {
@@ -245,6 +265,17 @@ FileError io_load_tile(unsigned int i)
         for (i=0; i<16; ++i)
         {
             UINT bytes_get;
+            fat_result = f_read(&fat_file, &tile_info[i], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError; 
+            }
+            else if (bytes_get != 4)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_read(&fat_file, tile_draw[i], sizeof(tile_draw[0]), &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -262,8 +293,19 @@ FileError io_load_tile(unsigned int i)
     }
     else
     {
+        f_lseek(&fat_file, i*(sizeof(tile_draw[0])+4)); 
         UINT bytes_get;
-        f_lseek(&fat_file, i*sizeof(tile_draw[0])); 
+        fat_result = f_read(&fat_file, &tile_info[i], 4, &bytes_get);
+        if (fat_result != FR_OK)
+        {
+            f_close(&fat_file);
+            return ReadError; 
+        }
+        else if (bytes_get != 4)
+        {
+            f_close(&fat_file);
+            return MissingDataError;
+        }
         fat_result = f_read(&fat_file, tile_draw[i], sizeof(tile_draw[0]), &bytes_get);
         f_close(&fat_file);
         if (fat_result != FR_OK)
@@ -306,7 +348,18 @@ FileError io_save_sprite(unsigned int i)
         for (i=0; i<16; ++i)
         for (int f=0; f<8; ++f)
         {
-            UINT bytes_get; 
+            UINT bytes_get;
+            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError; 
+            }
+            else if (bytes_get != 4)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -324,10 +377,21 @@ FileError io_save_sprite(unsigned int i)
     }
     else
     {
-        f_lseek(&fat_file, i*8*sizeof(sprite_draw[0][0])); 
+        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0][0])+4)); 
         for (int f=0; f<8; ++f)
         {
-            UINT bytes_get; 
+            UINT bytes_get;
+            fat_result = f_write(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError; 
+            }
+            else if (bytes_get != 4)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_write(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -380,6 +444,17 @@ FileError io_load_sprite(unsigned int i)
         for (int f=0; f<8; ++f)
         {
             UINT bytes_get;
+            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError; 
+            }
+            else if (bytes_get != 4)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_read(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -397,10 +472,21 @@ FileError io_load_sprite(unsigned int i)
     }
     else
     {
-        f_lseek(&fat_file, i*8*sizeof(sprite_draw[0][0]));
+        f_lseek(&fat_file, i*8*(sizeof(sprite_draw[0][0])+4));
         for (int f=0; f<8; ++f) // frame
         {
             UINT bytes_get;
+            fat_result = f_read(&fat_file, &sprite_info[i][f], 4, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError; 
+            }
+            else if (bytes_get != 4)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
             fat_result = f_read(&fat_file, sprite_draw[i][f], sizeof(sprite_draw[0][0]), &bytes_get);
             if (fat_result != FR_OK)
             {

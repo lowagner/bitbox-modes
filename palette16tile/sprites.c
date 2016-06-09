@@ -6,7 +6,15 @@
 
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
-uint16_t sprite_info[16][8] CCM_MEMORY; 
+// info about a sprite:
+//   5 bits for "what color is invisible in this sprite"
+//   3 bits for pattern of sprite
+//   4 bits for initial health
+//   4 bits for speed of sprite
+//   4 bits for damage/passable property, x 4 sides 
+//      first bit indicates damaging (or not if it's zero)
+//      second three bits:  passable, breakable, hard, slippery, sticky, bouncey, 
+uint32_t sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;
 uint8_t first_free_object CCM_MEMORY;

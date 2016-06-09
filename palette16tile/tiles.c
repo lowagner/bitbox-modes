@@ -4,7 +4,21 @@
 uint8_t tile_draw[16][16][8] CCM_MEMORY;
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
 uint8_t tile_translator[16] CCM_MEMORY;
-//uint16_t tile_properties[256] CCM_MEMORY;
+// info about a tile:
+//   5 bits for "what is hiding inside this tile?", 
+//      a value >= 16 is "nothing hides here", and also indicates if the tile is a water-based tile.
+//      16 + [0 = not water, 1 = quick-sand, ..., 8 = water, ..., 15 = liquid mercury] 
+//   3 bits:
+//      if not water:  
+//          for tile strength (can only destroy a tile using an attack which &'s the strength).
+//      if water:
+//          current direction and strength
+//   4 bits for translation of tile (use tile number itself for no translation)
+//   4 bits for translation timing (0000 -> 16 units of time), where one unit of time is 32 frames
+//   4 bits for damage/passable property, x 4 sides 
+//      first bit indicates damaging (or not if it's zero)
+//      second three bits:  passable, breakable, hard, slippery, sticky, bouncey, 
+uint32_t tile_info[16] CCM_MEMORY;
 int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
 uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
 // tile_map_width * tile_map_height <= TILE_MAP_MEMORY
