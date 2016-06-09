@@ -17,6 +17,12 @@ int edit_y CCM_MEMORY;
 uint8_t edit_color CCM_MEMORY;
 
 const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+const char direction[4] = { 
+    [DOWN] = 'D',
+    [RIGHT] = 'R',
+    [LEFT] = 'L',
+    [UP] = 'U'
+};
 
 void edit_init() 
 {
@@ -140,7 +146,8 @@ void edit_line()
             int line = vga_line - 22;
             if (edit_sprite_not_tile)
             {
-                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_sprite/8], '.', hex[edit_sprite%8], 
+                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', 
+                    hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2], 
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
                 uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
@@ -276,7 +283,7 @@ void edit_line()
             }
             else
             {
-                font_render_line_doubled((const uint8_t *)"B:paint A:fill start:save tile", 
+                font_render_line_doubled((const uint8_t *)"B:paint A:fill start:menu", 
                     20, line, 65535, 0);
             }
         }
@@ -520,10 +527,15 @@ void edit_controls()
         game_message[0] = 0;
         fill_stop();
         if (edit_sprite_not_tile)
+        {
             edit_sprite = (edit_sprite + moved)&127;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        }
         else
+        {
             edit_tile = (edit_tile + moved)&15;
-        gamepad_press_wait = GAMEPAD_PRESS_WAIT+GAMEPAD_PRESS_WAIT/4;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT+GAMEPAD_PRESS_WAIT/2;
+        }
         return;
     }
     int paint_if_moved = 0; 

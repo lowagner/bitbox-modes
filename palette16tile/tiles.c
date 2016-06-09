@@ -32,6 +32,33 @@ void tiles_init()
         tile_translator[j] = j; 
 }
 
+uint32_t pack_tile_info(uint8_t hiding, uint8_t strength, 
+    uint8_t translation, uint8_t timing, const SideType *sides)
+{
+    return (hiding&31)|((strength&7)<<5)|((translation&15)<<8)|((timing&15)<<12)|
+        (sides[0]<<16)|(sides[1]<<20)|(sides[2]<<24)|(sides[3]<<28);
+}
+
+void unpack_tile_info(uint32_t value, uint8_t *hiding, uint8_t *strength, 
+    uint8_t *translation, uint8_t *timing, SideType *sides)
+{
+    *hiding = value&31;
+    value >>= 5;
+    *strength = value & 7;
+    value >>= 3;
+    *translation = value & 15;
+    value >>= 4;
+    *timing = value & 15;
+    value >>= 4;
+    sides[0] = value & 15;
+    value >>= 4;
+    sides[1] = value & 15;
+    value >>= 4;
+    sides[2] = value & 15;
+    value >>= 4;
+    sides[3] = value & 15;
+}
+
 void tiles_line()
 {
     if (tile_map_x % 16)
@@ -348,4 +375,11 @@ void tiles_reset()
         else
             *tc++ = BLUEGREEN|(BLUEGREEN<<4);
     }
+    {
+    SideType pass[4] = { Passable, Passable, Passable, Passable };
+    tile_info[0] = pack_tile_info(16, 1, 0, 0, pass);
+    }
+    SideType sides[4] = { Hard, Hard, Hard, Hard };
+    for (int i=1; i<16; ++i)
+        tile_info[i] = pack_tile_info(16, 1, i, 0, sides);
 }
