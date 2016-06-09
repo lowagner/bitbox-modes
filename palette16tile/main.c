@@ -51,6 +51,7 @@ void game_init()
         base_filename[3] = 0;
 
         // need to reset everything
+        // TODO: should probably also write stuff to TMP, if it doesn't exist
         palette_reset();
         tiles_reset();
         map_reset();
