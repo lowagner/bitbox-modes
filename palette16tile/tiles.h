@@ -10,6 +10,7 @@ extern uint8_t tile_translator[16];
 extern int16_t tile_map_x, tile_map_y;
 extern uint16_t tile_map_width, tile_map_height;
 
+void tiles_init();
 void tiles_line();
 void tiles_reset();
 

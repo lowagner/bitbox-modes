@@ -16,9 +16,13 @@ int edit_x CCM_MEMORY;
 int edit_y CCM_MEMORY;
 uint8_t edit_color CCM_MEMORY;
 
-static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-void edit_tile_line() 
+void edit_init() 
+{
+}
+
+void edit_line() 
 {
     if (vga_line < 32)
     {
@@ -500,80 +504,29 @@ int edit_spot_color()
         return (*memory) & 15;
 }
 
-void edit_tile_controls()
-{
-    if (GAMEPAD_PRESS(0, select))
+void edit_controls()
+{ 
+    int moved = 0;
+    if (GAMEPAD_PRESSING(0, R))
+    {
+        ++moved;
+    }
+    if (GAMEPAD_PRESSING(0, L))
+    {
+        --moved;
+    }
+    if (moved)
     {
         game_message[0] = 0;
         fill_stop();
         if (edit_sprite_not_tile)
-        {
-            visual_mode = SaveLoadScreen;
-            edit_sprite_not_tile = 0;
-        }
+            edit_sprite = (edit_sprite + moved)&127;
         else
-        {
-            edit_sprite_not_tile = 1;
-        }
+            edit_tile = (edit_tile + moved)&15;
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT+GAMEPAD_PRESS_WAIT/4;
         return;
     }
-    if (GAMEPAD_PRESS(0, start))
-    {
-        FileError result = edit_sprite_not_tile ? io_save_sprite(edit_sprite/8) : io_save_tile(edit_tile);
-        switch (result)
-        {
-        case NoError:
-            strcpy((char *)game_message, "saved!");
-            break;
-        case MountError:
-            strcpy((char *)game_message, "no mount!");
-            break;
-        case ConstraintError:
-            strcpy((char *)game_message, "bad constr!");
-            break;
-        case OpenError:
-            strcpy((char *)game_message, "no open!");
-            break;
-        case ReadError:
-            strcpy((char *)game_message, "no read!");
-            break;
-        case WriteError:
-            strcpy((char *)game_message, "no write!");
-            break;
-        case NoDataError:
-            strcpy((char *)game_message, "no data!");
-            break;
-        case MissingDataError:
-            strcpy((char *)game_message, "miss data!");
-            break;
-        case BotchedIt:
-            strcpy((char *)game_message, "fully bungled.");
-            break;
-        }
-        return;
-    }
-
-    int movement = 0;
-    if (GAMEPAD_PRESS(0, R))
-    {
-        ++movement;
-    }
-    if (GAMEPAD_PRESS(0, L))
-    {
-        --movement;
-    }
-    if (movement)
-    {
-        game_message[0] = 0;
-        fill_stop();
-        if (edit_sprite_not_tile)
-            edit_sprite = (edit_sprite + movement)&127;
-        else
-            edit_tile = (edit_tile + movement)&15;
-        return;
-    }
-   
-    int moved = 0, paint_if_moved = 0; 
+    int paint_if_moved = 0; 
     if (GAMEPAD_PRESSING(0, Y))
     {
         game_message[0] = 0;
@@ -636,4 +589,25 @@ void edit_tile_controls()
     }
     else if (paint_if_moved)
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+    
+    if (GAMEPAD_PRESS(0, select))
+    {
+        game_message[0] = 0;
+        fill_stop();
+        if (edit_sprite_not_tile)
+        {
+            visual_mode = SaveLoadScreen;
+            edit_sprite_not_tile = 0;
+        }
+        else
+        {
+            edit_sprite_not_tile = 1;
+        }
+        return;
+    }
+    if (GAMEPAD_PRESS(0, start))
+    {
+        game_message[0] = 0;
+        visual_mode = EditTileOrSpriteProperties;
+    }
 }

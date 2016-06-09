@@ -26,6 +26,21 @@ uint8_t drawing_count CCM_MEMORY;
 uint8_t first_drawing_index CCM_MEMORY; 
 uint8_t last_drawing_index CCM_MEMORY; 
 
+void sprites_init()
+{
+    // setup the objects and the linked list:
+    for (int i=0; i<MAX_OBJECTS; ++i)
+    {
+        object[i] = (struct object) {
+            .next_free_object = i+1,
+            .next_used_object = 255,
+        };
+    }
+    object[MAX_OBJECTS-1].next_free_object = 255;
+    first_free_object = 0;
+    first_used_object = 255;
+}
+
 void make_unseen_object_viewable(int i)
 {
     // object is viewable, but hasn't gone on the drawing list:

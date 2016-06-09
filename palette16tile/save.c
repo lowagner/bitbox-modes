@@ -27,6 +27,12 @@ static const uint16_t save_colors[2][2] = {
     { RGB(255, 0, 0), RGB(0, 255, 0) }, // load colors 
     { RGB(0, 0, 0), RGB(0, 255, 255) }  // save colors
 };
+   
+void save_init()
+{
+    save_not_load = 1;
+    save_only = 0;
+}
 
 void save_line()
 {
@@ -45,11 +51,6 @@ void save_line()
     {
         if (vga_line/2 == (22 + 12*10)/2)
             memset(draw_buffer, SAVE_COLOR*save_not_load, 2*SCREEN_W);
-        else if (save_not_load == 0)
-        {
-            // load mode
-
-        }
         return;
     }
     int line = (vga_line-22) / 10;
@@ -410,34 +411,34 @@ void save_controls()
     }
     if (GAMEPAD_PRESS(0, start))
     {
-        FileError result = BotchedIt;
+        FileError error = BotchedIt;
         int offset = 0;
         switch (save_only)
         {
         case 0: // save all
-            result = save_not_load ? io_save_tile(16) : io_load_tile(16);
-            if (result != NoError)
+            error = save_not_load ? io_save_tile(16) : io_load_tile(16);
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "tiles ");
                 offset = 6;
                 break;
             }
-            result = save_not_load ? io_save_sprite(16) : io_load_sprite(16);
-            if (result != NoError)
+            error = save_not_load ? io_save_sprite(16, 8) : io_load_sprite(16, 8);
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "sprites ");
                 offset = 8;
                 break;
             }
-            result = save_not_load ? io_save_map() : io_load_map();
-            if (result != NoError)
+            error = save_not_load ? io_save_map() : io_load_map();
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "map ");
                 offset = 4;
                 break;
             }
-            result = save_not_load ? io_save_palette() : io_load_palette();
-            if (result != NoError)
+            error = save_not_load ? io_save_palette() : io_load_palette();
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "palette ");
                 offset = 8;
@@ -445,32 +446,32 @@ void save_controls()
             }
             break;
         case 1:
-            result = save_not_load ? io_save_tile(16) : io_load_tile(16);
-            if (result != NoError)
+            error = save_not_load ? io_save_tile(16) : io_load_tile(16);
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "tiles ");
                 offset = 6;
             }
             break;
         case 2:
-            result = save_not_load ? io_save_sprite(16) : io_load_sprite(16);
-            if (result != NoError)
+            error = save_not_load ? io_save_sprite(16, 8) : io_load_sprite(16, 8);
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "sprites ");
                 offset = 8;
             }
             break;
         case 3:
-            result = save_not_load ? io_save_map() : io_load_map();
-            if (result != NoError)
+            error = save_not_load ? io_save_map() : io_load_map();
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "map ");
                 offset = 4;
             }
             break;
         case 4:
-            result = save_not_load ? io_save_palette() : io_load_palette();
-            if (result != NoError)
+            error = save_not_load ? io_save_palette() : io_load_palette();
+            if (error != NoError)
             {
                 strcpy((char *)game_message, "palette ");
                 offset = 8;
@@ -478,7 +479,7 @@ void save_controls()
             break;
         }
        
-        switch (result)
+        switch (error)
         {
         case NoError:
             if (save_not_load)

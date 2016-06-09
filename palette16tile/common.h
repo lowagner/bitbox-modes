@@ -17,6 +17,7 @@
 typedef enum {
     TilesAndSprites=0,
     EditTileOrSprite,
+    EditTileOrSpriteProperties,
     SaveLoadScreen
 } VisualMode;
 
@@ -28,4 +29,5 @@ extern uint16_t old_gamepad[2];
 extern uint8_t gamepad_press_wait;
 
 extern uint8_t game_message[32];
+extern const char hex[16];
 #endif

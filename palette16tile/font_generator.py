@@ -414,6 +414,11 @@ with open("font.c", 'w') as f:
     if len(characters) + starting_index > 256:
         print "WARNING, overflow!"
     f.write("""
+void font_init()
+{
+    memcpy(font, font_cache, sizeof(font_cache));
+}
+
 void font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg)
 {
     #ifdef EMULATOR
@@ -450,7 +455,7 @@ void font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_
 
 with open("font.h", 'w') as f:
     f.write("#ifndef FONT_H\n#define FONT_H\n#include <stdint.h>\n")
-    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n#endif\n")
+    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_init();\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n#endif\n")
 
 """
 some characters left to implement

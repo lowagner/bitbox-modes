@@ -44,9 +44,9 @@ void make_unseen_object_viewable(int i);
 int on_screen(int16_t x, int16_t y);
 void update_objects();
 
+void sprites_init();
 void sprites_line();
 void sprites_frame();
-
 void sprites_reset();
 
 #endif
