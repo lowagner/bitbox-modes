@@ -22,7 +22,7 @@ void game_init()
 
     // init game mode
     visual_mode = TilesAndSprites;
-    save_not_load = 0;
+    save_not_load = 1;
     save_only = 0;
    
     // init tile mapping
@@ -51,7 +51,6 @@ void game_init()
         base_filename[3] = 0;
 
         // need to reset everything
-        // TODO: should probably also write stuff to TMP, if it doesn't exist
         palette_reset();
         tiles_reset();
         map_reset();

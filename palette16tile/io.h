@@ -15,6 +15,7 @@ typedef enum {
 
 
 FileError io_init();
+FileError io_set_recent_filename();
 FileError io_get_recent_filename();
 FileError io_save_palette();
 FileError io_load_palette();
@@ -24,5 +25,7 @@ FileError io_save_sprite(unsigned int i);
 FileError io_load_sprite(unsigned int i);
 FileError io_save_map();
 FileError io_load_map();
+
+extern char base_filename[9];
 
 #endif

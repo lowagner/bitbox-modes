@@ -8,7 +8,6 @@
 #define OFFSET_X 230 // offset for alphabet square
 #define SAVE_COLOR 5 // a uint8_t, uint16_t color is (SAVE_COLOR)|(SAVE_COLOR<<8)
 
-char base_filename[9] CCM_MEMORY; // up to 8 characters, plus a zero
 uint8_t save_position CCM_MEMORY; // position in the base filename
 uint8_t save_not_load CCM_MEMORY; // whether to be in save (1) or load (0)
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
