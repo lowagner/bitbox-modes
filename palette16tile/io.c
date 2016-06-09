@@ -188,7 +188,7 @@ FileError io_save_tile(unsigned int i)
                 f_close(&fat_file);
                 return WriteError;
             }
-            if (bytes_get != sizeof(tile_draw[0]))
+            if (bytes_get != 4)
             {
                 f_close(&fat_file);
                 return MissingDataError;
@@ -218,7 +218,7 @@ FileError io_save_tile(unsigned int i)
             f_close(&fat_file);
             return WriteError;
         }
-        if (bytes_get != sizeof(tile_draw[0]))
+        if (bytes_get != 4)
         {
             f_close(&fat_file);
             return MissingDataError;
