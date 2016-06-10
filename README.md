@@ -189,14 +189,7 @@ Everything is based on nibbles (half-bytes), so you'll see lots of (X&15) and (X
 There's also a tile viewer if you hit select.
 
 Controls:
-* dpad - move around
-* select - switch to a different view mode
-
-In tile-edit mode:
-* X/Y - cycle color of cursor
-* A - toggle painting with cursor
-* B - paint (if cursor isn't painting) or fill (if cursor is painting)
-* L/R - switch tile to edit
+* select changes the mode, other controls are given on screen.
 
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile.png)
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-editing.png)
