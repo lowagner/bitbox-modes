@@ -98,7 +98,8 @@ void game_frame()
     old_gamepad[0] = gamepad_buttons[0];
     old_gamepad[1] = gamepad_buttons[1];
 
-    fill_frame();
+    if (vga_frame % 2)
+        fill_frame();
     
     if (gamepad_press_wait)
         --gamepad_press_wait;

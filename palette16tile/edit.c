@@ -149,9 +149,10 @@ void edit_line()
             int line = vga_line - 22;
             if (edit_sprite_not_tile)
             {
-                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ',
+                uint8_t text[] = {  
+                    's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
+                    ' ', 's', 'p', 'r', 'i', 't', 'e', ' ',
                     hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2],
-                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
                 uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
@@ -160,8 +161,9 @@ void edit_line()
             }
             else
             {
-                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', hex[edit_tile], ' ', ' ', ' ',
-                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
+                uint8_t text[] = { 
+                    's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
+                    ' ', 't', 'i', 'l', 'e', ' ', hex[edit_tile], 
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
@@ -370,6 +372,17 @@ void edit_line()
                 *(++dst) = color;
             break;
         }
+        case ((SCREEN_H/2 + 16 - 4 - 16 + 4)/2):
+        case ((SCREEN_H/2 + 16 - 4 - 16 + 6)/2):
+        case ((SCREEN_H/2 + 16 - 4 - 16 + 8)/2):
+        case ((SCREEN_H/2 + 16 - 4 - 16 + 10)/2):
+        {
+            uint8_t button[] = { 'L', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 16 - 4 - 16 + 4), 
+                ~palette[(edit_color[1]-1)&15],
+                palette[(edit_color[1]-1)&15]);
+            break;
+        }
         case ((SCREEN_H/2 + 16*2 + 4)/2):
         case ((SCREEN_H/2 + 16*2 + 4 + 12)/2):
         {
@@ -379,6 +392,17 @@ void edit_line()
 
             for (int k=0; k<8; ++k)
                 *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 + 16*2 + 4 + 4)/2):
+        case ((SCREEN_H/2 + 16*2 + 4 + 6)/2):
+        case ((SCREEN_H/2 + 16*2 + 4 + 8)/2):
+        case ((SCREEN_H/2 + 16*2 + 4 + 10)/2):
+        {
+            uint8_t button[] = { 'R', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 16*2 + 4 + 4), 
+                ~palette[(edit_color[1]+1)&15],
+                palette[(edit_color[1]+1)&15]);
             break;
         }
     }
@@ -452,6 +476,17 @@ void edit_line()
                 *(++dst) = color;
             break;
         }
+        case ((SCREEN_H/2 - 40 - 16 - 4 + 4)/2):
+        case ((SCREEN_H/2 - 40 - 16 - 4 + 6)/2):
+        case ((SCREEN_H/2 - 40 - 16 - 4 + 8)/2):
+        case ((SCREEN_H/2 - 40 - 16 - 4 + 10)/2):
+        {
+            uint8_t button[] = { 'L', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 40 - 16 - 4 + 4), 
+                ~palette[(edit_color[0]-1)&15],
+                palette[(edit_color[0]-1)&15]);
+            break;
+        }
         case ((SCREEN_H/2 - 40 + 16 + 4)/2):
         case ((SCREEN_H/2 - 40 + 16 + 4 + 12)/2):
         {
@@ -461,6 +496,17 @@ void edit_line()
 
             for (int k=0; k<8; ++k)
                 *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 - 40 + 16 + 4 + 4)/2):
+        case ((SCREEN_H/2 - 40 + 16 + 4 + 6)/2):
+        case ((SCREEN_H/2 - 40 + 16 + 4 + 8)/2):
+        case ((SCREEN_H/2 - 40 + 16 + 4 + 10)/2):
+        {
+            uint8_t button[] = { 'R', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 40 + 16 + 4 + 4), 
+                ~palette[(edit_color[0]+1)&15],
+                palette[(edit_color[0]+1)&15]);
             break;
         }
     }

@@ -121,7 +121,7 @@ void name_line()
                     }
                     {
                     uint32_t *dst = (uint32_t *)draw_buffer + (1 + 6 * 9 + OFFSET_X)/2;
-                    const uint32_t color = MATRIX_WING_COLOR;
+                    const uint32_t color = MATRIX_WING_COLOR | ((BG_COLOR*257)<<16);
                     *dst++ = color;
                     *dst++ = color;
                     *dst++ = color;
@@ -138,7 +138,7 @@ void name_line()
                     }
                     {
                     uint32_t *dst = (uint32_t *)draw_buffer + (1 + 6 * 9 + OFFSET_X)/2;
-                    const uint32_t color = BOX_COLOR;
+                    const uint32_t color = BOX_COLOR | ((BG_COLOR*257)<<16);
                     *dst++ = color;
                     *dst++ = color;
                     *dst++ = color;
