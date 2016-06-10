@@ -204,6 +204,14 @@ void fill_frame()
 {
     if (fill_stack_index < 0)
         return;
+    /* TODO:
+        to make this more efficient, you can specify whether this line was started
+        going up or coming down.  (put a 1 in the 31st bit if it was going up.)
+        if this line does not extend left of the original xmin or right of the original xmax,
+        it does not have to push a new row to the stack going back the direction it came from.
+            e.g. if it was going up, no need to send a row down if it doesn't extend.
+
+     */
     int z = fill_stack[fill_stack_index--];
     // unravel the xmin, xmax, and y values in fill_stack:
     int xmax = (z >> 20) & 1023;
