@@ -18,6 +18,8 @@ uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
 
+#define BSOD 140
+
 void game_init()
 { 
     font_init();
@@ -26,10 +28,11 @@ void game_init()
     edit2_init();
     tiles_init();
     sprites_init();
+    palette_init();
 
     // init game mode
-    previous_visual_mode = None;
     visual_mode = TilesAndSprites;
+    previous_visual_mode = None;
 
     // now load everything else
     if (io_get_recent_filename())
@@ -85,6 +88,9 @@ void game_frame()
     case EditTileOrSpriteProperties:
         edit2_controls();
         break;
+    case EditPalette:
+        palette_controls();
+        break;
     case SaveLoadScreen:
         save_controls();
         break;
@@ -136,12 +142,40 @@ void graph_line()
     case SaveLoadScreen:
         save_line();
         break;
+    case EditPalette:
+        palette_line();
+        break;
     case ChooseFilename:
         name_line();
         break;
     default:
-        if (vga_line/2 == 0)
-            memset(draw_buffer, 140, 2*SCREEN_W);
+    {
+        int line = vga_line/10;
+        int internal_line = vga_line%10;
+        if (vga_line/2 == 0 || (internal_line/2 == 4))
+        {
+            memset(draw_buffer, BSOD, 2*SCREEN_W);
+            return;
+        }
+        if (line >= 4 && line < 20)
+        {
+            line -= 4;
+            uint32_t *dst = (uint32_t *)draw_buffer + 37;
+            uint32_t color_choice[2] = { (BSOD*257)|((BSOD*257)<<16), 65535|(65535<<16) };
+            int shift = ((internal_line/2))*4;
+            for (int c=0; c<16; ++c)
+            {
+                uint8_t row = (font[c+line*16] >> shift) & 15;
+                for (int j=0; j<4; ++j)
+                {
+                    *(++dst) = color_choice[row&1];
+                    row >>= 1;
+                }
+                *(++dst) = color_choice[0];
+            }
+            return;
+        }
         break;
+    }
     }
 }

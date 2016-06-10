@@ -22,6 +22,9 @@
 
 extern uint16_t palette[16]; 
 
+void palette_init();
 void palette_reset();
+void palette_controls();
+void palette_line();
 
 #endif
