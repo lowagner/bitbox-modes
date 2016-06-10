@@ -54,7 +54,7 @@ void edit2_line()
                 uint8_t label[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', hex[edit_sprite/8], '.', 
                     direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2], ' ', 'i', 'n', 0 };
                 font_render_line_doubled(label, 16, internal_line, 65535, SPRITE_COLOR*257);
-                font_render_line_doubled((uint8_t *)base_filename, 16+9*14, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((uint8_t *)base_filename, 16+9*15, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             }
             else
             {
@@ -80,13 +80,16 @@ void edit2_line()
         case 4:
             break;
         case 5:
-            font_render_line_doubled((const uint8_t *)"start: back to edit", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            if (edit_sprite_not_tile)
+                font_render_line_doubled((const uint8_t *)"start: edit sprite", 16, internal_line, 65535, SPRITE_COLOR*257);
+            else
+                font_render_line_doubled((const uint8_t *)"start: edit tile", 16, internal_line, 65535, 0);
             break;
         case 6:
             if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"select: go to tiles", 16, internal_line, 65535, SPRITE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"select: go to tile menu", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"select: go to sprites", 16, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"select: go to sprite menu", 16, internal_line, 65535, 0);
             break;
         case 7:
             break;
@@ -204,7 +207,7 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESS(0, A))
     {
-        // save or paste
+        // save
         if (edit2_copying)
         {
             // or cancel a copy

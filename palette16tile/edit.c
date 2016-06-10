@@ -281,9 +281,14 @@ void edit_line()
             {
                 font_render_line_doubled((uint8_t *)game_message, 20, line, 65535, 0);
             }
-            else
+            else if (fill_can_start())
             {
                 font_render_line_doubled((const uint8_t *)"B:paint A:fill start:menu", 
+                    20, line, 65535, 0);
+            }
+            else
+            {
+                font_render_line_doubled((const uint8_t *)"B:paint A:stop start:menu", 
                     20, line, 65535, 0);
             }
         }
@@ -555,14 +560,21 @@ void edit_controls()
     {
         game_message[0] = 0;
         uint8_t previous_canvas_color = edit_spot_color();
-        if (fill_can_start() && previous_canvas_color != edit_color)
+        if (fill_can_start())
         {
-            uint8_t *memory = edit_sprite_not_tile ? 
-                sprite_draw[edit_sprite/8][edit_sprite%8][0] :
-                tile_draw[edit_tile][0];
-            fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color);
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            if (previous_canvas_color != edit_color)
+            {
+                uint8_t *memory = edit_sprite_not_tile ? 
+                    sprite_draw[edit_sprite/8][edit_sprite%8][0] :
+                    tile_draw[edit_tile][0];
+                fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color);
+                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            }
             return;
+        }
+        else
+        {
+            fill_stop();
         }
     }
     if (GAMEPAD_PRESSING(0, B))
