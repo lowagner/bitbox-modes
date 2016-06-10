@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern uint8_t edit_color;
+extern uint8_t edit_color[2];
 extern uint8_t edit_tile, edit_sprite;
 extern uint8_t edit_sprite_not_tile;
 

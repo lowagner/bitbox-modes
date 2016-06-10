@@ -11,10 +11,11 @@
 uint8_t edit_tile CCM_MEMORY;
 uint8_t edit_sprite CCM_MEMORY;
 uint8_t edit_sprite_not_tile CCM_MEMORY;
+uint8_t edit_last_painted CCM_MEMORY;
 
 int edit_x CCM_MEMORY;
 int edit_y CCM_MEMORY;
-uint8_t edit_color CCM_MEMORY;
+uint8_t edit_color[2] CCM_MEMORY;
 
 const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 const char direction[4] = { 
@@ -26,6 +27,8 @@ const char direction[4] = {
 
 void edit_init() 
 {
+    edit_color[0] = BLACK;
+    edit_color[1] = WHITE;
 }
 
 void edit_line() 
@@ -36,7 +39,7 @@ void edit_line()
         {
             if (vga_line/2 == 0)
                 for (int i=0; i<SCREEN_W; ++i)
-                    draw_buffer[i] = palette[edit_color];
+                    draw_buffer[i] = palette[edit_color[0]];
         }
         else if (vga_line < 20)
         {
@@ -146,8 +149,9 @@ void edit_line()
             int line = vga_line - 22;
             if (edit_sprite_not_tile)
             {
-                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', 
-                    hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2], 
+                uint8_t text[] = { 's', 'p', 'r', 'i', 't', 'e', ' ',
+                    hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2],
+                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
                 uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
@@ -156,7 +160,8 @@ void edit_line()
             }
             else
             {
-                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', '<', 'L', '/', 'R', '>',':', ' ', hex[edit_tile], ' ',
+                uint8_t text[] = { 't', 'i', 'l', 'e', ' ', hex[edit_tile], ' ', ' ', ' ',
+                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
@@ -170,7 +175,7 @@ void edit_line()
             if (vga_line/2 == (SCREEN_H-4)/2)
             {
                 for (int i=0; i<SCREEN_W; ++i)
-                    draw_buffer[i] = palette[edit_color];
+                    draw_buffer[i] = palette[edit_color[1]];
             }
         }
         else if (vga_line >= SCREEN_H - 20)
@@ -283,106 +288,183 @@ void edit_line()
             }
             else if (fill_can_start())
             {
-                font_render_line_doubled((const uint8_t *)"B:paint A:fill start:menu", 
+                font_render_line_doubled((const uint8_t *)"B/Y:paint A/X:fill L/R:cycle", 
                     20, line, 65535, 0);
             }
             else
             {
-                font_render_line_doubled((const uint8_t *)"B:paint A:stop start:menu", 
+                font_render_line_doubled((const uint8_t *)"B/Y:paint A/X:stop L/R:cycle", 
                     20, line, 65535, 0);
             }
         }
         return;
     }
 
+    if (edit_last_painted) // bottom color needs L/R cycles
     switch (vga_line/2)
     {
-        case ((SCREEN_H/2 - 8)/2):
+        case (SCREEN_H/2 - 40)/2:
+        case (SCREEN_H/2 - 40 + 12)/2:
         {
-            // draw a small color swatch
+            // draw a small color swatch of edit paint 0
             uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
-            uint32_t color = palette[edit_color] | (palette[edit_color]<<16);
+            uint32_t color = palette[edit_color[0]] | (palette[edit_color[0]]<<16);
 
             for (int k=0; k<8; ++k)
                 *(++dst) = color;
             break;
         }
-        case ((SCREEN_H/2 + 8)/2):
+        case ((SCREEN_H/2 - 40 + 4)/2):
+        case ((SCREEN_H/2 - 40 + 6)/2):
+        case ((SCREEN_H/2 - 40 + 8)/2):
+        case ((SCREEN_H/2 - 40 + 10)/2):
         {
-            // remove swatch
+            uint8_t button[] = { 'Y', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 40 + 4), 
+                ~palette[edit_color[0]],
+                palette[edit_color[0]]);
+            break;
+        }
+        case (SCREEN_H/2 + 16)/2:
+        case (SCREEN_H/2 + 16 + 12)/2:
+        {
+            // draw a small color swatch of edit paint 1
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[edit_color[1]] | (palette[edit_color[1]]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 + 16 + 4)/2):
+        case ((SCREEN_H/2 + 16 + 6)/2):
+        case ((SCREEN_H/2 + 16 + 8)/2):
+        case ((SCREEN_H/2 + 16 + 10)/2):
+        {
+            uint8_t button[] = { 'B', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 16 + 4), 
+                ~palette[edit_color[1]],
+                palette[edit_color[1]]);
+            break;
+        }
+        case (SCREEN_H/2 - 24)/2:
+        case (SCREEN_H/2 + 32)/2:
+        case ((SCREEN_H/2 + 16 - 4)/2):
+        case ((SCREEN_H/2 + 16*2 + 4 + 16)/2):
+        {
+            // remove the swatch
             uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
 
             for (int k=0; k<8; ++k)
                 *(++dst) = 0;
             break;
         }
-        case ((SCREEN_H/2 - 8 - 8 - 16 + 4)/2):
-        case ((SCREEN_H/2 - 8 - 8 - 16 + 6)/2):
-        case ((SCREEN_H/2 - 8 - 8 - 16 + 8)/2):
-        case ((SCREEN_H/2 - 8 - 8 - 16 + 10)/2):
-        {
-            // render a previous color "X" button
-            uint8_t button[] = { 'X', 0 };
-            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 8 - 8 - 16 + 4), 
-                ~palette[(edit_color-1)&15],
-                palette[(edit_color-1)&15]);
-            break;
-        }
-        case ((SCREEN_H/2 - 8 - 8 - 16)/2):
-        case ((SCREEN_H/2 - 8 - 8 - 16 + 8+ 4)/2):
+        case ((SCREEN_H/2 + 16 - 4 - 16)/2):
+        case ((SCREEN_H/2 + 16 - 4 - 16 + 12)/2):
         {
             // draw a small color swatch for previous edit color, and kill text
             uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
-            uint32_t color = palette[(edit_color-1)&15] | (palette[(edit_color-1)&15]<<16);
+            uint32_t color = palette[(edit_color[1]-1)&15] | (palette[(edit_color[1]-1)&15]<<16);
 
             for (int k=0; k<8; ++k)
                 *(++dst) = color;
             break;
         }
-        case ((SCREEN_H/2 - 8 - 8)/2):
+        case ((SCREEN_H/2 + 16*2 + 4)/2):
+        case ((SCREEN_H/2 + 16*2 + 4 + 12)/2):
         {
-            // remove swatch
+            // draw a small color swatch for next edit color, and kill text
             uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
-
-            for (int k=0; k<8; ++k)
-                *(++dst) = 0;
-            break;
-        }
-        case ((SCREEN_H/2 + 8 + 8 + 4)/2):
-        case ((SCREEN_H/2 + 8 + 8 + 6)/2):
-        case ((SCREEN_H/2 + 8 + 8 + 8)/2):
-        case ((SCREEN_H/2 + 8 + 8 + 10)/2):
-        {
-            // render a next color "Y" button
-            uint8_t button[] = { 'Y', 0 };
-            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 8 + 8 + 4), 
-                ~palette[(edit_color+1)&15],
-                palette[(edit_color+1)&15]);
-            break;
-        }
-        case ((SCREEN_H/2 + 8 + 8)/2):
-        case ((SCREEN_H/2 + 8 + 8 + 8 + 4)/2):
-        {
-            // draw a small color swatch for next edit color
-            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
-            uint32_t color = palette[(edit_color+1)&15] | (palette[(edit_color+1)&15]<<16);
+            uint32_t color = palette[(edit_color[1]+1)&15] | (palette[(edit_color[1]+1)&15]<<16);
 
             for (int k=0; k<8; ++k)
                 *(++dst) = color;
             break;
         }
-        case ((SCREEN_H/2 + 8 + 8 + 16)/2):
-        {
-            // remove swatch
-            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
-
-            for (int k=0; k<8; ++k)
-                *(++dst) = 0;
-            break;
-        }
-        default:
-            break;
     }
+    else
+    switch (vga_line/2) // top color needs L/R cycles
+    {
+        case (SCREEN_H/2 - 40)/2:
+        case (SCREEN_H/2 - 40 + 12)/2:
+        {
+            // draw a small color swatch of edit paint 0
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[edit_color[0]] | (palette[edit_color[0]]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 - 40 + 4)/2):
+        case ((SCREEN_H/2 - 40 + 6)/2):
+        case ((SCREEN_H/2 - 40 + 8)/2):
+        case ((SCREEN_H/2 - 40 + 10)/2):
+        {
+            uint8_t button[] = { 'Y', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 - 40 + 4), 
+                ~palette[edit_color[0]],
+                palette[edit_color[0]]);
+            break;
+        }
+        case (SCREEN_H/2 + 16)/2:
+        case ((SCREEN_H/2 + 16 + 12)/2):
+        {
+            // draw a small color swatch of edit paint 1
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[edit_color[1]] | (palette[edit_color[1]]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 + 16 + 4)/2):
+        case ((SCREEN_H/2 + 16 + 6)/2):
+        case ((SCREEN_H/2 + 16 + 8)/2):
+        case ((SCREEN_H/2 + 16 + 10)/2):
+        {
+            uint8_t button[] = { 'B', 0 };
+            font_render_line_doubled(button, 20, vga_line - (SCREEN_H/2 + 16 + 4), 
+                ~palette[edit_color[1]],
+                palette[edit_color[1]]);
+            break;
+        }
+        case (SCREEN_H/2 - 24)/2:
+        case (SCREEN_H/2 + 32)/2:
+        case (SCREEN_H/2 - 40 - 4)/2:
+        case (SCREEN_H/2 - 40 + 2*16 + 4)/2:
+        {
+            // remove the swatches
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = 0;
+            break;
+        }
+        case ((SCREEN_H/2 - 40 - 16 - 4)/2):
+        case ((SCREEN_H/2 - 40 - 16 - 4 + 12)/2):
+        {
+            // draw a small color swatch for previous edit color, and kill text
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[(edit_color[0]-1)&15] | (palette[(edit_color[0]-1)&15]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+        case ((SCREEN_H/2 - 40 + 16 + 4)/2):
+        case ((SCREEN_H/2 - 40 + 16 + 4 + 12)/2):
+        {
+            // draw a small color swatch for next edit color, and kill text
+            uint32_t *dst = ((uint32_t *)draw_buffer) + 16/2 - 1;
+            uint32_t color = palette[(edit_color[0]+1)&15] | (palette[(edit_color[0]+1)&15]<<16);
+
+            for (int k=0; k<8; ++k)
+                *(++dst) = color;
+            break;
+        }
+    }
+
     // separate block to limit scope of variables therein:
     {
         // draw big tile
@@ -492,16 +574,18 @@ void edit_line()
     }
 }
 
-void edit_spot_paint()
+void edit_spot_paint(uint8_t p)
 {
+    edit_last_painted = p;
+
     uint8_t *memory = edit_sprite_not_tile ? 
         &sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] :
         &tile_draw[edit_tile][edit_y][edit_x/2];
 
     if (edit_x % 2)
-        *memory = ((*memory)&15) | (edit_color<<4);
+        *memory = ((*memory)&15) | (edit_color[p]<<4);
     else
-        *memory = (edit_color) | ((*memory) & 240);
+        *memory = (edit_color[p]) | ((*memory) & 240);
 }
 
 int edit_spot_color()
@@ -516,74 +600,67 @@ int edit_spot_color()
         return (*memory) & 15;
 }
 
+void edit_spot_fill(uint8_t p)
+{
+    edit_last_painted = p;
+
+    if (!fill_can_start())
+        fill_stop();
+    uint8_t previous_canvas_color = edit_spot_color();
+    if (previous_canvas_color != edit_color[p])
+    {
+        uint8_t *memory = edit_sprite_not_tile ? 
+            sprite_draw[edit_sprite/8][edit_sprite%8][0] :
+            tile_draw[edit_tile][0];
+        fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color[p]);
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+    }
+}
+
 void edit_controls()
 { 
-    int moved = 0;
+    int make_wait = 0;
     if (GAMEPAD_PRESSING(0, R))
     {
-        ++moved;
+        game_message[0] = 0;
+        edit_color[edit_last_painted] = (edit_color[edit_last_painted] + 1)&15;
+        make_wait = 1;
     }
-    if (GAMEPAD_PRESSING(0, L))
-    {
-        --moved;
-    }
-    if (moved)
+    else if (GAMEPAD_PRESSING(0, L))
     {
         game_message[0] = 0;
-        fill_stop();
-        if (edit_sprite_not_tile)
-        {
-            edit_sprite = (edit_sprite + moved)&127;
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-        }
-        else
-        {
-            edit_tile = (edit_tile + moved)&15;
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT+GAMEPAD_PRESS_WAIT/2;
-        }
-        return;
+        edit_color[edit_last_painted] = (edit_color[edit_last_painted] - 1)&15;
+        make_wait = 1;
     }
-    int paint_if_moved = 0; 
-    if (GAMEPAD_PRESSING(0, Y))
+    
+    if (GAMEPAD_PRESSING(0, A))
     {
         game_message[0] = 0;
-        edit_color = (edit_color + 1)&15;
-        moved = 1;
+        edit_spot_fill(1);
+        make_wait = 1;
     }
     else if (GAMEPAD_PRESSING(0, X))
     {
         game_message[0] = 0;
-        edit_color = (edit_color - 1)&15;
-        moved = 1;
+        edit_spot_fill(0);
+        make_wait = 1;
     }
-    if (GAMEPAD_PRESSING(0, A))
+
+    int paint_if_moved = 0; 
+    if (GAMEPAD_PRESSING(0, Y))
     {
         game_message[0] = 0;
-        uint8_t previous_canvas_color = edit_spot_color();
-        if (fill_can_start())
-        {
-            if (previous_canvas_color != edit_color)
-            {
-                uint8_t *memory = edit_sprite_not_tile ? 
-                    sprite_draw[edit_sprite/8][edit_sprite%8][0] :
-                    tile_draw[edit_tile][0];
-                fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color);
-                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-            }
-            return;
-        }
-        else
-        {
-            fill_stop();
-        }
-    }
-    if (GAMEPAD_PRESSING(0, B))
-    {
-        game_message[0] = 0;
-        edit_spot_paint();
+        edit_spot_paint(0);
         paint_if_moved = 1;
-    }        
+    }
+    else if (GAMEPAD_PRESSING(0, B))
+    {
+        game_message[0] = 0;
+        edit_spot_paint(1);
+        paint_if_moved = 2;
+    }
     
+    int moved = 0;
     if (GAMEPAD_PRESSING(0, left))
     {
         edit_x = (edit_x - 1)&15;
@@ -608,10 +685,10 @@ void edit_controls()
     {
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
         if (paint_if_moved)
-            edit_spot_paint();
+            edit_spot_paint(paint_if_moved-1);
         return;
     }
-    else if (paint_if_moved)
+    else if (paint_if_moved || make_wait)
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
     
     if (GAMEPAD_PRESS(0, select))
@@ -632,6 +709,7 @@ void edit_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         game_message[0] = 0;
+        fill_stop();
         visual_mode = EditTileOrSpriteProperties;
     }
 }

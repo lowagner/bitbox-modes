@@ -68,10 +68,25 @@ void map_controls()
         if (moved)
             update_objects(); 
     }
+    if (GAMEPAD_PRESS(0, start))
+    {
+        previous_visual_mode = TilesAndSprites;
+        // TODO: choose edit_sprite or edit_tile (and edit_sprite_not_tile)
+        // based on the tile/sprite which is currently selected in the map
+        visual_mode = EditTileOrSpriteProperties;
+        return;
+    }
     if (GAMEPAD_PRESS(0, select))
     {
-        visual_mode = EditTileOrSprite;
+        if (previous_visual_mode)
+        {
+            visual_mode = previous_visual_mode;
+            previous_visual_mode = None;
+        }
+        else
+        {
+            visual_mode = EditTileOrSprite;
+        }
+        return;
     }
 }
-
-

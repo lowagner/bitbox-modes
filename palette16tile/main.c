@@ -4,6 +4,7 @@
 #include "tiles.h"
 #include "edit.h"
 #include "edit2.h"
+#include "name.h"
 #include "save.h"
 #include "fill.h"
 #include "font.h"
@@ -12,6 +13,7 @@
 #include "string.h" // memcpy
 
 VisualMode visual_mode CCM_MEMORY; 
+VisualMode previous_visual_mode CCM_MEMORY;
 uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
@@ -26,6 +28,7 @@ void game_init()
     sprites_init();
 
     // init game mode
+    previous_visual_mode = None;
     visual_mode = TilesAndSprites;
 
     // now load everything else
@@ -85,6 +88,11 @@ void game_frame()
     case SaveLoadScreen:
         save_controls();
         break;
+    case ChooseFilename:
+        name_controls();
+        break;
+    default:
+        break;
     }
     
     old_gamepad[0] = gamepad_buttons[0];
@@ -127,7 +135,12 @@ void graph_line()
     case SaveLoadScreen:
         save_line();
         break;
+    case ChooseFilename:
+        name_line();
+        break;
     default:
+        if (vga_line/2 == 0)
+            memset(draw_buffer, 140, 2*SCREEN_W);
         break;
     }
 }

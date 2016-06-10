@@ -30,13 +30,16 @@ typedef enum {
 #define GAMEPAD_PRESS_WAIT 8
 
 typedef enum {
-    TilesAndSprites=0,
+    None=0,
+    TilesAndSprites,
     EditTileOrSprite,
     EditTileOrSpriteProperties,
-    SaveLoadScreen
+    SaveLoadScreen,
+    ChooseFilename
 } VisualMode;
 
 extern VisualMode visual_mode;
+extern VisualMode previous_visual_mode;
 
 #define DOWN 0
 #define RIGHT 1

@@ -2,12 +2,13 @@
 #include "common.h"
 #include "font.h"
 #include "edit.h"
+#include "name.h"
 #include "io.h"
 
 #include <string.h> // memset
 
 #define SPRITE_COLOR 4 // a uint8_t, uint16_t color is (SPRITE_COLOR)|(SPRITE_COLOR<<8)
-#define NUMBER_LINES 9
+#define NUMBER_LINES 12
 
 uint8_t edit2_copying CCM_MEMORY; // 0 for not copying, 1 for sprite, 2 for tile
 uint8_t edit2_copy_location CCM_MEMORY;
@@ -66,34 +67,48 @@ void edit2_line()
         case 1: 
             break;
         case 2:
-            if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"A,B,X:cancel copy", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            if (edit_sprite_not_tile)
+                font_render_line_doubled((const uint8_t *)"L/R:cycle sprite", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"A:save X:load", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"L/R:cycle tile", 16, internal_line, 65535, 0);
             break;
         case 3:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"Y:paste", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"A:cancel copy", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             else
-                font_render_line_doubled((const uint8_t *)"B:copy", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"A:save to file", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             break;
         case 4:
+            if (edit2_copying)
+                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            else
+                font_render_line_doubled((const uint8_t *)"X:load from file", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             break;
         case 5:
-            if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"start: edit sprite", 16, internal_line, 65535, SPRITE_COLOR*257);
+            if (edit2_copying)
+                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             else
-                font_render_line_doubled((const uint8_t *)"start: edit tile", 16, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"B:copy", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             break;
         case 6:
-            if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"select: go to tile menu", 16, internal_line, 65535, SPRITE_COLOR*257);
+            if (edit2_copying)
+                font_render_line_doubled((const uint8_t *)"Y:paste", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             else
-                font_render_line_doubled((const uint8_t *)"select: go to sprite menu", 16, internal_line, 65535, 0);
-            break;
+                font_render_line_doubled((const uint8_t *)"Y:change filename", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
         case 7:
             break;
         case 8:
+            font_render_line_doubled((const uint8_t *)"start: return", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            break;
+        case 9:
+            if (edit_sprite_not_tile)
+                font_render_line_doubled((const uint8_t *)"select: go to tiles", 16, internal_line, 65535, SPRITE_COLOR*257);
+            else
+                font_render_line_doubled((const uint8_t *)"select: go to sprites", 16, internal_line, 65535, 0);
+            break;
+        case 10:
+            break;
+        case 11:
             font_render_line_doubled(game_message, 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
             break;
         }
@@ -205,56 +220,19 @@ void edit2_controls()
         }
         return;
     }
+    int save_or_load = 0;
     if (GAMEPAD_PRESS(0, A))
     {
         // save
-        if (edit2_copying)
-        {
-            // or cancel a copy
-            edit2_copying = 0;
-            return;
-        }
-        // saving
-        FileError error;
-        if (edit_sprite_not_tile)
-            error = io_save_sprite(edit_sprite/8, edit_sprite%8);
-        else
-            error = io_save_tile(edit_tile);
-        switch (error)
-        {
-        case NoError:
-            strcpy((char *)game_message, "saved!");
-            break;
-        case MountError:
-            strcpy((char *)game_message, "fs unmounted!");
-            break;
-        case ConstraintError:
-            strcpy((char *)game_message, "unconstrained!");
-            break;
-        case OpenError:
-            strcpy((char *)game_message, "no open!");
-            break;
-        case ReadError:
-            strcpy((char *)game_message, "no read!");
-            break;
-        case WriteError:
-            strcpy((char *)game_message, "no write!");
-            break;
-        case NoDataError:
-            strcpy((char *)game_message, "no data!");
-            break;
-        case MissingDataError:
-            strcpy((char *)game_message, "miss data!");
-            break;
-        case BotchedIt:
-            strcpy((char *)game_message, "fully bungled.");
-            break;
-        }
-        return;
+        save_or_load = 1;
     }
-    if (GAMEPAD_PRESS(0, X))
+    else if (GAMEPAD_PRESS(0, X))
     {
         // load
+        save_or_load = 2;
+    }
+    if (save_or_load)
+    {
         if (edit2_copying)
         {
             // or cancel a copy
@@ -263,14 +241,27 @@ void edit2_controls()
         }
             
         FileError error;
-        if (edit_sprite_not_tile)
-            error = io_load_sprite(edit_sprite/8, edit_sprite%8);
-        else
-            error = io_load_tile(edit_tile);
+        if (save_or_load == 1) // save
+        {
+            if (edit_sprite_not_tile)
+                error = io_save_sprite(edit_sprite/8, edit_sprite%8);
+            else
+                error = io_save_tile(edit_tile);
+        }
+        else // load
+        {
+            if (edit_sprite_not_tile)
+                error = io_load_sprite(edit_sprite/8, edit_sprite%8);
+            else
+                error = io_load_tile(edit_tile);
+        }
         switch (error)
         {
         case NoError:
-            strcpy((char *)game_message, "saved!");
+            if (save_or_load == 1)
+                strcpy((char *)game_message, "saved!");
+            else
+                strcpy((char *)game_message, "loaded!");
             break;
         case MountError:
             strcpy((char *)game_message, "fs unmounted!");
@@ -301,24 +292,32 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESS(0, Y))
     {
-        // paste
-        uint8_t *src, *dst;
-        if (edit2_copying == 1) // sprite
-            src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
-        else
-            src = tile_draw[edit2_copy_location][0];
-        if (edit_sprite_not_tile)
-            dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
-        else
-            dst = tile_draw[edit_tile][0];
-        if (src == dst)
-            strcpy((char *)game_message, "pasting to same thing");
+        if (edit2_copying)
+        {
+            // paste
+            uint8_t *src, *dst;
+            if (edit2_copying == 1) // sprite
+                src = sprite_draw[edit2_copy_location/8][edit2_copy_location%8][0];
+            else
+                src = tile_draw[edit2_copy_location][0];
+            if (edit_sprite_not_tile)
+                dst = sprite_draw[edit_sprite/8][edit_sprite%8][0];
+            else
+                dst = tile_draw[edit_tile][0];
+            if (src == dst)
+                strcpy((char *)game_message, "pasting to same thing");
+            else
+            {
+                memcpy(dst, src, 16*8);
+                strcpy((char *)game_message, "pasted.");
+            }
+            edit2_copying = 0;
+        }
         else
         {
-            memcpy(dst, src, 16*8);
-            strcpy((char *)game_message, "pasted.");
+            previous_visual_mode = EditTileOrSpriteProperties;
+            visual_mode = ChooseFilename;
         }
-        edit2_copying = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, select))
@@ -330,6 +329,15 @@ void edit2_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         game_message[0] = 0;
-        visual_mode = EditTileOrSprite;
+        if (previous_visual_mode)
+        {
+            visual_mode = previous_visual_mode;
+            previous_visual_mode = None;
+        }
+        else
+        {
+            visual_mode = EditTileOrSprite;
+        }
+        return;
     }
 }

@@ -1,7 +1,7 @@
 #include "bitbox.h"
 #include "common.h"
 #include "tiles.h"
-#include "save.h"
+#include "name.h"
 #include "io.h"
 
 #include "fatfs/ff.h"
@@ -11,7 +11,6 @@ int io_mounted = 0;
 FATFS fat_fs;
 FIL fat_file;
 FRESULT fat_result;
-char base_filename[9] CCM_MEMORY; // up to 8 characters, plus a zero
 char old_base_filename[9] CCM_MEMORY;
 
 FileError io_init()

@@ -26,6 +26,4 @@ FileError io_load_sprite(unsigned int i, unsigned int f);
 FileError io_save_map();
 FileError io_load_map();
 
-extern char base_filename[9];
-
 #endif
