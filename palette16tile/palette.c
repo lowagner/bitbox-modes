@@ -60,8 +60,33 @@ void palette_line()
     }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        if (vga_line/2 == (22 + NUMBER_LINES*10)/2)
+        if (vga_line/2 == (22 + NUMBER_LINES*10)/2 || vga_line/2 == (22 + NUMBER_LINES*10 + 2 + 16*3)/2)
+        {
             memset(draw_buffer, 0, 2*SCREEN_W);
+            return;
+        }
+        // vga_line >= (22 + NUMBER_LINES*10 + 2)
+        int line = vga_line - (22 + NUMBER_LINES*10 + 2 + 16);
+        if (line >= 32)
+            return;
+        if (line >= 16)
+        {
+            // draw tiles
+            line -= 16;
+            uint16_t *dst = draw_buffer + 31;
+            for (int tile=0; tile<16; ++tile)
+            {
+                uint8_t *tile_color = &tile_draw[tile][line][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *dst++ = palette[(*(++tile_color))&15];
+                    *dst++ = palette[(*tile_color)>>4];
+                }
+            }
+            return;
+        }
+
+
         return;
     }
     int line = (vga_line-22) / 10;
@@ -69,6 +94,11 @@ void palette_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, 0, 2*SCREEN_W);
+        if (line == 8)
+        {
+            // RGB line, add a little underline to currently selected color
+            memset(draw_buffer + 20+28*9 - palette_selector*4*9, 255, 2*3*9);
+        }
     }
     else
     {
@@ -90,13 +120,13 @@ void palette_line()
             if (palette_copying < 32768)
                 font_render_line_doubled((const uint8_t *)"A:cancel copy", 16+2*9, internal_line, 65535, 0);
             else
-                font_render_line_doubled((const uint8_t *)"A:save all", 16+2*9, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"A:save colors", 16+2*9, internal_line, 65535, 0);
             break;
         case 4:
             if (palette_copying < 32768)
                 font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, 0);
             else
-                font_render_line_doubled((const uint8_t *)"X:load all", 16+2*9, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"X:load colors", 16+2*9, internal_line, 65535, 0);
             break;
         case 5:
             if (palette_copying < 32768)
@@ -112,10 +142,14 @@ void palette_line()
         case 7:
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"start: return", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"start: return  dpad:", 16, internal_line, 65535, 0);
             {
-            uint8_t label[] = { 'r', ':', hex[(palette[palette_index]>>10)&31], ' ', 'g', ':', hex[(palette[palette_index]>>5)&31], ' ', 'b', ':', hex[(palette[palette_index])&31], 0 };
-            font_render_line_doubled(label, 16+21*9, internal_line, 65535, 0);
+            uint8_t label[] = { 'r', ':', hex[(palette[palette_index]>>10)&31], 0 };
+            font_render_line_doubled(label, 20+20*9, internal_line, RGB(255, 50, 50), 0);
+            label[0] = 'g'; label[2] = hex[(palette[palette_index]>>5)&31];
+            font_render_line_doubled(label, 20+24*9, internal_line, RGB(50, 255, 50), 0);
+            label[0] = 'b'; label[2] = hex[(palette[palette_index])&31];
+            font_render_line_doubled(label, 20+28*9, internal_line, RGB(50, 100, 255), 0);
             }
             break;
         case 10:
@@ -129,17 +163,55 @@ void palette_line()
         uint32_t color = palette[palette_index] | (palette[palette_index]<<16);
         for (int l=0; l<16; ++l) 
             *(++dst) = color;
-    }
-    else if (vga_line/2 == (22 + 2*16)/2)
-    {
-        memset(draw_buffer+(SCREEN_W - 24 - 16*2*2), 0, 64);
-    }
-    else if (vga_line < 22 + 2 + 2*16 + 2*16 && palette_copying < 32768)
-    {
-        uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*2)/2;
-        uint32_t color = palette_copying | (palette_copying << 16);
-        for (int l=0; l<16; ++l) 
+        ++dst;
+        for (int l=0; l<4; ++l)
+        {
+            color = palette[(l + ((vga_line - 22))/8 * 4)&15];
+            color |= (color<<16);
             *(++dst) = color;
+            *(++dst) = color;
+            *(++dst) = color;
+            *(++dst) = color;
+        }
+    }
+    else if (vga_line/2 == (22 + 2*16)/2 || vga_line/2 == (22 + 4*16 + 2)/2)
+    {
+        memset(draw_buffer+(SCREEN_W - 24 - 16*2*2), 0, 64+4+64);
+    }
+    else if (vga_line < 22 + 2 + 2*16 + 2*16)
+    {
+        if (palette_copying < 32768)
+        {
+            uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*4)/2 - 1;
+            uint32_t color; 
+            for (int l=0; l<4; ++l)
+            {
+                color = palette[(l + ((vga_line - (22+32+2)))/8 * 4)&15];
+                color |= (color<<16);
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+            }
+            ++dst;
+            color = palette_copying | (palette_copying << 16);
+            for (int l=0; l<16; ++l) 
+                *(++dst) = color;
+        }
+        else
+        {
+            uint32_t *dst = (uint32_t *)draw_buffer + (SCREEN_W - 24 - 16*4)/2 - 1;
+            uint32_t color;
+            for (int l=0; l<4; ++l) 
+            {
+                color = palette[(l + ((vga_line - (22+32+2)))/8 * 4)&15];
+                color |= (color<<16);
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+            }
+        }
     }
 }
 
@@ -161,21 +233,35 @@ void palette_controls()
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
         return;
     }
+    if (GAMEPAD_PRESS(0, left))
+    {
+        // blue is palette_selector = 0, so moving left goes towards red
+        if (palette_selector < 2)
+            ++palette_selector;
+        else
+            palette_selector = 0;
+        return;
+    }
+    if (GAMEPAD_PRESS(0, right))
+    {
+        // red is palette_selector = 2, so moving right goes towards blue
+        if (palette_selector)
+            --palette_selector;
+        else
+            palette_selector = 2;
+        return;
+    }
     int make_wait = 0;
-    if (GAMEPAD_PRESSING(0, left))
-    {
-        make_wait = 1;
-    }
-    if (GAMEPAD_PRESSING(0, right))
-    {
-        make_wait = 1;
-    }
     if (GAMEPAD_PRESSING(0, up))
     {
+        if (((palette[palette_index] >> (5*palette_selector)) & 31) < 31)
+            palette[palette_index] += 1 << (5*palette_selector);
         make_wait = 1;
     }
     if (GAMEPAD_PRESSING(0, down))
     {
+        if (((palette[palette_index] >> (5*palette_selector)) & 31) > 0)
+            palette[palette_index] -= 1 << (5*palette_selector);
         make_wait = 1;
     }
     if (make_wait)
@@ -275,7 +361,7 @@ void palette_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        visual_mode = EditTileOrSprite;
+        visual_mode = TilesAndSprites;
         previous_visual_mode = None;
         return;
     }

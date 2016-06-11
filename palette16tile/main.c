@@ -31,7 +31,7 @@ void game_init()
     palette_init();
 
     // init game mode
-    visual_mode = TilesAndSprites;
+    visual_mode = EditPalette;
     previous_visual_mode = None;
 
     // now load everything else

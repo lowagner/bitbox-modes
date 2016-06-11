@@ -269,7 +269,7 @@ void save_controls()
     {
         game_message[0] = 0;
         // switch to next visual mode and ignore previous_visual_mode
-        visual_mode = TilesAndSprites;
+        visual_mode = EditPalette;
         previous_visual_mode = None;
         save_only = 0; // reset save for next time
         return;
