@@ -55,4 +55,6 @@ extern uint8_t gamepad_press_wait;
 extern uint8_t game_message[32];
 extern const uint8_t hex[32]; // not exactly hex but ok!
 extern const uint8_t direction[4];
+
+void draw_parade(int line, uint8_t bg_color);
 #endif

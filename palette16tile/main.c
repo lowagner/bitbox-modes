@@ -14,9 +14,11 @@
 
 VisualMode visual_mode CCM_MEMORY; 
 VisualMode previous_visual_mode CCM_MEMORY;
+VisualMode old_visual_mode CCM_MEMORY;
 uint16_t old_gamepad[2] CCM_MEMORY;
 uint8_t gamepad_press_wait CCM_MEMORY;
 uint8_t game_message[32] CCM_MEMORY;
+uint8_t parade_offset CCM_MEMORY;
 
 #define BSOD 140
 
@@ -33,6 +35,7 @@ void game_init()
     // init game mode
     visual_mode = TilesAndSprites;
     previous_visual_mode = None;
+    old_visual_mode = None;
 
     // now load everything else
     if (io_get_recent_filename())
@@ -177,5 +180,118 @@ void graph_line()
         }
         break;
     }
+    }
+}
+
+void draw_parade(int line, uint8_t bg_color)
+{
+    int internal_line = line % 48;
+    if (internal_line/2 == 32/2)
+    {
+        memset(draw_buffer, bg_color, 2*SCREEN_W);
+        if (line == 32)
+        {
+            // reseting the parade
+            if (old_visual_mode != visual_mode)
+            {
+                for (int i=0; i<16; ++i)
+                    tile_translator[i] = i;
+                old_visual_mode = visual_mode;
+                parade_offset = 0;
+            }
+            else
+            {
+                // update parade offset
+                if (vga_frame % 32 == 0)
+                {
+                    ++parade_offset;
+                }
+                // TODO:  update tile translator here 
+
+            }
+        }
+        return;
+    }
+    else if (internal_line > 32)
+        return;
+    line = line / 48;
+    if (line >= 2)
+        return;
+    if (internal_line/16 == 0) //
+    {
+        internal_line %= 16;
+        // draw sprites
+        if (line % 2)
+        {
+            // on odd lines, let them fly
+            uint16_t *dst = draw_buffer + 31;
+            for (int s=0; s<16; ++s)
+            {
+                uint8_t *tile_color = &sprite_draw[s][parade_offset%8][internal_line][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *dst++ = palette[(*(++tile_color))&15];
+                    *dst++ = palette[(*tile_color)>>4];
+                }
+            }
+
+        }
+        else
+        {
+            /*
+            // on even lines, make them walk
+            uint16_t *dst = draw_buffer + 31;
+            if (parade_offset % 16 == 0)
+            for (uint8_t s=0; s<16; ++s)
+            {
+                uint8_t *tile_color = &sprite_draw[(s+15*parade_offset/16)&15][2*RIGHT+parade_offset%2][internal_line][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *dst++ = palette[(*(++tile_color))&15];
+                    *dst++ = palette[(*tile_color)>>4];
+                }
+            }
+            else
+            {
+
+
+            }
+            */
+
+        }
+        return;
+    }
+    else
+    {
+        internal_line %= 16;
+        // draw tiles
+        if (line % 2)
+        {
+            // on odd lines, use the tile_translator
+            uint16_t *dst = draw_buffer + 31;
+            for (int tile=0; tile<16; ++tile)
+            {
+                uint8_t *tile_color = &tile_draw[tile_translator[tile]][internal_line][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *dst++ = palette[(*(++tile_color))&15];
+                    *dst++ = palette[(*tile_color)>>4];
+                }
+            }
+        }
+        else
+        {
+            uint16_t *dst = draw_buffer + 31;
+            for (int tile=0; tile<16; ++tile)
+            {
+                uint8_t *tile_color = &tile_draw[tile][internal_line][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *dst++ = palette[(*(++tile_color))&15];
+                    *dst++ = palette[(*tile_color)>>4];
+                }
+            }
+        }
+        return;
     }
 }

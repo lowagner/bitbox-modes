@@ -746,7 +746,7 @@ void edit_controls()
         fill_stop();
         if (edit_sprite_not_tile)
         {
-            visual_mode = EditPalette;
+            visual_mode = SaveLoadScreen;
             edit_sprite_not_tile = 0;
         }
         else

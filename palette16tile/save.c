@@ -32,8 +32,7 @@ void save_line()
     }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        if (vga_line/2 == (22 + NUMBER_LINES*10)/2)
-            memset(draw_buffer, SAVE_COLOR, 2*SCREEN_W);
+        draw_parade(vga_line - (22 + NUMBER_LINES*10), SAVE_COLOR);
         return;
     }
     int line = (vga_line-22) / 10;
@@ -49,29 +48,28 @@ void save_line()
         {
         case 0:
         {
-            int save_text_offset = 16 + 5*9;
-            font_render_line_doubled((const uint8_t *)"scan", 16, internal_line, 65535, SAVE_COLOR*257);
+            int save_text_offset = 16;
             switch (save_only)
             {
             case 0:
-                font_render_line_doubled((const uint8_t *)"all:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257);
-                save_text_offset += 5*9;
-                break;
-            case 1:
-                font_render_line_doubled((const uint8_t *)"tiles:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"all in", 16, internal_line, 65535, SAVE_COLOR*257);
                 save_text_offset += 7*9;
                 break;
-            case 2:
-                font_render_line_doubled((const uint8_t *)"sprites:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257);
+            case 1:
+                font_render_line_doubled((const uint8_t *)"tiles in", 16, internal_line, 65535, SAVE_COLOR*257);
                 save_text_offset += 9*9;
+                break;
+            case 2:
+                font_render_line_doubled((const uint8_t *)"sprites in", 16, internal_line, 65535, SAVE_COLOR*257);
+                save_text_offset += 11*9;
                 break;
             case 3:
-                font_render_line_doubled((const uint8_t *)"map:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257);
-                save_text_offset += 5*9;
+                font_render_line_doubled((const uint8_t *)"map in", 16, internal_line, 65535, SAVE_COLOR*257);
+                save_text_offset += 7*9;
                 break;
             case 4:
-                font_render_line_doubled((const uint8_t *)"palette:", 16 + 5*9, internal_line, 65535, SAVE_COLOR*257);
-                save_text_offset += 9*9;
+                font_render_line_doubled((const uint8_t *)"palette in", 16, internal_line, 65535, SAVE_COLOR*257);
+                save_text_offset += 11*9;
                 break;
                 
             }
@@ -79,17 +77,20 @@ void save_line()
             break;
         }
         case 2:
-            font_render_line_doubled((const uint8_t *)"start:choose filename", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"L/R:selective save/load", 16, internal_line, 65535, SAVE_COLOR*257);
+            break;
+        case 3:
+            font_render_line_doubled((const uint8_t *)"  A:save to file", 16, internal_line, 65535, SAVE_COLOR*257);
             break;
         case 4:
-            font_render_line_doubled((const uint8_t *)"<L/R>:selective save/load", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"  X:load from file", 16, internal_line, 65535, SAVE_COLOR*257);
             break;
-        case 6:
-            font_render_line_doubled((const uint8_t *)"A:save to file", 16, internal_line, 65535, SAVE_COLOR*257);
+        case 5:
+            font_render_line_doubled((const uint8_t *)"  Y:choose filename", 16, internal_line, 65535, SAVE_COLOR*257);
             break;
-        case 7:
-            font_render_line_doubled((const uint8_t *)"X:load from file", 16, internal_line, 65535, SAVE_COLOR*257);
             //font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, SAVE_COLOR*257);
+        case 7:
+            font_render_line_doubled((const uint8_t *)"start:edit palette", 16, internal_line, 65535, SAVE_COLOR*257);
             break;
         case 9:
             font_render_line_doubled(game_message, 32, internal_line, 65535, SAVE_COLOR*257);
@@ -248,7 +249,9 @@ void save_controls()
     if (GAMEPAD_PRESS(0, Y))
     {
         game_message[0] = 0;
-        // TODO:  add functionality?
+        // switch to choose name and hope to come back
+        visual_mode = ChooseFilename;
+        previous_visual_mode = SaveLoadScreen;
         return;
     }
     if (GAMEPAD_PRESS(0, L))
@@ -256,6 +259,8 @@ void save_controls()
         game_message[0] = 0;
         if (save_only)
             --save_only;
+        else
+            save_only = 4;
         return;
     } 
     if (GAMEPAD_PRESS(0, R))
@@ -263,6 +268,8 @@ void save_controls()
         game_message[0] = 0;
         if (save_only < 4)
             ++save_only; 
+        else
+            save_only = 0;
         return;
     }
     if (GAMEPAD_PRESS(0, select))
@@ -277,8 +284,8 @@ void save_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         game_message[0] = 0;
-        // switch to choose name and hope to come back
-        visual_mode = ChooseFilename;
+        // go to palette picker
+        visual_mode = EditPalette;
         previous_visual_mode = SaveLoadScreen;
         return;
     }

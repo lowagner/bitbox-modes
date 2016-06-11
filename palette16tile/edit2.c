@@ -7,7 +7,10 @@
 
 #include <string.h> // memset
 
-#define SPRITE_COLOR 4 // a uint8_t, uint16_t color is (SPRITE_COLOR)|(SPRITE_COLOR<<8)
+#define TILE_COLOR 136 // a uint8_t, uint16_t color is (_COLOR)|(_COLOR<<8)
+#define SPRITE_COLOR 164
+#define BG_COLOR ((TILE_COLOR + (SPRITE_COLOR-TILE_COLOR)*edit_sprite_not_tile))
+
 #define NUMBER_LINES 12
 
 uint8_t edit2_copying CCM_MEMORY; // 0 for not copying, 1 for sprite, 2 for tile
@@ -23,25 +26,24 @@ void edit2_line()
     if (vga_line < 22)
     {
         if (vga_line/2 == 0)
-            memset(draw_buffer, SPRITE_COLOR*edit_sprite_not_tile, 2*SCREEN_W);
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
     else if (vga_line/2 == (SCREEN_H - 20)/2)
     {
-        memset(draw_buffer, SPRITE_COLOR*edit_sprite_not_tile, 2*SCREEN_W);
+        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        if (vga_line/2 == (22 + NUMBER_LINES*10)/2)
-            memset(draw_buffer, SPRITE_COLOR*edit_sprite_not_tile, 2*SCREEN_W);
+        draw_parade(vga_line - (22 + NUMBER_LINES*10), BG_COLOR);
         return;
     }
     int line = (vga_line-22) / 10;
     int internal_line = (vga_line-22) % 10;
     if (internal_line == 0 || internal_line == 9)
     {
-        memset(draw_buffer, SPRITE_COLOR*edit_sprite_not_tile, 2*SCREEN_W);
+        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
     }
     else
     {
@@ -55,13 +57,13 @@ void edit2_line()
                 uint8_t label[] = { 's', 'p', 'r', 'i', 't', 'e', ' ', hex[edit_sprite/8], '.', 
                     direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2], ' ', 'i', 'n', 0 };
                 font_render_line_doubled(label, 16, internal_line, 65535, SPRITE_COLOR*257);
-                font_render_line_doubled((uint8_t *)base_filename, 16+9*15, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((uint8_t *)base_filename, 16+9*15, internal_line, 65535, SPRITE_COLOR*257);
             }
             else
             {
                 uint8_t label[] = { 't', 'i', 'l', 'e', ' ', hex[edit_tile], ' ', 'i', 'n', 0 };
-                font_render_line_doubled(label, 16, internal_line, 65535, 0);
-                font_render_line_doubled((uint8_t *)base_filename, 16+9*10, internal_line, 65535, 0);
+                font_render_line_doubled(label, 16, internal_line, 65535, TILE_COLOR*257);
+                font_render_line_doubled((uint8_t *)base_filename, 16+9*10, internal_line, 65535, TILE_COLOR*257);
             }
             break;
         case 1: 
@@ -70,46 +72,46 @@ void edit2_line()
             if (edit_sprite_not_tile)
                 font_render_line_doubled((const uint8_t *)"L/R:cycle sprite", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"L/R:cycle tile", 16, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"L/R:cycle tile", 16, internal_line, 65535, TILE_COLOR*257);
             break;
         case 3:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"A:cancel copy", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"A:cancel copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"A:save to file", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"A:save to file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 4:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"X:load from file", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"X:load from file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 5:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"B:copy", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"B:copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 6:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"Y:paste", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"Y:paste", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"Y:change filename", 16+2*9, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+                font_render_line_doubled((const uint8_t *)"Y:change filename", 16+2*9, internal_line, 65535, 257*BG_COLOR);
         case 7:
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"start: return", 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            font_render_line_doubled((const uint8_t *)"start:return", 16, internal_line, 65535, 257*BG_COLOR);
             break;
         case 9:
             if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"select: go to tiles", 16, internal_line, 65535, SPRITE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"select:go to palette", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"select: go to sprites", 16, internal_line, 65535, 0);
+                font_render_line_doubled((const uint8_t *)"select:go to sprites", 16, internal_line, 65535, TILE_COLOR*257);
             break;
         case 10:
             break;
         case 11:
-            font_render_line_doubled(game_message, 16, internal_line, 65535, SPRITE_COLOR*257*edit_sprite_not_tile);
+            font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;
         }
     }
@@ -133,7 +135,7 @@ void edit2_line()
     }
     else if (vga_line/2 == (22 + 2*16)/2)
     {
-        memset(draw_buffer+(SCREEN_W - 24 - 16*2*2), SPRITE_COLOR*edit_sprite_not_tile, 64);
+        memset(draw_buffer+(SCREEN_W - 24 - 16*2*2), BG_COLOR, 64);
     }
     else if (vga_line < 22 + 2 + 2*16 + 2*16 && edit2_copying)
     {
@@ -323,7 +325,16 @@ void edit2_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        edit_sprite_not_tile = 1 - edit_sprite_not_tile;
+        if (edit_sprite_not_tile)
+        {
+            edit_sprite_not_tile = 0; 
+            visual_mode = EditPalette;
+            previous_visual_mode = None;
+        }
+        else
+        {
+            edit_sprite_not_tile = 1;
+        }
         return;
     }
     if (GAMEPAD_PRESS(0, start))

@@ -32,7 +32,7 @@ void palette_reset()
     memcpy(palette, colors, sizeof(colors));
 }
 
-#define NUMBER_LINES 11
+#define NUMBER_LINES 12
 
 uint8_t palette_index CCM_MEMORY;
 uint8_t palette_selector CCM_MEMORY; 
@@ -60,33 +60,7 @@ void palette_line()
     }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        if (vga_line/2 == (22 + NUMBER_LINES*10)/2 || vga_line/2 == (22 + NUMBER_LINES*10 + 2 + 16*3)/2)
-        {
-            memset(draw_buffer, 0, 2*SCREEN_W);
-            return;
-        }
-        // vga_line >= (22 + NUMBER_LINES*10 + 2)
-        int line = vga_line - (22 + NUMBER_LINES*10 + 2 + 16);
-        if (line >= 32)
-            return;
-        if (line >= 16)
-        {
-            // draw tiles
-            line -= 16;
-            uint16_t *dst = draw_buffer + 31;
-            for (int tile=0; tile<16; ++tile)
-            {
-                uint8_t *tile_color = &tile_draw[tile][line][0] - 1;
-                for (int l=0; l<8; ++l)
-                {
-                    *dst++ = palette[(*(++tile_color))&15];
-                    *dst++ = palette[(*tile_color)>>4];
-                }
-            }
-            return;
-        }
-
-
+        draw_parade(vga_line - (22 + NUMBER_LINES*10), 0);
         return;
     }
     int line = (vga_line-22) / 10;
@@ -142,7 +116,7 @@ void palette_line()
         case 7:
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"start: return  dpad:", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"start:return   dpad:", 16, internal_line, 65535, 0);
             {
             uint8_t label[] = { 'r', ':', hex[(palette[palette_index]>>10)&31], 0 };
             font_render_line_doubled(label, 20+20*9, internal_line, RGB(255, 50, 50), 0);
@@ -152,7 +126,10 @@ void palette_line()
             font_render_line_doubled(label, 20+28*9, internal_line, RGB(50, 100, 255), 0);
             }
             break;
-        case 10:
+        case 9:
+            font_render_line_doubled((const uint8_t *)"select:go to tiles", 16, internal_line, 65535, 0);
+            break;
+        case 11:
             font_render_line_doubled(game_message, 16, internal_line, 65535, 0);
             break;
         }
@@ -361,7 +338,7 @@ void palette_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        visual_mode = SaveLoadScreen;
+        visual_mode = EditTileOrSpriteProperties;
         previous_visual_mode = None;
         return;
     }
@@ -375,7 +352,7 @@ void palette_controls()
         }
         else
         {
-            visual_mode = EditTileOrSprite;
+            visual_mode = SaveLoadScreen;
         }
         return;
     }
