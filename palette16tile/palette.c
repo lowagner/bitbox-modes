@@ -361,7 +361,7 @@ void palette_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        visual_mode = TilesAndSprites;
+        visual_mode = SaveLoadScreen;
         previous_visual_mode = None;
         return;
     }
