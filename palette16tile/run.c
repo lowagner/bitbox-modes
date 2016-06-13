@@ -9,12 +9,11 @@
 #include <stdlib.h> // abs
 #include <string.h> // memset
 
-uint8_t run_pause CCM_MEMORY;
+uint8_t run_paused CCM_MEMORY;
 
 void run_init()
 {
-    run_pause = 1;
-    strcpy((char *)game_message, "paused");
+    run_paused = 1;
 }
 
 void run_reset()
@@ -27,7 +26,10 @@ void run_line()
     sprites_line();
     if (vga_line >= 2 && vga_line < 10)
     {
-        font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535); 
+        if (run_paused)
+            font_render_no_bg_line_doubled((const uint8_t *)"paused", 16, vga_line-2, 65535);
+        else
+            font_render_no_bg_line_doubled((const uint8_t *)"header", 16, vga_line-2, 65535);
     }
 }
 
@@ -36,26 +38,18 @@ void run_controls()
     if (GAMEPAD_PRESS(0, start))
     {
         // pause mode
-        if (run_pause)
-        {
-            strcpy((char *)game_message, "header");
-            run_pause = 0;
-        }
-        else
-        {
-            strcpy((char *)game_message, "paused");
-            run_pause = 1;
-        }
+        run_paused = 1 - run_paused;
         return;
     }
     if (GAMEPAD_PRESS(0, select))
     {
+        game_message[0] = 0;
         previous_visual_mode = None;
         visual_mode = EditMap;
         return;
     }
 
-    if (run_pause)
+    if (run_paused)
         return;
 
     if (vga_frame % 2 == 0)
