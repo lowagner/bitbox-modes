@@ -1,0 +1,100 @@
+#include "bitbox.h"
+#include "common.h"
+#include "sprites.h"
+#include "tiles.h"
+#include "edit.h"
+#include "save.h"
+#include "font.h"
+#include <stdint.h>
+#include <stdlib.h> // abs
+#include <string.h> // memset
+
+uint8_t run_pause CCM_MEMORY;
+
+void run_init()
+{
+    run_pause = 1;
+    strcpy((char *)game_message, "paused");
+}
+
+void run_reset()
+{
+}
+
+void run_line()
+{
+    tiles_line();
+    sprites_line();
+    if (vga_line >= 2 && vga_line < 10)
+    {
+        font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535); 
+    }
+}
+
+void run_controls()
+{
+    if (GAMEPAD_PRESS(0, start))
+    {
+        // pause mode
+        if (run_pause)
+        {
+            strcpy((char *)game_message, "header");
+            run_pause = 0;
+        }
+        else
+        {
+            strcpy((char *)game_message, "paused");
+            run_pause = 1;
+        }
+        return;
+    }
+    if (GAMEPAD_PRESS(0, select))
+    {
+        previous_visual_mode = None;
+        visual_mode = EditMap;
+        return;
+    }
+
+    if (run_pause)
+        return;
+
+    if (vga_frame % 2 == 0)
+    {
+        int moved = 0;
+        if (GAMEPAD_PRESSED(0, left))
+        {
+            if (tile_map_x > 0)
+            {
+                --tile_map_x;
+                moved = 1;
+            }
+        }
+        else if (GAMEPAD_PRESSED(0, right))
+        {
+            if (tile_map_x + SCREEN_W < tile_map_width*16 - 1)
+            {
+                ++tile_map_x;
+                moved = 1;
+            }
+        }
+        if (GAMEPAD_PRESSED(0, up))
+        {
+            if (tile_map_y > 0)
+            {
+                --tile_map_y;
+                moved = 1;
+            }
+        }
+        else if (GAMEPAD_PRESSED(0, down))
+        {
+            if (tile_map_y + SCREEN_H < tile_map_height*16 - 1)
+            {
+                ++tile_map_y;
+                moved = 1;
+            }
+        }
+
+        if (moved)
+            update_objects(); 
+    }
+}

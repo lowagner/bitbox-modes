@@ -1067,7 +1067,7 @@ void font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_
         message("got too big a line count for text (%s):  %d\\n", text, y);
         return;
     }
-    if (x < 0 || x + 8*strlen((char *)text) >= SCREEN_W)
+    if (x < 0 || x + 9*strlen((char *)text) >= SCREEN_W)
     {
         message("text (%s) goes off screen!\\n", text);
         return;
@@ -1090,18 +1090,51 @@ void font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_
         }
         *(++dst) = color_choice[0];
     }
-}""")
+}
+
+void font_render_no_bg_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg)
+{
+    #ifdef EMULATOR
+    if (y < 0 || y >= 8)
+    {
+        message("got too big a line count for text (%s):  %d\\n", text, y);
+        return;
+    }
+    if (x < 0 || x + 9*strlen((char *)text) >= SCREEN_W)
+    {
+        message("text (%s) goes off screen!\\n", text);
+        return;
+    }
+    #endif
+    y = ((y/2))*4; // make y now how much to shift
+    uint16_t *dst = draw_buffer + x;
+    --text;
+    int c;
+    while ((c = *(++text)))
+    {
+        uint8_t row = (font[c] >> y) & 15;
+        for (int j=0; j<4; ++j)
+        {
+            if (row&1)
+            {
+                *(++dst) = color_fg;
+                *(++dst) = color_fg;
+            }
+            else
+            {
+                dst += 2;
+            }
+            row >>= 1;
+        }
+        ++dst;
+    }
+}
+"""
+)
 
 
 with open("font.h", 'w') as f:
     f.write("#ifndef FONT_H\n#define FONT_H\n#include <stdint.h>\n")
-    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_init();\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n#endif\n")
-
-"""
-some characters left to implement
-    ***   **
-      ** ****
-     *** ** *
-    * ** ** *
-
-"""
+    f.write("extern uint16_t font_cache[256];\nextern uint16_t font[256];\nvoid font_init();\nvoid font_render_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg, uint16_t color_bg);\n")
+    f.write("void font_render_no_bg_line_doubled(const uint8_t *text, int x, int y, uint16_t color_fg);\n");
+    f.write("#endif\n")

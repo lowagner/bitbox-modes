@@ -10,7 +10,7 @@
 
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
 
-#define NUMBER_LINES 10
+#define NUMBER_LINES 12
    
 void save_init()
 {
@@ -276,7 +276,7 @@ void save_controls()
     {
         game_message[0] = 0;
         // switch to next visual mode and ignore previous_visual_mode
-        visual_mode = TilesAndSprites;
+        visual_mode = GameOn;
         previous_visual_mode = None;
         save_only = 0; // reset save for next time
         return;

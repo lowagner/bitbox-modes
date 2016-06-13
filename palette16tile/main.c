@@ -8,6 +8,7 @@
 #include "save.h"
 #include "fill.h"
 #include "font.h"
+#include "run.h"
 #include "io.h"
 
 #include "string.h" // memcpy
@@ -24,6 +25,8 @@ uint8_t parade_offset CCM_MEMORY;
 
 void game_init()
 { 
+    run_init();
+    map_init();
     font_init();
     save_init();
     edit_init();
@@ -33,7 +36,7 @@ void game_init()
     palette_init();
 
     // init game mode
-    visual_mode = TilesAndSprites;
+    visual_mode = GameOn;
     previous_visual_mode = None;
     old_visual_mode = None;
 
@@ -82,7 +85,10 @@ void game_frame()
     kbd_emulate_gamepad();
     switch (visual_mode)
     {
-    case TilesAndSprites:
+    case GameOn:
+        run_controls();
+        break;
+    case EditMap:
         map_controls();
         break;
     case EditTileOrSprite:
@@ -118,7 +124,7 @@ void graph_frame()
 {
     switch (visual_mode)
     {
-    case (TilesAndSprites):
+    case (GameOn):
         sprites_frame();
         break;
     default:
@@ -132,9 +138,11 @@ void graph_line()
         return;
     switch (visual_mode)
     {
-    case TilesAndSprites:
-        tiles_line();
-        sprites_line();
+    case GameOn:
+        run_line();
+        break;
+    case EditMap:
+        map_line();
         break;
     case EditTileOrSprite:
         edit_line();

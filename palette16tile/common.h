@@ -31,7 +31,8 @@ typedef enum {
 
 typedef enum {
     None=0,
-    TilesAndSprites,
+    GameOn,
+    EditMap,
     EditTileOrSprite,
     EditTileOrSpriteProperties,
     EditPalette,
