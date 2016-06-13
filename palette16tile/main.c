@@ -124,7 +124,8 @@ void graph_frame()
 {
     switch (visual_mode)
     {
-    case (GameOn):
+    case GameOn:
+    case EditMap:
         sprites_frame();
         break;
     default:
