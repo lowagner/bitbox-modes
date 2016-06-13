@@ -293,12 +293,12 @@ void edit_line()
             }
             else if (fill_can_start())
             {
-                font_render_line_doubled((const uint8_t *)"B/Y:paint A/X:fill L/R:cycle", 
+                font_render_line_doubled((const uint8_t *)"B/Y:paint A:fill X:copy color", 
                     20, line, 65535, 0);
             }
             else
             {
-                font_render_line_doubled((const uint8_t *)"B/Y:paint A/X:stop L/R:cycle", 
+                font_render_line_doubled((const uint8_t *)"B/Y:paint A:stop X:copy color", 
                     20, line, 65535, 0);
             }
         }
@@ -639,7 +639,7 @@ void edit_spot_paint(uint8_t p)
 
 int edit_spot_color()
 {
-    uint8_t *memory = edit_sprite_not_tile ? 
+    const uint8_t *memory = edit_sprite_not_tile ? 
         &sprite_draw[edit_sprite/8][edit_sprite%8][edit_y][edit_x/2] :
         &tile_draw[edit_tile][edit_y][edit_x/2];
 
@@ -685,13 +685,13 @@ void edit_controls()
     if (GAMEPAD_PRESSING(0, A))
     {
         game_message[0] = 0;
-        edit_spot_fill(1);
+        edit_spot_fill(edit_last_painted);
         make_wait = 1;
     }
     else if (GAMEPAD_PRESSING(0, X))
     {
         game_message[0] = 0;
-        edit_spot_fill(0);
+        edit_color[edit_last_painted] = edit_spot_color();
         make_wait = 1;
     }
 

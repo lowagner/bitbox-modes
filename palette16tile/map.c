@@ -4,12 +4,14 @@
 #include "tiles.h"
 #include "edit.h"
 #include "save.h"
+#include "fill.h"
 #include "font.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
 #include <string.h> // memset
 
 int16_t map_tile_y CCM_MEMORY, map_tile_x CCM_MEMORY;
+uint8_t map_color[2] CCM_MEMORY, map_last_painted CCM_MEMORY;
 
 #define MAP_HEADER 32 // and footer
 
@@ -17,6 +19,9 @@ void map_init()
 {
     map_tile_x = 0;
     map_tile_y = 0;
+    map_color[0] = 0;
+    map_color[1] = 1;
+    map_last_painted = 0;
 }
 
 void map_reset()
@@ -42,8 +47,18 @@ void map_line()
 {
     if (vga_line < MAP_HEADER)
     {
-        if (vga_line/2 == 0)
-            memset(draw_buffer, 0, 2*SCREEN_W);
+        if (vga_line < MAP_HEADER - 20)
+        {
+            if (vga_line/2 == 0)
+                memset(draw_buffer, 0, 2*SCREEN_W);
+            return;
+        }
+        else if (vga_line >= MAP_HEADER - 4)
+        {
+            if (vga_line/2 == (MAP_HEADER-4)/2)
+                memset(draw_buffer, 0, 2*SCREEN_W);
+            return;
+        }
         return;
     }
     else if (vga_line >= SCREEN_H-MAP_HEADER)
@@ -170,7 +185,7 @@ void map_line()
         break;
     case 6:
     case 9:
-        dst = draw_buffer + (map_tile_x)*16 - tile_map_x+ 7;
+        dst = draw_buffer + (map_tile_x)*16 - tile_map_x + 7;
         *dst = ~(*dst);
         ++dst;
         *dst = ~(*dst);
@@ -178,16 +193,95 @@ void map_line()
     }
 }
 
+void map_spot_paint(uint8_t p)
+{
+    map_last_painted = p;
+
+    int index = map_tile_y * tile_map_width + map_tile_x;
+    uint8_t *memory = &tile_map[index/2];
+
+    if (index % 2)
+        *memory = ((*memory)&15) | (map_color[p]<<4);
+    else
+        *memory = (map_color[p]) | ((*memory) & 240);
+}
+
+int map_spot_color()
+{
+    int index = map_tile_y * tile_map_width + map_tile_x;
+    const uint8_t *memory = &tile_map[index/2];
+
+    if (index % 2)
+        return (*memory) >> 4;
+    else
+        return (*memory) & 15;
+}
+
+void map_spot_fill(uint8_t p)
+{
+    map_last_painted = p;
+
+    if (!fill_can_start())
+        fill_stop();
+    uint8_t previous_canvas_color = map_spot_color();
+    if (previous_canvas_color != map_color[p])
+    {
+        fill_init(tile_map, tile_map_width, tile_map_height, 
+            previous_canvas_color, map_tile_x, map_tile_y, map_color[p]);
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+    }
+}
+
 void map_controls()
 {
+    int make_wait = 0;
+    if (GAMEPAD_PRESSING(0, R))
+    {
+        game_message[0] = 0;
+        map_color[map_last_painted] = (map_color[map_last_painted] + 1)&15;
+        make_wait = 1;
+    }
+    else if (GAMEPAD_PRESSING(0, L))
+    {
+        game_message[0] = 0;
+        map_color[map_last_painted] = (map_color[map_last_painted] - 1)&15;
+        make_wait = 1;
+    }
+    
+    if (GAMEPAD_PRESSING(0, A))
+    {
+        game_message[0] = 0;
+        map_spot_fill(map_last_painted);
+        make_wait = 1;
+    }
+    else if (GAMEPAD_PRESSING(0, X))
+    {
+        game_message[0] = 0;
+        map_color[map_last_painted] = map_spot_color();
+        make_wait = 1;
+    }
+
+    int paint_if_moved = 0; 
+    if (GAMEPAD_PRESSING(0, Y))
+    {
+        game_message[0] = 0;
+        map_spot_paint(0);
+        paint_if_moved = 1;
+    }
+    else if (GAMEPAD_PRESSING(0, B))
+    {
+        game_message[0] = 0;
+        map_spot_paint(1);
+        paint_if_moved = 2;
+    }
+    
     int moved = 0;
-    int cursor_moved = 0;
     if (GAMEPAD_PRESSING(0, left))
     {
         if (map_tile_x > 0)
         {
             --map_tile_x;
-            cursor_moved = 1;
+            make_wait = 1;
             if (map_tile_x < tile_map_x/16)
             {
                 tile_map_x -= 16;
@@ -200,7 +294,7 @@ void map_controls()
         if (map_tile_x < tile_map_width - 1)
         {
             ++map_tile_x;
-            cursor_moved = 1;
+            make_wait = 1;
             if (map_tile_x >= tile_map_x/16 + SCREEN_W/16)
             {
                 tile_map_x += 16;
@@ -213,7 +307,7 @@ void map_controls()
         if (map_tile_y > 0)
         {
             --map_tile_y;
-            cursor_moved = 1;
+            make_wait = 1;
             if (map_tile_y < tile_map_y)
             {
                 tile_map_y -= 16;
@@ -226,7 +320,7 @@ void map_controls()
         if (map_tile_y < tile_map_height - 1)
         {
             ++map_tile_y;
-            cursor_moved = 1;
+            make_wait = 1;
             if (map_tile_y >= tile_map_y/16 + (SCREEN_H-2*MAP_HEADER)/16)
             {
                 tile_map_y += 16;
@@ -234,16 +328,19 @@ void map_controls()
             }
         }
     }
-    if (cursor_moved)
-        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-
     if (moved)
+    {
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        if (paint_if_moved)
+            map_spot_paint(paint_if_moved-1);
         update_objects(); 
+        return;
+    }
+    else if (paint_if_moved || make_wait)
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
     
     if (GAMEPAD_PRESS(0, start))
     {
-        // TODO: choose edit_sprite or edit_tile (and edit_sprite_not_tile)
-        // based on the tile/sprite which is currently selected in the map
         if (previous_visual_mode)
         {
             visual_mode = previous_visual_mode;
