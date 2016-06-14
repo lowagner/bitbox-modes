@@ -70,13 +70,20 @@ void map_line()
         {
             if (vga_line/2 == 0)
                 memset(draw_buffer, 0, 2*SCREEN_W);
-            return;
         }
         else if (vga_line >= MAP_HEADER - 4)
         {
             if (vga_line/2 == (MAP_HEADER-4)/2)
                 memset(draw_buffer, 0, 2*SCREEN_W);
-            return;
+        } 
+        else if (vga_line >= MAP_HEADER - 4 - 8)
+        {
+            if (game_message[0])
+                font_render_line_doubled(game_message,
+                    16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+            else
+                font_render_line_doubled((const uint8_t *) "start:menu A:fill X:edit tile",
+                    28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
         }
         return;
     }
@@ -84,13 +91,92 @@ void map_line()
     {
         if (vga_line/2 == (SCREEN_H-MAP_HEADER)/2)
             memset(draw_buffer, 0, 2*SCREEN_W); 
+        else if (vga_line >= SCREEN_H - MAP_HEADER + 20)
+        {
+            if (vga_line/2 == (SCREEN_H - MAP_HEADER + 20)/2)
+                memset(draw_buffer, 0, 2*SCREEN_W); 
+        }
         else if (vga_line >= SCREEN_H-MAP_HEADER+4)
         {
-            if (vga_line < SCREEN_H-MAP_HEADER+4+8)
-                font_render_line_doubled(game_message, 16, vga_line - (SCREEN_H-MAP_HEADER+4), 
-                    65535, 0);
-            else if (vga_line/2 == (SCREEN_H-MAP_HEADER+4+8)/2)
-                memset(draw_buffer, 0, 2*SCREEN_W); 
+            // draw the tiles you can paint with
+
+            int tile_j = vga_line - (SCREEN_H - MAP_HEADER + 4);
+            if (map_last_painted == 0)
+            {
+                uint16_t *dst = draw_buffer + 16 + 19;
+                uint8_t *tile_color = &tile_draw[(map_color[0]-1)&15][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 40-16;
+                tile_color = &tile_draw[map_color[0]][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 40-16;
+                tile_color = &tile_draw[(map_color[0]+1)&15][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 104-16;
+                tile_color = &tile_draw[map_color[1]][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                if (vga_line >= SCREEN_H - MAP_HEADER + 4 + 8)
+                {
+                    font_render_line_doubled((const uint8_t *)"L:", 16, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"Y:", 56, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"R:", 96, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"B:", 200, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                }
+            }
+            else
+            {
+                uint16_t *dst = draw_buffer + 56 + 19;
+                uint8_t *tile_color = &tile_draw[map_color[0]][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 104 - 16;
+                tile_color = &tile_draw[(map_color[1]-1)&15][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 40-16;
+                tile_color = &tile_draw[map_color[1]][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                dst += 40-16;
+                tile_color = &tile_draw[(map_color[1]+1)&15][tile_j][0] - 1;
+                for (int l=0; l<8; ++l)
+                {
+                    *(++dst) = palette[(*(++tile_color))&15];
+                    *(++dst) = palette[(*tile_color)>>4];
+                }
+                if (vga_line >= SCREEN_H - MAP_HEADER + 4 + 8)
+                {
+                    font_render_line_doubled((const uint8_t *)"Y:", 56, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"L:", 160, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"B:", 200, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"R:", 240, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                }
+            }
             return;
         }
         return;

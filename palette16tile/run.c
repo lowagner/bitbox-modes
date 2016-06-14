@@ -13,7 +13,7 @@ uint8_t run_paused CCM_MEMORY;
 
 void run_init()
 {
-    run_paused = 1;
+    run_paused = 0; // eventually will probably want this to be 1
 }
 
 void run_reset()
