@@ -304,3 +304,19 @@ void draw_parade(int line, uint8_t bg_color)
         return;
     }
 }
+
+void game_switch(VisualMode new_visual_mode)
+{
+    switch (new_visual_mode)
+    {
+    case EditMap:
+        map_switch();
+        break;
+    case GameOn:
+        run_switch();
+        break;
+    default:
+        break;
+    }
+    visual_mode = new_visual_mode;
+}

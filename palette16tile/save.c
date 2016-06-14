@@ -250,7 +250,7 @@ void save_controls()
     {
         game_message[0] = 0;
         // switch to choose name and hope to come back
-        visual_mode = ChooseFilename;
+        game_switch(ChooseFilename);
         previous_visual_mode = SaveLoadScreen;
         return;
     }
@@ -276,7 +276,7 @@ void save_controls()
     {
         game_message[0] = 0;
         // switch to next visual mode and ignore previous_visual_mode
-        visual_mode = GameOn;
+        game_switch(GameOn);
         previous_visual_mode = None;
         save_only = 0; // reset save for next time
         return;
@@ -285,7 +285,7 @@ void save_controls()
     {
         game_message[0] = 0;
         // go to palette picker
-        visual_mode = EditPalette;
+        game_switch(EditPalette);
         previous_visual_mode = SaveLoadScreen;
         return;
     }

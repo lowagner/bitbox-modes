@@ -137,11 +137,11 @@ void fill_stop()
     fill_stack_index = -1; 
 }
 
-void fill_init(uint8_t *memory, int height, int width, int old_c, int x, int y, int new_c)
+void fill_init(uint8_t *memory, int width, int height, int old_c, int x, int y, int new_c)
 {
     if (!memory)
         return;
-    if (height == 0 || width == 0)
+    if (height <= 0 || width <= 0)
         return;
     if (height*width/8 > sizeof(fill_matrix))
         return;

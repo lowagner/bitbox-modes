@@ -13,7 +13,7 @@
 int16_t map_tile_y CCM_MEMORY, map_tile_x CCM_MEMORY;
 uint8_t map_color[2] CCM_MEMORY, map_last_painted CCM_MEMORY;
 
-#define MAP_HEADER 32 // and footer
+#define MAP_HEADER 32 // and footer.  make it a multiple of 16
 
 void map_init()
 {
@@ -22,6 +22,25 @@ void map_init()
     map_color[0] = 0;
     map_color[1] = 1;
     map_last_painted = 0;
+}
+
+void map_switch()
+{
+    if (map_tile_x*16 < tile_map_x)
+        tile_map_x = map_tile_x*16;
+    else if (map_tile_x*16 >= tile_map_x + SCREEN_W)
+        tile_map_x = map_tile_x*16 - SCREEN_W;
+    else if (tile_map_x % 16)
+        tile_map_x =16*(tile_map_x/16);
+    
+    if (map_tile_y*16 < tile_map_y + MAP_HEADER)
+        tile_map_y = map_tile_y*16 - MAP_HEADER;
+    else if (map_tile_y*16 >= tile_map_y + SCREEN_H - MAP_HEADER)
+        tile_map_y = map_tile_y*16 - SCREEN_H + MAP_HEADER;
+    else if (tile_map_y % 16)
+        tile_map_y =16*(tile_map_y/16);
+   
+    update_objects(); 
 }
 
 void map_reset()
@@ -65,131 +84,44 @@ void map_line()
     {
         if (vga_line/2 == (SCREEN_H-MAP_HEADER)/2)
             memset(draw_buffer, 0, 2*SCREEN_W); 
+        else if (vga_line >= SCREEN_H-MAP_HEADER+4)
+        {
+            if (vga_line < SCREEN_H-MAP_HEADER+4+8)
+                font_render_line_doubled(game_message, 16, vga_line - (SCREEN_H-MAP_HEADER+4), 
+                    65535, 0);
+            else if (vga_line/2 == (SCREEN_H-MAP_HEADER+4+8)/2)
+                memset(draw_buffer, 0, 2*SCREEN_W); 
+            return;
+        }
         return;
     }
-    uint16_t *dst = draw_buffer;
-    int tile_j = tile_map_y + vga_line - MAP_HEADER;
-    int draw_crosshairs = (tile_j/16 == map_tile_y);
-    int index = (tile_j/16)*(tile_map_width) + tile_map_x/16;
-    tile_j %= 16;
-    uint8_t *tile = &tile_map[index/2]-1;
-    if (index % 2)
-    {
-        ++tile;
-        for (int k=0; k<10; ++k)
-        {
-            // translate the tile into what tile it should be drawn as:
-            uint8_t trans = tile_translator[((*tile)>>4)];
 
-            uint8_t *tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-                
-            trans = tile_translator[(*(++tile))&15];
-            tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-        }
-    }
-    else // not odd
-    {
-        for (int k=0; k<10; ++k)
-        {
-            // translate the tile into what tile it should be drawn as:
-            uint8_t trans = tile_translator[(*(++tile))&15];
-
-            uint8_t *tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-            
-            // translate the tile into what tile it should be drawn as:
-            trans = tile_translator[((*tile)>>4)];
-
-            tile_color = &tile_draw[trans][tile_j][0] - 1;
-            for (int l=0; l<8; ++l)
-            {
-                *dst++ = palette[(*(++tile_color))&15];
-                *dst++ = palette[(*tile_color)>>4];
-            }
-        }
-    }
+    tiles_line();
+    sprites_line();
     
-    // draw sprites, too:
-    if (!drawing_count) // none to draw...
-        goto map_draw_crosshairs;
-    int16_t vga16 = (int16_t) vga_line - MAP_HEADER;
-    // add any new sprites to the draw line:
-    while (last_drawing_index < drawing_count)
-    {
-        if (object[draw_order[last_drawing_index]].iy <= vga16) 
-            ++last_drawing_index;
-        else
-            break;
-    }
-    // subtract any early sprites no longer on the line
-    vga16-=16;
-    while (first_drawing_index < drawing_count)
-    {
-        if (object[draw_order[first_drawing_index]].iy <= vga16) 
-            ++first_drawing_index;
-        else
-            break;
-    }
-    // reset vga16
-    vga16+=16;
-    // draw visible sprites
-    for (int k=first_drawing_index; k<last_drawing_index; ++k)
-    {
-        struct object *o = &object[draw_order[k]];
-        int sprite_draw_row = vga16 - o->iy;
-        
-        uint16_t *dst = draw_buffer + o->ix;
-        uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
-        uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
-        for (int pxl=0; pxl<8; ++pxl)
-        {
-            uint8_t color = (*(++src))&15;
-            if (color != invisible_color)
-                *dst = palette[color]; // &65535; // unnecessary...
-            ++dst; 
-            color = ((*src)>>4); //&15; //unnecessary!
-            if (color != invisible_color)
-                *dst = palette[color]; // &65535; // unnecessary...
-            ++dst; 
-        }
-    }
+    int tile_j = tile_map_y + vga_line;
     
-    map_draw_crosshairs:
-    if (draw_crosshairs)
-    switch (tile_j)
+    if (tile_j/16 == map_tile_y)
+    switch (tile_j%16)
     {
     case 7:
     case 8:
-        dst = draw_buffer + (map_tile_x)*16 - tile_map_x + 6;
-        *dst = ~(*dst);
-        ++dst;
-        *dst = ~(*dst);
-        ++dst;
+    {
+        uint32_t *dst = (uint32_t *)draw_buffer + (map_tile_x*16 - tile_map_x + 6)/2;
         *dst = ~(*dst);
         ++dst;
         *dst = ~(*dst);
         break;
+    }
     case 6:
     case 9:
-        dst = draw_buffer + (map_tile_x)*16 - tile_map_x + 7;
+    {
+        uint16_t *dst = draw_buffer + (map_tile_x)*16 - tile_map_x + 7;
         *dst = ~(*dst);
         ++dst;
         *dst = ~(*dst);
         break;
+    }
     }
 }
 
@@ -228,7 +160,6 @@ void map_spot_fill(uint8_t p)
     {
         fill_init(tile_map, tile_map_width, tile_map_height, 
             previous_canvas_color, map_tile_x, map_tile_y, map_color[p]);
-        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
     }
 }
 
@@ -258,7 +189,13 @@ void map_controls()
     {
         game_message[0] = 0;
         map_color[map_last_painted] = map_spot_color();
-        make_wait = 1;
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        previous_visual_mode = EditMap;
+        game_switch(EditTileOrSprite);
+        // TODO:  maybe go to sprite if a sprite was selected.
+        edit_sprite_not_tile = 0;
+        edit_tile = map_color[map_last_painted];
+        return;
     }
 
     int paint_if_moved = 0; 
@@ -308,7 +245,7 @@ void map_controls()
         {
             --map_tile_y;
             make_wait = 1;
-            if (map_tile_y < tile_map_y)
+            if (map_tile_y < tile_map_y/16 + MAP_HEADER/16) // 0 < -32/16 + MAP_HEADER/16
             {
                 tile_map_y -= 16;
                 moved = 1;
@@ -321,7 +258,7 @@ void map_controls()
         {
             ++map_tile_y;
             make_wait = 1;
-            if (map_tile_y >= tile_map_y/16 + (SCREEN_H-2*MAP_HEADER)/16)
+            if (map_tile_y >= tile_map_y/16 + (SCREEN_H-MAP_HEADER)/16)
             {
                 tile_map_y += 16;
                 moved = 1;
@@ -343,19 +280,20 @@ void map_controls()
     {
         if (previous_visual_mode)
         {
-            visual_mode = previous_visual_mode;
+            game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
         else
         {
-            visual_mode = EditTileOrSprite;
+            // make a map menu here, but make it possible to go back to GameOn from there.
+            game_switch(GameOn);
         }
         return;
     }
     if (GAMEPAD_PRESS(0, select))
     {
         previous_visual_mode = None;
-        visual_mode = EditTileOrSprite;
+        game_switch(EditTileOrSprite);
         edit_sprite_not_tile = 0;
         return;
     }

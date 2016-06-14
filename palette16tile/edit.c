@@ -662,7 +662,6 @@ void edit_spot_fill(uint8_t p)
             sprite_draw[edit_sprite/8][edit_sprite%8][0] :
             tile_draw[edit_tile][0];
         fill_init(memory, 16, 16, previous_canvas_color, edit_x, edit_y, edit_color[p]);
-        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
     }
 }
 
@@ -744,9 +743,10 @@ void edit_controls()
     {
         game_message[0] = 0;
         fill_stop();
+        previous_visual_mode = None;
         if (edit_sprite_not_tile)
         {
-            visual_mode = SaveLoadScreen;
+            game_switch(SaveLoadScreen);
             edit_sprite_not_tile = 0;
         }
         else
@@ -759,6 +759,12 @@ void edit_controls()
     {
         game_message[0] = 0;
         fill_stop();
-        visual_mode = EditTileOrSpriteProperties;
+        if (previous_visual_mode)
+        {
+            game_switch(previous_visual_mode);
+            previous_visual_mode = None;
+        }
+        else
+            game_switch(EditTileOrSpriteProperties);
     }
 }

@@ -331,14 +331,14 @@ void palette_controls()
             // go to filename chooser
             game_message[0] = 0;
             previous_visual_mode = EditPalette;
-            visual_mode = ChooseFilename;
+            game_switch(ChooseFilename);
         }
         return;
     }
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        visual_mode = EditTileOrSpriteProperties;
+        game_switch(EditTileOrSpriteProperties);
         previous_visual_mode = None;
         return;
     }
@@ -347,12 +347,12 @@ void palette_controls()
         game_message[0] = 0;
         if (previous_visual_mode)
         {
-            visual_mode = previous_visual_mode;
+            game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
         else
         {
-            visual_mode = SaveLoadScreen;
+            game_switch(SaveLoadScreen);
         }
         return;
     }

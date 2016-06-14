@@ -318,7 +318,7 @@ void edit2_controls()
         else
         {
             previous_visual_mode = EditTileOrSpriteProperties;
-            visual_mode = ChooseFilename;
+            game_switch(ChooseFilename);
         }
         return;
     }
@@ -328,7 +328,7 @@ void edit2_controls()
         if (edit_sprite_not_tile)
         {
             edit_sprite_not_tile = 0; 
-            visual_mode = EditPalette;
+            game_switch(EditPalette);
             previous_visual_mode = None;
         }
         else
@@ -342,12 +342,12 @@ void edit2_controls()
         game_message[0] = 0;
         if (previous_visual_mode)
         {
-            visual_mode = previous_visual_mode;
+            game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
         else
         {
-            visual_mode = EditTileOrSprite;
+            game_switch(EditTileOrSprite);
         }
         return;
     }

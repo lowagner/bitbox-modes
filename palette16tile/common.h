@@ -58,4 +58,5 @@ extern const uint8_t hex[32]; // not exactly hex but ok!
 extern const uint8_t direction[4];
 
 void draw_parade(int line, uint8_t bg_color);
+void game_switch(VisualMode new_visual_mode);
 #endif

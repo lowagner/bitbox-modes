@@ -20,6 +20,21 @@ void run_reset()
 {
 }
 
+void run_switch()
+{
+    if (tile_map_x < 0)
+        tile_map_x = 0;
+    else if (tile_map_x + SCREEN_W >= tile_map_width*16)
+        tile_map_x = tile_map_width*16 - SCREEN_W;
+    
+    if (tile_map_y < 0)
+        tile_map_y = 0;
+    else if (tile_map_y + SCREEN_H >= tile_map_height*16)
+        tile_map_y = tile_map_height*16 - SCREEN_H;
+    
+    update_objects(); 
+}
+
 void run_line()
 {
     tiles_line();
@@ -45,7 +60,7 @@ void run_controls()
     {
         game_message[0] = 0;
         previous_visual_mode = None;
-        visual_mode = EditMap;
+        game_switch(EditMap);
         return;
     }
 

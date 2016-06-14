@@ -341,7 +341,7 @@ void name_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         // switch to next visual mode and ignore previous_visual_mode
-        visual_mode = SaveLoadScreen;
+        game_switch(SaveLoadScreen);
         previous_visual_mode = None;
         return;
     }
@@ -349,12 +349,12 @@ void name_controls()
     {
         if (previous_visual_mode)
         {
-            visual_mode = previous_visual_mode;
+            game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
         else
         {
-            visual_mode = SaveLoadScreen;
+            game_switch(SaveLoadScreen);
         }
     }
 }
