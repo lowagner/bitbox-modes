@@ -1,0 +1,181 @@
+tile/sprite property editing
+    tiles:  damage
+        0 tile is required to be no damage, passable.  can be water.
+        1 tile is required to be no damage on top, impassable (although breakable is also possible)
+    sprite:
+        0 sprite is hero
+        change invisibility color
+
+defaults for tile translation (one sharp pokey one)
+
+
+map-edit menu:
+    map properties:
+        can edit tile_map_width/height
+    can also add a sprite - use L/R to choose
+      jump to tile property editor with some button
+      allow start from property to jump back
+
+
+music editing
+    song editor
+        song speed, song length (anywhere from four to 32)
+        4 instruments, each given one instrument line (a la chiptracker)
+            but drum instrument given something special:  4 different instrument lines.
+            you can specify which notes hit which drum instrument.
+
+        4 lines, put in the tracks
+
+    track editor
+        16 possible tracks, with 4 instrument lines each
+        each track length:  anywhere from 4 to 32 (fixed globally).
+        32*16*4 = 2048 notes, but each are specified by a nibble (half-byte)
+        so 1024 bytes storage there.
+        also keep track of the track's key (A maj, a min, etc.), although "unknown" is default.
+
+        notes:
+            0 (black) - stop noise
+            2 (white) - repeat last note.
+            1 (gray) - volume control
+                the "common" gray control statements can wrap to the next track in a song,
+                but any involving a pink block MUST come before the end of a track.
+
+                if some sound was just playing (either by a colored or white block or blocks):
+                    fade out previous note
+                    fade to zero volume in as many blocks as the note was held
+                        (white notes only count as one, since they are repeating something.)
+                    if not as many gray blocks as color blocks, 
+                        the note will continue sounding, unless black is encountered.
+                    if there are more grays than blocks that the previous note was held:
+                        fade out to 0% then fade in to 100%, then repeat.
+                elif gray then some color (or white):
+                    no note was sounding, fade in next note.
+                    look ahead for next note, and count how long it is held, put into C.
+                        (white counts as C=1).
+                    also count how many G grays there are before the note is hit.
+                    case G == C:
+                        crescendo to 100% volume over G units of time, hit note at 100%.
+                    case G < C:
+                        crescendo to G/C*100% volume over G units of time,
+                        then hit note with 100% volume.  (e.g. sudden loudness.)
+                    case G > C:
+                        crescendo to 100% volume over G units of time, then
+                        hit color with C/G*100% volume.  
+                        (e.g. dramatic fade in to very soft note)
+                elif gray then black:
+                    next note gets emphasis.
+                    if multiple grays, that many notes get emphasis.
+                now for UNCOMMON gray control statements
+                elif gray then pink:
+                    reset vibrato, slide, octave, volume, bitcrush,
+                    and other instrument state variables to their start-of-the-song values.  
+                        everything except "relative octave", which is temporary anyway,
+                        as described below. (also it shouldn't be possible to do that anyway.)
+                    also, read index increments to after pink, so that pink won't act again.
+                elif gray then gray then pink:
+                    toggle major/minor.  this only has an effect if a track is labeled in a key. 
+                elif 2+X grays then pink:
+                    (where X >= 1)
+                    do not play the next X notes that you encounter.
+
+            3 (pink) - control/command
+                for pink to act as the beginning of one of the following control statements, 
+                it must come after a white or a black,
+                or a gray which was fading out something.  
+                    (black gray pink resets stuff, as described above.)
+                the only pink control statement which can survive a track changing
+                    is the first one (if pink then a color);
+                    i.e. if pink is the last color in a track, then any track which 
+                    follows it in the song will get "relative octave" set to true:
+
+                if pink then a color:
+                    until a cease-noise black is encountered, octave is "relative".
+                    when deciding to play the octave of the next note, check
+                    what is closest to the previous note, going up, down, or staying same.
+                    black values encountered in control statements (such as those found below)
+                        DO NOT COUNT as a cease-noise black,
+                        and so do not break the relative octave action.
+                elif pink then black:
+                    lower octave (if below the lowest, wrap around to highest)
+                elif pink then white:
+                    increase octave (if above the highest, wrap around to lowest)
+                elif pink then gray:
+                    toggle vibrato
+                elif pink then pink,
+                    then black:
+                        decrease volume of instrument, but not all the way to zero.
+                        (however, but something very quiet is.)
+                    then gray:
+                        toggle bitcrusher
+                    then white:
+                        increase volume of instrument, but not beyond some max.
+                    then a color:
+                        toggle slide, and
+                        proceed in relative octaves until a cease-noise black occurs.
+                elif pink then pink then pink:
+                    then black
+                        GLOBAL song speed down
+                    then white
+                        GLOBAL song speed up
+                    then gray
+                        GLOBAL song speed reset to initial
+                    else:
+                        GLOBAL song transpose.
+                        some of them will switch from maj to min, or vice versa.
+
+                        4   -> +1    (red).  do not toggle maj/min
+                        5   -> +2   if maj, switch to min
+                        6   -> +3   
+                        7   -> +5
+                        8   -> +6
+                        9   -> +7
+                        10  -> -6
+                        11  -> -5
+                        12  -> -4
+                        13  -> -3   
+                        14  -> -2
+                        15  -> -1    (last note color).  do not toggle maj/min
+
+            4 - 15 (ROYGBIV'ish) - notes C through B, with all semitones.
+                hold a note by adding more of that color.
+                repeat a note by using white.
+
+                if maj, the semitones read:
+                   
+                    note    relative    key e.g. C
+                        4   ->  0   ->  C
+                        5   ->  1   ->  C#
+                        6   ->  2   ->  D
+                        7   ->  3   ->  Eb
+                        8   ->  4   ->  E   
+                        9   ->  5   ->  F
+                        10  ->  6   ->  F#
+                        11  ->  7   ->  G
+                        12  ->  8   ->  Ab
+                        13  ->  9   ->  A
+                        14  ->  10  ->  Bb
+                        15  ->  11  ->  B
+                
+                if min, the semitones change for 7 and 8 (make minor third)
+                and also for some higher notes:
+
+                        4   ->  0   ->  C
+                        5   ->  1   ->  C#
+                        6   ->  2   ->  D
+                        7   ->  4   ->  E
+                        8   ->  3   ->  Eb
+                        9   ->  5   ->  F
+                        10  ->  6   ->  F#
+                        11  ->  7   ->  G
+                        12  ->  9   ->  A
+                        13  ->  8   ->  Ab
+                        14  ->  11  ->  B
+                        15  ->  10  ->  Bb
+                
+                each track has a maj/min label, and there's a global maj/min toggle.
+                e.g.
+                    track   global toggle   actual key
+                    C maj   0               C maj
+                    C maj   1               C min
+                    C min   0               C min
+                    C min   1               C maj

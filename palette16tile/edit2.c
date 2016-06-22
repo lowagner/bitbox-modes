@@ -100,13 +100,18 @@ void edit2_line()
         case 7:
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"start:return", 16, internal_line, 65535, 257*BG_COLOR);
+            if (previous_visual_mode)
+                font_render_line_doubled((const uint8_t *)"start:back", 16, internal_line, 65535, 257*BG_COLOR);
+            else if (edit_sprite_not_tile)
+                font_render_line_doubled((const uint8_t *)"start:edit sprite", 16, internal_line, 65535, 257*BG_COLOR);
+            else
+                font_render_line_doubled((const uint8_t *)"start:edit tile", 16, internal_line, 65535, 257*BG_COLOR);
             break;
         case 9:
             if (edit_sprite_not_tile)
-                font_render_line_doubled((const uint8_t *)"select:go to palette", 16, internal_line, 65535, SPRITE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"select:palette menu", 16, internal_line, 65535, SPRITE_COLOR*257);
             else
-                font_render_line_doubled((const uint8_t *)"select:go to sprites", 16, internal_line, 65535, TILE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"select:sprite menu", 16, internal_line, 65535, TILE_COLOR*257);
             break;
         case 10:
             break;

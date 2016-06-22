@@ -82,7 +82,7 @@ void map_line()
                 font_render_line_doubled(game_message,
                     16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
             else
-                font_render_line_doubled((const uint8_t *) "start:menu A:fill X:edit tile",
+                font_render_line_doubled((const uint8_t *) "start:game A:fill X:edit tile",
                     28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
         }
         return;
@@ -103,7 +103,7 @@ void map_line()
             int tile_j = vga_line - (SCREEN_H - MAP_HEADER + 4);
             if (map_last_painted == 0)
             {
-                uint16_t *dst = draw_buffer + 16 + 19;
+                uint16_t *dst = draw_buffer + 24 + 19;
                 uint8_t *tile_color = &tile_draw[(map_color[0]-1)&15][tile_j][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
@@ -133,15 +133,15 @@ void map_line()
                 }
                 if (vga_line >= SCREEN_H - MAP_HEADER + 4 + 8)
                 {
-                    font_render_line_doubled((const uint8_t *)"L:", 16, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"Y:", 56, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"R:", 96, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"B:", 200, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"L:", 24, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"Y:", 64, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"R:", 104, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"B:", 208, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8), 65535, 0);
                 }
             }
             else
             {
-                uint16_t *dst = draw_buffer + 56 + 19;
+                uint16_t *dst = draw_buffer + 64 + 19;
                 uint8_t *tile_color = &tile_draw[map_color[0]][tile_j][0] - 1;
                 for (int l=0; l<8; ++l)
                 {
@@ -171,10 +171,10 @@ void map_line()
                 }
                 if (vga_line >= SCREEN_H - MAP_HEADER + 4 + 8)
                 {
-                    font_render_line_doubled((const uint8_t *)"Y:", 56, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"L:", 160, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"B:", 200, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
-                    font_render_line_doubled((const uint8_t *)"R:", 240, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"Y:", 64, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"L:", 164, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"B:", 208, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
+                    font_render_line_doubled((const uint8_t *)"R:", 248, vga_line - (SCREEN_H - MAP_HEADER + 12), 65535, 0);
                 }
             }
             return;

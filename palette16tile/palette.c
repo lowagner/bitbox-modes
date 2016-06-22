@@ -116,7 +116,10 @@ void palette_line()
         case 7:
             break;
         case 8:
-            font_render_line_doubled((const uint8_t *)"start:return   dpad:", 16, internal_line, 65535, 0);
+            if (previous_visual_mode)
+                font_render_line_doubled((const uint8_t *)"start:back     dpad:", 16, internal_line, 65535, 0);
+            else
+                font_render_line_doubled((const uint8_t *)"start:file-ops dpad:", 16, internal_line, 65535, 0);
             {
             uint8_t label[] = { 'r', ':', hex[(palette[palette_index]>>10)&31], 0 };
             font_render_line_doubled(label, 20+20*9, internal_line, RGB(255, 50, 50), 0);
@@ -127,7 +130,7 @@ void palette_line()
             }
             break;
         case 9:
-            font_render_line_doubled((const uint8_t *)"select:go to tiles", 16, internal_line, 65535, 0);
+            font_render_line_doubled((const uint8_t *)"select:tile menu", 16, internal_line, 65535, 0);
             break;
         case 11:
             font_render_line_doubled(game_message, 16, internal_line, 65535, 0);
@@ -231,12 +234,14 @@ void palette_controls()
     int make_wait = 0;
     if (GAMEPAD_PRESSING(0, up))
     {
+        game_message[0] = 0;
         if (((palette[palette_index] >> (5*palette_selector)) & 31) < 31)
             palette[palette_index] += 1 << (5*palette_selector);
         make_wait = 1;
     }
     if (GAMEPAD_PRESSING(0, down))
     {
+        game_message[0] = 0;
         if (((palette[palette_index] >> (5*palette_selector)) & 31) > 0)
             palette[palette_index] -= 1 << (5*palette_selector);
         make_wait = 1;

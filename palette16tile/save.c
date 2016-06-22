@@ -52,8 +52,8 @@ void save_line()
             switch (save_only)
             {
             case 0:
-                font_render_line_doubled((const uint8_t *)"all in", 16, internal_line, 65535, SAVE_COLOR*257);
-                save_text_offset += 7*9;
+                font_render_line_doubled((const uint8_t *)"everything", 16, internal_line, 65535, SAVE_COLOR*257);
+                save_text_offset += 11*9;
                 break;
             case 1:
                 font_render_line_doubled((const uint8_t *)"tiles in", 16, internal_line, 65535, SAVE_COLOR*257);
@@ -286,7 +286,8 @@ void save_controls()
         game_message[0] = 0;
         // go to palette picker
         game_switch(EditPalette);
-        previous_visual_mode = SaveLoadScreen;
+        previous_visual_mode = None; // don't require getting back here
+        //previous_visual_mode = SaveLoadScreen;
         return;
     }
 }

@@ -6,8 +6,9 @@ uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
 uint8_t tile_translator[16] CCM_MEMORY;
 // info about a tile:
 //   5 bits for "what is hiding inside this tile?", 
-//      a value >= 16 is "nothing hides here", and also indicates if the tile is a water-based tile.
-//      16 + [0 = not water, 1 = quick-sand, ..., 8 = water, ..., 15 = liquid mercury] 
+//      a value < 16 is "nothing hides here", and also indicates if the tile is a water-based tile.
+//          [0 = not water, 1 = quick-sand, ..., 8 = water, ..., 15 = liquid mercury] 
+//      a value >= 16 means sprite (value-16) hides here.
 //   3 bits:
 //      if not water:  
 //          for tile strength (can only destroy a tile using an attack which &'s the strength).

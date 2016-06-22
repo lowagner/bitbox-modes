@@ -162,6 +162,14 @@ void edit_line()
                 if (invisible < 16)
                     font_render_line_doubled((uint8_t *)"invisible", 222, line, palette[invisible], ~palette[invisible]);
             }
+            else if (previous_visual_mode)
+            {
+                uint8_t text[] = { 
+                    's', 't', 'a', 'r', 't', ':', 'b', 'a', 'c', 'k',
+                    ' ', 't', 'i', 'l', 'e', ' ', hex[edit_tile], 
+                    0 };
+                font_render_line_doubled(text, 16, line, 65535, 0);
+            }
             else
             {
                 uint8_t text[] = { 

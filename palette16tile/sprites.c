@@ -8,6 +8,8 @@
 uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
 // info about a sprite:
 //   5 bits for "what color is invisible in this sprite"
+//      a value < 16 for that color
+//      a value >= 16 for "no color is invisible".  (could use 4 bits for something there.)
 //   3 bits for pattern of sprite
 //   4 bits for initial health
 //   4 bits for speed of sprite
