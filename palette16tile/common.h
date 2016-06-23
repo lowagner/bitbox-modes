@@ -1,4 +1,3 @@
-// nonsimple.h : a simple framebuffer based engine
 #ifndef COMMON_H
 #define COMMON_H
 #include <stdint.h>
@@ -36,6 +35,7 @@ typedef enum {
     EditTileOrSprite,
     EditTileOrSpriteProperties,
     EditPalette,
+    EditVerse,
     SaveLoadScreen,
     ChooseFilename
 } VisualMode;

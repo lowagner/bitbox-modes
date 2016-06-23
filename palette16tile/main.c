@@ -1,6 +1,7 @@
 #include "bitbox.h"
 #include "common.h"
 #include "sprites.h"
+#include "verse.h"
 #include "tiles.h"
 #include "edit.h"
 #include "edit2.h"
@@ -34,6 +35,7 @@ void game_init()
     tiles_init();
     sprites_init();
     palette_init();
+    verse_init();
 
     // init game mode
     visual_mode = GameOn;
@@ -54,6 +56,7 @@ void game_init()
         tiles_reset();
         map_reset();
         sprites_reset();
+        verse_reset();
     }
     else // there was a filename to look into
     {
@@ -76,6 +79,10 @@ void game_init()
         {
             // and so on...
             sprites_reset();
+        }
+        //
+        {
+            verse_reset();
         }
     }
 }
@@ -105,6 +112,9 @@ void game_frame()
         break;
     case ChooseFilename:
         name_controls();
+        break;
+    case EditVerse:
+        verse_controls();
         break;
     default:
         break;
@@ -139,56 +149,59 @@ void graph_line()
         return;
     switch (visual_mode)
     {
-    case GameOn:
-        run_line();
-        break;
-    case EditMap:
-        map_line();
-        break;
-    case EditTileOrSprite:
-        edit_line();
-        break;
-    case EditTileOrSpriteProperties:
-        edit2_line();
-        break;
-    case SaveLoadScreen:
-        save_line();
-        break;
-    case EditPalette:
-        palette_line();
-        break;
-    case ChooseFilename:
-        name_line();
-        break;
-    default:
-    {
-        int line = vga_line/10;
-        int internal_line = vga_line%10;
-        if (vga_line/2 == 0 || (internal_line/2 == 4))
+        case GameOn:
+            run_line();
+            break;
+        case EditMap:
+            map_line();
+            break;
+        case EditTileOrSprite:
+            edit_line();
+            break;
+        case EditTileOrSpriteProperties:
+            edit2_line();
+            break;
+        case SaveLoadScreen:
+            save_line();
+            break;
+        case EditPalette:
+            palette_line();
+            break;
+        case ChooseFilename:
+            name_line();
+            break;
+        case EditVerse:
+            verse_line();
+            break;
+        default:
         {
-            memset(draw_buffer, BSOD, 2*SCREEN_W);
-            return;
-        }
-        if (line >= 4 && line < 20)
-        {
-            line -= 4;
-            uint32_t *dst = (uint32_t *)draw_buffer + 37;
-            uint32_t color_choice[2] = { (BSOD*257)|((BSOD*257)<<16), 65535|(65535<<16) };
-            int shift = ((internal_line/2))*4;
-            for (int c=0; c<16; ++c)
+            int line = vga_line/10;
+            int internal_line = vga_line%10;
+            if (vga_line/2 == 0 || (internal_line/2 == 4))
             {
-                uint8_t row = (font[c+line*16] >> shift) & 15;
-                for (int j=0; j<4; ++j)
-                {
-                    *(++dst) = color_choice[row&1];
-                    row >>= 1;
-                }
-                *(++dst) = color_choice[0];
+                memset(draw_buffer, BSOD, 2*SCREEN_W);
+                return;
             }
-            return;
+            if (line >= 4 && line < 20)
+            {
+                line -= 4;
+                uint32_t *dst = (uint32_t *)draw_buffer + 37;
+                uint32_t color_choice[2] = { (BSOD*257)|((BSOD*257)<<16), 65535|(65535<<16) };
+                int shift = ((internal_line/2))*4;
+                for (int c=0; c<16; ++c)
+                {
+                    uint8_t row = (font[c+line*16] >> shift) & 15;
+                    for (int j=0; j<4; ++j)
+                    {
+                        *(++dst) = color_choice[row&1];
+                        row >>= 1;
+                    }
+                    *(++dst) = color_choice[0];
+                }
+                return;
+            }
+            break;
         }
-        break;
-    }
     }
 }
 

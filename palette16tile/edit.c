@@ -754,7 +754,7 @@ void edit_controls()
         previous_visual_mode = None;
         if (edit_sprite_not_tile)
         {
-            game_switch(SaveLoadScreen);
+            game_switch(EditVerse);
             edit_sprite_not_tile = 0;
         }
         else
