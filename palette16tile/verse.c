@@ -26,21 +26,26 @@ uint8_t verse_color_names[16][3] = {
     { 'B', 0, 0 }
 };
 
+#define BG_COLOR 192
+#define NUMBER_LINES 12
+
 uint8_t verse_note CCM_MEMORY;
 uint8_t verse_track CCM_MEMORY;
 uint8_t verse_instrument CCM_MEMORY;
 uint8_t verse_position CCM_MEMORY;
+uint8_t verse_edit_track_not_instrument CCM_MEMORY;
 
 void verse_init()
 {
     verse_track = 0;
     verse_instrument = 0;
     verse_position = 0;
+    verse_edit_track_not_instrument = 1;
 }
 
 void verse_reset()
 {
-    int i=0;
+    int i=0; // isntrument
     int ci = 0; // command index
     instrument[i].track_octave = 2;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
@@ -58,9 +63,10 @@ void verse_reset()
     instrument[i].cmd[++ci] = FADE_OUT | (15<<4); 
     
     i = 1;
-    ci = 0; // command index
+    ci = 0;
     instrument[i].track_octave = 3;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[++ci] = INERTIA | (15<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
     instrument[i].cmd[++ci] = NOTE | (0<<4); 
@@ -71,7 +77,7 @@ void verse_reset()
     instrument[i].cmd[++ci] = FADE_OUT | (1<<4); 
     
     i = 2;
-    ci = 0; // command index
+    ci = 0;
     instrument[i].track_octave = 4;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
@@ -117,15 +123,51 @@ void verse_line()
 {
     if (vga_line < 22)
     {
-        if (vga_line/2 == 0)
-            memset(draw_buffer, 0, 2*SCREEN_W);
+        if (vga_line/2 == 0 || vga_line/2 == 10)
+        {
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+            return;
+        }
         return;
     }
     else if (vga_line >= SCREEN_H - 22)
     {
         if (vga_line/2 == (SCREEN_H - 20)/2)
-            memset(draw_buffer, 0, 2*SCREEN_W);
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
+    }
+    int line = (vga_line-22) / 10;
+    int internal_line = (vga_line-22) % 10;
+    if (internal_line == 0 || internal_line == 9)
+    {
+        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+    }
+    else
+    {
+        --internal_line;
+        switch (line)
+        {
+        case 0:
+            if (verse_edit_track_not_instrument)
+            {
+                uint8_t msg[] = { 'e', 'd', 'i', 't', ' ', 
+                    't', 'r', 'a', 'c', 'k', ' ', hex[verse_track],
+                0 };
+                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+            {
+                uint8_t msg[] = { 'e', 'd', 'i', 't', ' ', 
+                    'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
+                    ' ', hex[verse_instrument],
+                0 };
+                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            }
+            break;
+        case 1:
+            break;
+        }
+
     }
 }
 
@@ -155,6 +197,13 @@ void verse_controls()
         game_message[0] = 0;
         previous_visual_mode = None;
         game_switch(SaveLoadScreen);
+        return;
+    } 
+    
+    if (GAMEPAD_PRESS(0, start))
+    {
+        game_message[0] = 0;
+        verse_edit_track_not_instrument = 1 - verse_edit_track_not_instrument;
         return;
     } 
 }

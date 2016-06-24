@@ -457,8 +457,6 @@ static inline uint16_t gen_sample()
     noiseseed = (noiseseed << 1) | newbit;
 
     int16_t acc[2] = { 0, 0 }; // accumulators for each channel
-    uint8_t div[2] = { 0, 0 }; // dividers, how many instruments have put stuff into which channels
-
     // Now compute the value of each oscillator and mix them
     for (int i=0; i<4; i++) 
     {
@@ -508,26 +506,13 @@ static inline uint16_t gen_sample()
             instrument[i].track_volume * instrument[i].volume / 255 * value;
         // Mix it in the appropriate output channel
         if (instrument[i].side & 1)
-        {
             acc[0] += add;
-            ++div[0];
-        }
         if (instrument[i].side & 2)
-        {
             acc[1] += add;
-            ++div[1];
-        }
     }
     // Now put the two channels together in the output word
-    // acc has +- div[c]*2**13  needs to return as 2*[1,251],  (roughly 128 +- 2**7)
-    // so shift down 
-    uint16_t result = 0;
-    if (div[0])
-        result |= (128 + (acc[0] >> 6)/div[0]);
-    if (div[1])
-        result |= ((128 + (acc[1] >> 6)/div[1])) << 8;
-    // if it sounds bad to promote channels, then just shift down by 8 and call it a day.
-    return result;  // 2*[1,251]
+    // acc has roughly +- (4 instr)*2**13  needs to return as 2*[1,251],  (roughly 128 +- 2**7)
+    return (128 + (acc[0] >> 8))|(((128 + (acc[1] >> 8))) << 8);  // 2*[1,251]
 }
 
 void game_snd_buffer(uint16_t* buffer, int len) 
