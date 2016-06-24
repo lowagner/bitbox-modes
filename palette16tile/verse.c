@@ -8,32 +8,33 @@
 #include <string.h> // memset
 
 uint8_t verse_color_names[16][3] = {
-    { 'S', 0, 0 }, // black, stop/silence
-    { 'V', 0, 0 }, // gray, volume fade
-    { 'R', 0, 0 }, // white, repeat note
-    { 'P', 0, 0 }, // pink
-    { 'C', 0, 0 }, // red
+    { 'S', ' ', 0 }, // black, stop/silence
+    { 'V', ' ', 0 }, // gray, volume fade
+    { 'R', ' ', 0 }, // white, repeat note
+    { 'P', ' ', 0 }, // pink
+    { 'C', ' ', 0 }, // red
     { 'C', '#', 0 }, 
-    { 'D', 0, 0 }, 
+    { 'D', ' ', 0 }, 
     { 'E', 'b', 0 }, 
-    { 'E', 0, 0 }, 
-    { 'F', 0, 0 }, 
+    { 'E', ' ', 0 }, 
+    { 'F', ' ', 0 }, 
     { 'F', '#', 0 }, 
-    { 'G', 0, 0 }, 
+    { 'G', ' ', 0 }, 
     { 'A', 'b', 0 }, 
-    { 'A', 0, 0 }, 
+    { 'A', ' ', 0 }, 
     { 'B', 'b', 0 }, 
-    { 'B', 0, 0 }
+    { 'B', ' ', 0 }
 };
 
 #define BG_COLOR 192
-#define NUMBER_LINES 12
+#define NUMBER_LINES 18
 
 uint8_t verse_note CCM_MEMORY;
 uint8_t verse_track CCM_MEMORY;
 uint8_t verse_instrument CCM_MEMORY;
 uint8_t verse_position CCM_MEMORY;
 uint8_t verse_edit_track_not_instrument CCM_MEMORY;
+uint8_t verse_show_instrument CCM_MEMORY;
 
 void verse_init()
 {
@@ -119,6 +120,186 @@ void verse_reset()
     instrument[i].cmd[++ci] = 0;  // that was the third (last) sub-instrument
 }
 
+void verse_render_cmd(int i, int j, int x, int y)
+{
+    #ifdef EMULATOR
+    if (y < 0 || y >= 8)
+    {
+        message("got too big a line count for instrument %d, %d\n", (int)i, y);
+        return;
+    }
+    if (x < 0 || x + 10 >= SCREEN_W)
+    {
+        message("instrument %d goes off screen!\n", (int)i);
+        return;
+    }
+    #endif
+    y = ((y/2))*4; // make y now how much to shift
+
+    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
+    uint32_t color_choice[2];
+    if (j % 2)
+    {
+        color_choice[0] = 16843009u*149;
+        color_choice[1] = 65535u*65537u;
+    }
+    else
+    {
+        color_choice[0] = 16843009u*BG_COLOR;
+        color_choice[1] = 65535u*65537u;
+    }
+    
+    uint8_t cmd = instrument[i].cmd[j];
+    uint8_t param = cmd>>4;
+    cmd &= 15;
+    if (cmd == 0)
+    {
+        verse_show_instrument = 0;
+        return;
+    }
+    
+    int smash_together = 0;
+    switch (cmd)
+    {
+        case SIDE:
+            switch (param)
+            {
+                case 0:
+                    cmd = 's';
+                    param = 'h';
+                    break;
+                case 1:
+                    cmd = 'L';
+                    param = ' ';
+                    break;
+                case 2:
+                    cmd = 'R';
+                    param = ' ';
+                    break;
+                case 3:
+                    cmd = 'L';
+                    param = 'R';
+                    break;
+            }
+            break;
+        case VOLUME:
+            cmd = 'V';
+            param = hex[param];
+            break;
+        case WAVEFORM:
+            switch (param)
+            {
+                case WF_SINE:
+                    cmd = 1;
+                    param = 2;
+                    break;
+                case WF_TRIANGLE:
+                    cmd = '/';
+                    param = '\\';
+                    break;
+                case WF_SAW:
+                    cmd = 3;
+                    param = 4;
+                    break;
+                case WF_PULSE:
+                    cmd = 5;
+                    param = 6;
+                    break;
+                case WF_NOISE:
+                    cmd = 0;
+                    param = 0;
+                    break;
+                default:
+                    cmd = ' ';
+                    param = ' ';
+                    break;
+            }
+            smash_together = 1;
+            break;
+        case NOTE:
+            param %= 12;
+            cmd = verse_color_names[4+param][0];
+            param = verse_color_names[4+param][1];
+            break;
+        case WAIT:
+            cmd = 'W';
+            param = hex[param];
+            break;
+        case FADE_IN:
+            cmd = '<';
+            param = hex[param];
+            break;
+        case FADE_OUT:
+            cmd = '>';
+            param = hex[param];
+            break;
+        case VIBRATO:
+            cmd = '~';
+            param = hex[param];
+            break;
+        case VIBRATO_RATE:
+            cmd = 128+32+13;
+            param = hex[param];
+            break;
+        case INERTIA:
+            cmd = 255;
+            param = hex[param];
+            break;
+        case BITCRUSH:
+            cmd = 'B';
+            param = hex[param];
+            break;
+        case DUTY:
+            cmd = 129;
+            param = hex[param];
+            break;
+        case DUTY_DELTA:
+            cmd = 128;
+            param = hex[param];
+            break;
+        case JUMP:
+            cmd = 'J';
+            param = hex[param];
+            break;
+    }
+
+    uint8_t row = (font[cmd] >> y) & 15;
+    if (smash_together)
+    {
+        *(++dst) = color_choice[0];
+        *(++dst) = color_choice[0];
+        for (int k=0; k<4; ++k)
+        {
+            *(++dst) = color_choice[row&1];
+            row >>= 1;
+        }
+        row = (font[param] >> y) & 15;
+        for (int k=0; k<4; ++k)
+        {
+            *(++dst) = color_choice[row&1];
+            row >>= 1;
+        }
+    }
+    else
+    {
+        *(++dst) = color_choice[0];
+        for (int k=0; k<4; ++k)
+        {
+            *(++dst) = color_choice[row&1];
+            row >>= 1;
+        }
+        *(++dst) = color_choice[0];
+        
+        row = (font[param] >> y) & 15;
+        for (int k=0; k<4; ++k)
+        {
+            *(++dst) = color_choice[row&1];
+            row >>= 1;
+        }
+    }
+    *(++dst) = color_choice[0];
+}
+
 void verse_line()
 {
     if (vga_line < 22)
@@ -166,6 +347,19 @@ void verse_line()
             break;
         case 1:
             break;
+        case 2:
+            verse_show_instrument = 1; 
+            // purposeful fall through here
+        case 10:
+        case 14:
+            if (instrument[verse_instrument].is_drum)
+               verse_show_instrument = 1; 
+            // purposeful fall through here
+        default:
+            if (verse_show_instrument)
+                verse_render_cmd(verse_instrument, line-2, 16, internal_line);
+            //verse_render_instrument(verse_instrument, 16, internal_line);
+            break; 
         }
 
     }
