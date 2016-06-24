@@ -1,6 +1,7 @@
 #include "bitbox.h"
 #include "common.h"
 #include "sprites.h"
+#include "chiptune.h"
 #include "verse.h"
 #include "tiles.h"
 #include "edit.h"
@@ -320,6 +321,9 @@ void draw_parade(int line, uint8_t bg_color)
 
 void game_switch(VisualMode new_visual_mode)
 {
+    for (int i=0; i<4; ++i)
+        instrument[i].track_volume = 0;
+
     switch (new_visual_mode)
     {
     case EditMap:

@@ -34,6 +34,7 @@ uint8_t chip_repeat CCM_MEMORY;
  */
 
 struct instrument instrument[CHANNELS] CCM_MEMORY;
+uint8_t drum_cmd[CHANNELS][MAX_DRUM_LENGTH] CCM_MEMORY;
 
 /* 
     tracks
@@ -106,7 +107,7 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
             instrument[i].side = param; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
             break;
         case VOLUME: // v = volume
-            instrument[i].volume = (param<<4) + 1;
+            instrument[i].volume = param<<4;
             break;
         case WAVEFORM: // w = select waveform
             instrument[i].waveform = param;
@@ -114,22 +115,21 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
         case NOTE: // + = set relative note
             instrument[i].note = param + instrument[i].track_note + instrument[i].track_octave*12 + song_transpose;
             break;
-        //case 5: // = = set absolute note 
-        //    instrument[i].note = param + instrument[i].track_octave*12 + song_transpose;
+        //case 5: //    could reintroduce slides (bend and bendd)
         //    break;
         case WAIT: // t = timing 
             instrument[i].wait = param;
             break;
         case FADE_IN: // < = fade in, or crescendo
-            instrument[i].volumed = param<<4;
+            instrument[i].volumed = param + param*param/15;
             break;
         case FADE_OUT: // > = fade out, or decrescendo
-            instrument[i].volumed = -(param<<4);
+            instrument[i].volumed = -param - param*param/15;
             break;
         case VIBRATO: // ~ = vibrato depth
             instrument[i].vibrato_depth = param;
             break;
-        case VIBRATO_SPEED: // x = vibrato rate
+        case VIBRATO_RATE: // x = vibrato rate
             instrument[i].vibrato_rate = param;
             break;
         case INERTIA: // i = inertia (auto note slides)
@@ -138,7 +138,7 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
         case BITCRUSH: // b = bitcrush
             instrument[i].bitcrush = param;
             break;
-        case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PUL
+        case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PULSE
             instrument[i].duty = param << 12;
             break;
         case DUTY_DELTA: // m = duty variation
@@ -233,17 +233,52 @@ void chip_switch()
     }
 }
 
-void chip_note(uint8_t i, uint8_t note)
+void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
 {
-    instrument[i].cmd_index = 0;
     instrument[i].previous_track_note = instrument[i].track_note;
-    instrument[i].track_note = note;
+    
+    // now set some defaults and startup the command index
+    if (instrument[i].is_drum)
+    {
+        // a drum instrument has 3 sub instruments.
+        note %= 12;
+        instrument[i].track_note = note;
+        // is_drum also holds which command we want to stop at for this sub-instrument.
+        // first subinstrument is 2*MAX_DRUM_LENGTH commands long, and takes up first 10 notes.
+        if (note < 10)
+        {
+            instrument[i].cmd_index = 0;
+            instrument[i].is_drum = 2*MAX_DRUM_LENGTH;
+        }
+        else if (note == 10)
+        {
+            instrument[i].cmd_index = 2*MAX_DRUM_LENGTH;
+            instrument[i].is_drum = 3*MAX_DRUM_LENGTH;
+        }
+        else
+        {
+            instrument[i].cmd_index = 3*MAX_DRUM_LENGTH;
+            instrument[i].is_drum = 4*MAX_DRUM_LENGTH;
+        }
+        instrument[i].waveform = WF_NOISE; // by default
+        instrument[i].volume = 240; 
+    }
+    else
+    {
+        instrument[i].track_note = note;
+        instrument[i].cmd_index = 0;
+        instrument[i].waveform = WF_TRIANGLE; // by default
+        instrument[i].volume = 10<<4; 
+    }
+    instrument[i].side = 3; // default to output both L/R
     instrument[i].volumed = 0;
-    instrument[i].track_volume = 240;
+    instrument[i].track_volume = track_volume;
     instrument[i].track_volumed = 0;
+    instrument[i].inertia = 0;
     instrument[i].wait = 0;
     instrument[i].dutyd = 0;
     instrument[i].vibrato_depth = 0;
+    instrument[i].vibrato_rate = 5;
     if (instrument[i].track_emphasis)
         --instrument[i].track_emphasis;
 }
@@ -303,7 +338,8 @@ static void chip_song_update()
             uint8_t note = fields >> 4;
             if (note >= 4)
             {
-                chip_note(i, note-4 + instrument[i].track_octave*12);
+                // if necessary, update instrument[i].track_octave and song_transpose
+                chip_note(i, note-4, 240);
                 continue;
             }
         }
@@ -312,7 +348,7 @@ static void chip_song_update()
             uint8_t note = fields & 15;
             if (note >= 4)
             {
-                chip_note(i, note-4 + instrument[i].track_octave*12);
+                chip_note(i, note-4, 240);
                 continue;
             }
         }
@@ -336,10 +372,18 @@ static void chip_update()
         int16_t vol;
         uint16_t slur;
         int16_t inertia;
-
-        while (!instrument[i].wait && instrument[i].cmd_index < MAX_INSTRUMENT_LENGTH) {
+    
+        if (instrument[i].is_drum)
+        {
             // run through instrument instructions when note is playing or held
-            instrument_run_cmd(i, instrument[i].cmd[instrument[i].cmd_index++]);
+            // is_drum holds which end point to avoid, as well:
+            while (!instrument[i].wait && instrument[i].cmd_index < instrument[i].is_drum)
+                instrument_run_cmd(i, instrument[i].cmd[instrument[i].cmd_index++]);
+        }
+        else
+        {
+            while (!instrument[i].wait && instrument[i].cmd_index < MAX_INSTRUMENT_LENGTH) 
+                instrument_run_cmd(i, instrument[i].cmd[instrument[i].cmd_index++]);
         }
 
         if (instrument[i].wait)
@@ -425,7 +469,7 @@ static inline uint16_t gen_sample()
 
         switch(instrument[i].waveform) 
         {
-            case WF_TRI:
+            case WF_TRIANGLE:
                 // Triangle: the part before 0x8000 raises, then it goes back
                 // down.
                 if (instrument[i].phase < 0x8000) 
@@ -437,15 +481,15 @@ static inline uint16_t gen_sample()
                 // Sawtooth: always raising.
                 value = -32 + (instrument[i].phase >> 10);
                 break;
-            case WF_PUL:
+            case WF_PULSE:
                 // Pulse: max value until we reach "duty", then min value.
                 value = (instrument[i].phase > instrument[i].duty)? -32 : 31;
                 break;
-            case WF_NOI:
+            case WF_NOISE:
                 // Noise: from the generator. Only the low order bits are used.
                 value = (noiseseed & 63) - 32;
                 break;
-            case WF_SIN:
+            case WF_SINE:
                 value = sine_table[instrument[i].phase>>10]>>2;
                 break;
             default:

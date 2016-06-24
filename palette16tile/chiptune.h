@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #define MAX_INSTRUMENT_LENGTH 16
+#define MAX_DRUM_LENGTH (MAX_INSTRUMENT_LENGTH/4)
 #define MAX_SONG_LENGTH 32
 #define MAX_TRACK_LENGTH 38 // make this divisible by 2, with result+1 divisible by 4
 #define MAX_NOTE 84
@@ -31,6 +32,7 @@ struct instrument
     // stuff in the cmd array can be modified externally.
     uint8_t cmd[MAX_INSTRUMENT_LENGTH];
     uint8_t cmd_index;
+    uint8_t is_drum;
     
     // properties specific to the instrument (set/modified using cmd array above)
     // and properties which can be set by the track (prefixed by `track_`).
@@ -69,23 +71,23 @@ struct instrument
     uint8_t bitcrush; // 0-f level of quantization (power of 2)
 }; 
 
-extern struct instrument instrument[CHANNELS] CCM_MEMORY;
+extern struct instrument instrument[CHANNELS];
 
 void chip_init(); // initialize all variables at start of game (stuff that only happens once)
 void chip_reset(); // put in a random tune.
 void chip_switch(); // re-initialize current tune to start over.
 
 // play a note of this instrument now - useful for FX !
-void chip_note(uint8_t ch, uint8_t note);
+void chip_note(uint8_t ch, uint8_t note, uint8_t track_volume);
 
 // These are our possible waveforms. Any other value plays silence.
 enum 
 {
-    WF_SIN = 0,  // sine
-    WF_TRI, // triangle /\/\,
-    WF_SAW, // sawteeth /|/|,
-    WF_PUL, // pulse (adjustable duty) |_|-,
-    WF_NOI, // noise !*@?
+    WF_SINE = 0,  // 
+    WF_TRIANGLE, // = /\/\,
+    WF_SAW, // = /|/| 
+    WF_PULSE, // = |_|- (adjustable duty)
+    WF_NOISE, // = !*@?
 };
 
 #define BREAK 0
@@ -98,7 +100,7 @@ enum
 #define FADE_IN 7
 #define FADE_OUT 8
 #define VIBRATO 9
-#define VIBRATO_SPEED 10
+#define VIBRATO_RATE 10
 #define INERTIA 11
 #define BITCRUSH 12
 #define DUTY 13

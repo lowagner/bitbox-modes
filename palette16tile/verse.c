@@ -41,20 +41,76 @@ void verse_init()
 void verse_reset()
 {
     int i=0;
+    int ci = 0; // command index
     instrument[i].track_octave = 2;
-    instrument[i].cmd[0] = SIDE | (3<<4); 
-    instrument[i].cmd[1] = VOLUME | (15<<4); 
-    instrument[i].cmd[2] = WAVEFORM | (WF_SAW<<4); 
-    instrument[i].cmd[3] = NOTE | (0<<4); 
-    instrument[i].cmd[4] = WAIT | (4<<4); 
-    instrument[i].cmd[5] = SIDE | (1<<4); 
-    instrument[i].cmd[6] = NOTE | (4<<4); 
-    instrument[i].cmd[7] = WAIT | (4<<4); 
-    instrument[i].cmd[8] = SIDE | (2<<4); 
-    instrument[i].cmd[9] = WAIT | (4<<4); 
-    instrument[i].cmd[10] = NOTE | (7<<4); 
-    instrument[i].cmd[11] = WAIT | (4<<4); 
-    instrument[i].cmd[12] = FADE_OUT | (2<<4); 
+    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[++ci] = VOLUME | (15<<4); 
+    instrument[i].cmd[++ci] = WAVEFORM | (WF_SAW<<4); 
+    instrument[i].cmd[++ci] = NOTE | (0<<4); 
+    instrument[i].cmd[++ci] = WAIT | (15<<4); 
+    instrument[i].cmd[++ci] = SIDE | (1<<4); 
+    instrument[i].cmd[++ci] = NOTE | (4<<4); 
+    instrument[i].cmd[++ci] = WAIT | (4<<4); 
+    instrument[i].cmd[++ci] = SIDE | (2<<4); 
+    instrument[i].cmd[++ci] = WAIT | (4<<4); 
+    instrument[i].cmd[++ci] = NOTE | (7<<4); 
+    instrument[i].cmd[++ci] = WAIT | (4<<4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (15<<4); 
+    
+    i = 1;
+    ci = 0; // command index
+    instrument[i].track_octave = 3;
+    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[++ci] = VOLUME | (15<<4); 
+    instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
+    instrument[i].cmd[++ci] = NOTE | (0<<4); 
+    instrument[i].cmd[++ci] = WAIT | (15<<4); 
+    instrument[i].cmd[++ci] = VIBRATO | (3<<4); 
+    instrument[i].cmd[++ci] = WAIT | (15<<4); 
+    instrument[i].cmd[++ci] = WAIT | (15<<4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (1<<4); 
+    
+    i = 2;
+    ci = 0; // command index
+    instrument[i].track_octave = 4;
+    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[++ci] = VOLUME | (15<<4); 
+    instrument[i].cmd[++ci] = WAVEFORM | (WF_NOISE<<4); 
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = WAVEFORM | (WF_PULSE<<4); 
+    instrument[i].cmd[++ci] = DUTY_DELTA | (6<<4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (1<<4); 
+    instrument[i].cmd[++ci] = NOTE | (12<<4); 
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = NOTE | (7<<4); 
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = NOTE | (3<<4); 
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = NOTE | (0<<4); 
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = JUMP | (7<<4); 
+    
+    i = 3;
+    ci = 0; 
+    instrument[i].track_octave = 3;
+    instrument[i].is_drum = 1; // drums get MAX_INSTRUMENT_LENGTH/4 commands for each sub-instrument
+    instrument[i].cmd[ci] = WAIT | (5<<4); 
+    instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
+    instrument[i].cmd[++ci] = NOTE | (0 << 4); 
+    instrument[i].cmd[++ci] = WAIT | (6<<4); 
+    instrument[i].cmd[++ci] = SIDE | (1 << 4);  
+    instrument[i].cmd[++ci] = WAIT | (6<<4); 
+    instrument[i].cmd[++ci] = NOTE | (2 << 4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (13<<4); // the first sub-instrument is long (8 commands) 
+    instrument[i].cmd[++ci] = SIDE | (1<<4); 
+    instrument[i].cmd[++ci] = WAIT | (15<<4); 
+    instrument[i].cmd[++ci] = SIDE | (2<<4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (10<<4);  // that was the second sub-instrument
+    
+    instrument[i].cmd[++ci] = WAIT | (3<<4); 
+    instrument[i].cmd[++ci] = FADE_OUT | (15<<4); 
+    instrument[i].cmd[++ci] = 0; 
+    instrument[i].cmd[++ci] = 0;  // that was the third (last) sub-instrument
 }
 
 void verse_line()
@@ -78,12 +134,20 @@ void verse_controls()
     if (GAMEPAD_PRESS(0, B))
     {
         if (verse_note)
-            chip_note(verse_instrument, --verse_note); 
+            chip_note(verse_instrument, --verse_note, 240); 
     }
     if (GAMEPAD_PRESS(0, Y))
     {
         if (verse_note < MAX_NOTE-1)
-            chip_note(verse_instrument, ++verse_note); 
+            chip_note(verse_instrument, ++verse_note, 240); 
+    }
+    if (GAMEPAD_PRESS(0, L))
+    {
+        verse_instrument = (verse_instrument-1)&3;
+    }
+    if (GAMEPAD_PRESS(0, R))
+    {
+        verse_instrument = (verse_instrument+1)&3;
     }
     
     if (GAMEPAD_PRESS(0, select))
