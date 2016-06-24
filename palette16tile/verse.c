@@ -42,18 +42,19 @@ void verse_reset()
 {
     int i=0;
     instrument[i].track_octave = 2;
-    instrument[i].cmd[0] = 1 | (3<<4); // play both sides L/R
-    instrument[i].cmd[1] = 2 | (15<<4); // volume 
-    instrument[i].cmd[2] = 3 | (WF_SAW<<4); // waveform 
-    instrument[i].cmd[3] = 4 | (0<<4); // relative note
-    instrument[i].cmd[4] = 6 | (4<<4); // timing
-    instrument[i].cmd[5] = 8 | (4<<4); // fade out
-    instrument[i].cmd[6] = 6 | (4<<4); // timing
-    instrument[i].cmd[7] = 2 | (15<<4); // volume 
-    instrument[i].cmd[8] = 4 | (0<<4); // relative note 
-    instrument[i].cmd[9] = 8 | (0<<4); // fade out
-    instrument[i].cmd[10] = 6 | (4<<4); // timing
-    instrument[i].cmd[9] = 8 | (4<<4); // fade out
+    instrument[i].cmd[0] = SIDE | (3<<4); 
+    instrument[i].cmd[1] = VOLUME | (15<<4); 
+    instrument[i].cmd[2] = WAVEFORM | (WF_SAW<<4); 
+    instrument[i].cmd[3] = NOTE | (0<<4); 
+    instrument[i].cmd[4] = WAIT | (4<<4); 
+    instrument[i].cmd[5] = SIDE | (1<<4); 
+    instrument[i].cmd[6] = NOTE | (4<<4); 
+    instrument[i].cmd[7] = WAIT | (4<<4); 
+    instrument[i].cmd[8] = SIDE | (2<<4); 
+    instrument[i].cmd[9] = WAIT | (4<<4); 
+    instrument[i].cmd[10] = NOTE | (7<<4); 
+    instrument[i].cmd[11] = WAIT | (4<<4); 
+    instrument[i].cmd[12] = FADE_OUT | (2<<4); 
 }
 
 void verse_line()

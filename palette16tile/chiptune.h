@@ -13,7 +13,7 @@
 #define CHIPTUNE_H
 #include <stdint.h>
 
-#define MAX_INSTRUMENT_LENGTH 12
+#define MAX_INSTRUMENT_LENGTH 16
 #define MAX_SONG_LENGTH 32
 #define MAX_TRACK_LENGTH 38 // make this divisible by 2, with result+1 divisible by 4
 #define MAX_NOTE 84
@@ -67,7 +67,6 @@ struct instrument
     uint16_t phase; // phase (except for noise, unused)
     uint8_t waveform; // waveform (from the enum above)
     uint8_t bitcrush; // 0-f level of quantization (power of 2)
-
 }; 
 
 extern struct instrument instrument[CHANNELS] CCM_MEMORY;
@@ -88,5 +87,22 @@ enum
     WF_PUL, // pulse (adjustable duty) |_|-,
     WF_NOI, // noise !*@?
 };
+
+#define BREAK 0
+#define SIDE 1
+#define VOLUME 2
+#define WAVEFORM 3
+#define NOTE 4
+// define ?? 5
+#define WAIT 6
+#define FADE_IN 7
+#define FADE_OUT 8
+#define VIBRATO 9
+#define VIBRATO_SPEED 10
+#define INERTIA 11
+#define BITCRUSH 12
+#define DUTY 13
+#define DUTY_DELTA 14
+#define JUMP 15
 
 #endif

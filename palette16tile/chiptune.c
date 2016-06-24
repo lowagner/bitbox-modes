@@ -99,52 +99,52 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
     uint8_t param = cmd >> 4;
     switch(cmd&15) 
     {
-        case 0:
+        case BREAK:
             instrument[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
             break;
-        case 1: // s = switch side (L/R)
+        case SIDE: // s = switch side (L/R)
             instrument[i].side = param; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
             break;
-        case 2: // v = volume
+        case VOLUME: // v = volume
             instrument[i].volume = (param<<4) + 1;
             break;
-        case 3: // w = select waveform
+        case WAVEFORM: // w = select waveform
             instrument[i].waveform = param;
             break;
-        case 4: // + = set relative note
+        case NOTE: // + = set relative note
             instrument[i].note = param + instrument[i].track_note + instrument[i].track_octave*12 + song_transpose;
             break;
-        case 5: // = = set absolute note 
-            instrument[i].note = param + instrument[i].track_octave*12 + song_transpose;
-            break;
-        case 6: // t = timing 
+        //case 5: // = = set absolute note 
+        //    instrument[i].note = param + instrument[i].track_octave*12 + song_transpose;
+        //    break;
+        case WAIT: // t = timing 
             instrument[i].wait = param;
             break;
-        case 7: // < = fade in, or crescendo
+        case FADE_IN: // < = fade in, or crescendo
             instrument[i].volumed = param<<4;
             break;
-        case 8: // > = fade out, or decrescendo
+        case FADE_OUT: // > = fade out, or decrescendo
             instrument[i].volumed = -(param<<4);
             break;
-        case 9: // ~ = vibrato depth
+        case VIBRATO: // ~ = vibrato depth
             instrument[i].vibrato_depth = param;
             break;
-        case 10: // x = vibrato rate
+        case VIBRATO_SPEED: // x = vibrato rate
             instrument[i].vibrato_rate = param;
             break;
-        case 11: // i = inertia (auto note slides)
+        case INERTIA: // i = inertia (auto note slides)
             instrument[i].inertia = param << 5;
             break;
-        case 12: // b = bitcrush
+        case BITCRUSH: // b = bitcrush
             instrument[i].bitcrush = param;
             break;
-        case 13: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PUL
+        case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PUL
             instrument[i].duty = param << 12;
             break;
-        case 14: // m = duty variation
+        case DUTY_DELTA: // m = duty variation
             instrument[i].dutyd = param << 10;
             break;
-        case 15: // j = instrument jump
+        case JUMP: // j = instrument jump
             instrument[i].cmd_index = param;
             break;
     }
