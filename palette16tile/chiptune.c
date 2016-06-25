@@ -276,6 +276,7 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
     instrument[i].track_volumed = 0;
     instrument[i].inertia = 0;
     instrument[i].wait = 0;
+    instrument[i].duty = 0x8000; // default to square wave
     instrument[i].dutyd = 0;
     instrument[i].vibrato_depth = 0;
     instrument[i].vibrato_rate = 5;
