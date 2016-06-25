@@ -140,6 +140,56 @@ void verse_render_cmd(int i, int j, int x, int y)
     uint8_t param = cmd>>4;
     cmd &= 15;
     int smash_together = 0;
+
+    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
+    uint32_t color_choice[2];
+    if (!instrument[i].is_drum || j < 2*MAX_DRUM_LENGTH)
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*BG_COLOR;
+        else
+            color_choice[0] = 16843009u*149;
+    }
+    else if (j < 3*MAX_DRUM_LENGTH)
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*41;
+        else
+            color_choice[0] = 16843009u*45;
+    }
+    else
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*BG_COLOR;
+        else
+            color_choice[0] = 16843009u*9;
+    }
+    if (j != verse_instrument_pos || verse_edit_track_not_instrument)
+    {
+        color_choice[1] = 65535u*65537u;
+    }
+    else
+    {
+        color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
+        if ((y+1)/2 == 1)
+        {
+            dst -= x/4;
+            *dst = color_choice[1];
+            ++dst;
+            *dst = color_choice[1];
+            dst += x/4 - 1;
+        }
+        else if ((y+1)/2 == 3)
+        {
+            dst -= x/4;
+            *dst = 16843009u*BG_COLOR;
+            ++dst;
+            *dst = 16843009u*BG_COLOR;
+            dst += x/4 - 1;
+        }
+    }
+
+    
     if (cmd == 0)
     {
         cmd = '0';
@@ -206,6 +256,8 @@ void verse_render_cmd(int i, int j, int x, int y)
             smash_together = 1;
             break;
         case NOTE:
+            if (param >= 12)
+                color_choice[1] = RGB(150,150,255)|(65535<<16);
             param %= 12;
             cmd = verse_color_names[4+param][0];
             param = verse_color_names[4+param][1];
@@ -252,54 +304,6 @@ void verse_render_cmd(int i, int j, int x, int y)
             break;
     }
     
-    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
-    uint32_t color_choice[2];
-    if (!instrument[i].is_drum || j < 2*MAX_DRUM_LENGTH)
-    {
-        if (j % 2)
-            color_choice[0] = 16843009u*BG_COLOR;
-        else
-            color_choice[0] = 16843009u*149;
-    }
-    else if (j < 3*MAX_DRUM_LENGTH)
-    {
-        if (j % 2)
-            color_choice[0] = 16843009u*41;
-        else
-            color_choice[0] = 16843009u*45;
-    }
-    else
-    {
-        if (j % 2)
-            color_choice[0] = 16843009u*BG_COLOR;
-        else
-            color_choice[0] = 16843009u*9;
-    }
-    if (j != verse_instrument_pos || verse_edit_track_not_instrument)
-    {
-        color_choice[1] = 65535u*65537u;
-    }
-    else
-    {
-        color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
-        if ((y+1)/2 == 1)
-        {
-            dst -= x/4;
-            *dst = color_choice[1];
-            ++dst;
-            *dst = color_choice[1];
-            dst += x/4 - 1;
-        }
-        else if ((y+1)/2 == 3)
-        {
-            dst -= x/4;
-            *dst = 16843009u*BG_COLOR;
-            ++dst;
-            *dst = 16843009u*BG_COLOR;
-            dst += x/4 - 1;
-        }
-    }
-
     y = ((y/2))*4; // make y now how much to shift for font row
     uint8_t row = (font[hex[j]] >> y) & 15;
     *(++dst) = color_choice[0];
