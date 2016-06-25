@@ -168,24 +168,26 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                     // or before the wait 
                     // where there is no
                     // jumps in between.
-                    int work[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
+                    uint8_t work[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
                         -1, -1, -1, -1, -1, -1, -1, -1
                     };
                     int work_size = 0;
-                    int dontlookback = 0;
+                    int probable_start_point = 0;
                     for (int j=0; j<16; ++j)
                     {
-                        if ((instrument[i].cmd[j]&15) == WAIT)
+                        switch (instrument[i].cmd[j]&15)
                         {
-                            work[work_size++] = j;
-                            for (int k=j-1; k>dontlookback; --k)
+                        case WAIT:
+                            if (instrument[i].cmd[j]>>4)
                             {
-                                if ((instrument[i].cmd[k]&15) != JUMP)
+                                for (int k=probable_start_point; k<=j; ++k)
                                     work[work_size++] = k;
-                                else
-                                    break;
+                                
+                                probable_start_point = j+1;
                             }
-                            dontlookback = j;
+                            break;
+                        case JUMP:
+                            probable_start_point = j+1;
                         }
                     }
                     #ifdef EMULATOR

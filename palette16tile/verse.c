@@ -510,8 +510,8 @@ int _verse_check_instrument(int i)
             }
         }
     }
-    message("couldn't finish after 32 iterations. congratulations\n");
-    return 1;
+    message("couldn't finish after 32 iterations. congratulations.\nprobably looping back on self, but with waits.");
+    return 0;
 }
 
 void verse_line()
@@ -592,13 +592,40 @@ void verse_controls()
         }
         else
         {
-            if (verse_instrument_pos < MAX_INSTRUMENT_LENGTH && 
-                instrument[verse_instrument].cmd[verse_instrument_pos])
+            if (!instrument[verse_instrument].is_drum)
             {
-                ++verse_instrument_pos;
+                if (verse_instrument_pos < MAX_INSTRUMENT_LENGTH-1 &&
+                    instrument[verse_instrument].cmd[verse_instrument_pos])
+                {
+                    ++verse_instrument_pos;
+                }
+                else
+                    verse_instrument_pos = 0;
             }
             else
-                verse_instrument_pos = 0;
+            {
+                int next_j;
+                if (verse_instrument_pos < 2*MAX_DRUM_LENGTH)
+                    next_j = 2*MAX_DRUM_LENGTH;
+                else if (verse_instrument_pos < 3*MAX_DRUM_LENGTH)
+                    next_j = 3*MAX_DRUM_LENGTH;
+                else
+                    next_j = 0;
+
+                if (verse_instrument_pos < MAX_INSTRUMENT_LENGTH-1)
+                {
+                    if ((instrument[verse_instrument].cmd[verse_instrument_pos]&15) == BREAK)
+                    {
+                        verse_instrument_pos = next_j;
+                    }
+                    else
+                    {
+                        ++verse_instrument_pos;
+                    }
+                }
+                else
+                    verse_instrument_pos = 0;
+            }
         }
         movement = 1;
     }
@@ -609,14 +636,48 @@ void verse_controls()
         }
         else
         {
-            if (verse_instrument_pos)
-                --verse_instrument_pos;
-            else
+            if (!instrument[verse_instrument].is_drum)
             {
-                while (verse_instrument_pos < MAX_INSTRUMENT_LENGTH && 
-                    (instrument[verse_instrument].cmd[verse_instrument_pos]&15) != BREAK)
+                if (verse_instrument_pos)
+                    --verse_instrument_pos;
+                else
                 {
-                    ++verse_instrument_pos;
+                    while (verse_instrument_pos < MAX_INSTRUMENT_LENGTH-1 && 
+                        (instrument[verse_instrument].cmd[verse_instrument_pos]&15) != BREAK)
+                    {
+                        ++verse_instrument_pos;
+                    }
+                }
+            }
+            else 
+            {
+                int move_here_then_up = -1;
+                int but_no_further_than;
+                switch (verse_instrument_pos)
+                {
+                    case 0:
+                        move_here_then_up = 3*MAX_DRUM_LENGTH; 
+                        but_no_further_than = 4*MAX_DRUM_LENGTH;
+                        break;
+                    case 2*MAX_DRUM_LENGTH:
+                        move_here_then_up = 0; 
+                        but_no_further_than = 2*MAX_DRUM_LENGTH;
+                        break;
+                    case 3*MAX_DRUM_LENGTH:
+                        move_here_then_up = 2*MAX_DRUM_LENGTH; 
+                        but_no_further_than = 3*MAX_DRUM_LENGTH;
+                        break;
+                    default:
+                        --verse_instrument_pos;
+                }
+                if (move_here_then_up >= 0)
+                {
+                    verse_instrument_pos = move_here_then_up;
+                    while (verse_instrument_pos < but_no_further_than-1 && 
+                        (instrument[verse_instrument].cmd[verse_instrument_pos]&15) != BREAK)
+                    {
+                        ++verse_instrument_pos;
+                    }
                 }
             }
         }
@@ -653,11 +714,31 @@ void verse_controls()
     if (GAMEPAD_PRESS(0, X))
     {
         // delete
-        for (int j=verse_instrument_pos; j<MAX_INSTRUMENT_LENGTH; ++j)
+        if (!instrument[verse_instrument].is_drum)
         {
-            // TODO: could do fancier things here, like check for JUMP indices to correct
-            if ((instrument[verse_instrument].cmd[j] = instrument[verse_instrument].cmd[j+1]) == 0)
-                break;
+            for (int j=verse_instrument_pos; j<MAX_INSTRUMENT_LENGTH-1; ++j)
+            {
+                if ((instrument[verse_instrument].cmd[j] = instrument[verse_instrument].cmd[j+1]) == 0)
+                    break;
+            }
+            instrument[verse_instrument].cmd[MAX_INSTRUMENT_LENGTH-1] = BREAK;
+        }
+        else
+        {
+            int max_j;
+            if (verse_instrument_pos < 2*MAX_DRUM_LENGTH)
+                max_j = 2*MAX_DRUM_LENGTH;
+            else if (verse_instrument_pos < 3*MAX_DRUM_LENGTH)
+                max_j = 3*MAX_DRUM_LENGTH;
+            else
+                max_j = 4*MAX_DRUM_LENGTH;
+            
+            for (int j=verse_instrument_pos; j<max_j-1; ++j)
+            {
+                if ((instrument[verse_instrument].cmd[j] = instrument[verse_instrument].cmd[j+1]) == 0)
+                    break;
+            }
+            instrument[verse_instrument].cmd[max_j-1] = BREAK;
         }
         verse_check_instrument(verse_instrument);
         return;
