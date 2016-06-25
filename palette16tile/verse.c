@@ -193,7 +193,7 @@ void verse_render_cmd(int i, int j, int x, int y)
     if (cmd == 0)
     {
         cmd = '0';
-        param = '?'; 
+        param = '0'; 
         if (y == 7)
             verse_show_instrument = 0;
     }
@@ -410,6 +410,12 @@ void verse_line()
     else if (vga_line >= SCREEN_H - 22)
     {
         if (vga_line/2 == (SCREEN_H - 20)/2)
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+        return;
+    }
+    else if (vga_line >= 22 + NUMBER_LINES*10)
+    {
+        if (vga_line/2 == (22 +NUMBER_LINES*10)/2)
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
