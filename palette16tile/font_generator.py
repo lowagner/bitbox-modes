@@ -23,18 +23,18 @@ characters = [
     "  * ",
     "**  ",
     "*   "],
-   ["    ", # first part of square
-    "    ",
-    "    ",
+   [" *  ", # first part of square
+    " *  ",
+    " *  ",
     " ***"],
    ["****", # second part of square wave
-    "*   ",
-    "*   ",
-    "*   "],
-   ["", 
-    "",
-    "",
-    ""],
+    "*  *",
+    "*  *",
+    "*  *"],
+   ["*   ", 
+    "**  ",
+    "*** ",
+    "****"],
    ["", 
     "",
     "",
@@ -515,15 +515,15 @@ characters = [
     " ** ",
     " ** ",
     "    "],
-   [" ** ", # integral
+   [" ** ", # 128 - integral
     " *  ",
     " *  ",
     "**  "],
-   ["****", # Gamma (skip Alpha, Beta, they look like A, B)
+   ["****", # 129 - Gamma (skip Alpha, Beta, they look like A, B)
     "**  ",
     "**  ",
     "**  "],
-   ["  * ", # Delta
+   ["  * ", # 130 - Delta
     " * *",
     "** *",
     "****"],

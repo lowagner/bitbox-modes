@@ -32,6 +32,7 @@ uint8_t verse_color_names[16][3] = {
 uint8_t verse_note CCM_MEMORY;
 uint8_t verse_track CCM_MEMORY;
 uint8_t verse_instrument CCM_MEMORY;
+uint8_t verse_instrument_pos CCM_MEMORY;
 uint8_t verse_position CCM_MEMORY;
 uint8_t verse_edit_track_not_instrument CCM_MEMORY;
 uint8_t verse_show_instrument CCM_MEMORY;
@@ -41,7 +42,7 @@ void verse_init()
     verse_track = 0;
     verse_instrument = 0;
     verse_position = 0;
-    verse_edit_track_not_instrument = 1;
+    verse_edit_track_not_instrument = 0;
 }
 
 void verse_reset()
@@ -134,31 +135,19 @@ void verse_render_cmd(int i, int j, int x, int y)
         return;
     }
     #endif
-    y = ((y/2))*4; // make y now how much to shift
-
-    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
-    uint32_t color_choice[2];
-    if (j % 2)
-    {
-        color_choice[0] = 16843009u*149;
-        color_choice[1] = 65535u*65537u;
-    }
-    else
-    {
-        color_choice[0] = 16843009u*BG_COLOR;
-        color_choice[1] = 65535u*65537u;
-    }
     
     uint8_t cmd = instrument[i].cmd[j];
     uint8_t param = cmd>>4;
     cmd &= 15;
+    int smash_together = 0;
     if (cmd == 0)
     {
-        verse_show_instrument = 0;
-        return;
+        cmd = '0';
+        param = '?'; 
+        if (y == 7)
+            verse_show_instrument = 0;
     }
-    
-    int smash_together = 0;
+    else 
     switch (cmd)
     {
         case SIDE:
@@ -173,8 +162,8 @@ void verse_render_cmd(int i, int j, int x, int y)
                     param = ' ';
                     break;
                 case 2:
-                    cmd = 'R';
-                    param = ' ';
+                    cmd = ' ';
+                    param = 'R';
                     break;
                 case 3:
                     cmd = 'L';
@@ -189,9 +178,9 @@ void verse_render_cmd(int i, int j, int x, int y)
         case WAVEFORM:
             switch (param)
             {
-                case WF_SINE:
-                    cmd = 1;
-                    param = 2;
+                case WF_NOISE:
+                    cmd = 0;
+                    param = 0;
                     break;
                 case WF_TRIANGLE:
                     cmd = '/';
@@ -205,9 +194,9 @@ void verse_render_cmd(int i, int j, int x, int y)
                     cmd = 5;
                     param = 6;
                     break;
-                case WF_NOISE:
-                    cmd = 0;
-                    param = 0;
+                case WF_SINE:
+                    cmd = 1;
+                    param = 2;
                     break;
                 default:
                     cmd = ' ';
@@ -238,23 +227,23 @@ void verse_render_cmd(int i, int j, int x, int y)
             param = hex[param];
             break;
         case VIBRATO_RATE:
-            cmd = 128+32+13;
+            cmd = 128+32+13; // nu
             param = hex[param];
             break;
         case INERTIA:
-            cmd = 255;
+            cmd = 'i';
             param = hex[param];
             break;
         case BITCRUSH:
-            cmd = 'B';
+            cmd = 7;
             param = hex[param];
             break;
         case DUTY:
-            cmd = 129;
+            cmd = 129; // Gamma
             param = hex[param];
             break;
         case DUTY_DELTA:
-            cmd = 128;
+            cmd = 130; // Delta
             param = hex[param];
             break;
         case JUMP:
@@ -262,11 +251,75 @@ void verse_render_cmd(int i, int j, int x, int y)
             param = hex[param];
             break;
     }
+    
+    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
+    uint32_t color_choice[2];
+    if (!instrument[i].is_drum || j < 2*MAX_DRUM_LENGTH)
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*BG_COLOR;
+        else
+            color_choice[0] = 16843009u*149;
+    }
+    else if (j < 3*MAX_DRUM_LENGTH)
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*41;
+        else
+            color_choice[0] = 16843009u*45;
+    }
+    else
+    {
+        if (j % 2)
+            color_choice[0] = 16843009u*BG_COLOR;
+        else
+            color_choice[0] = 16843009u*9;
+    }
+    if (j != verse_instrument_pos || verse_edit_track_not_instrument)
+    {
+        color_choice[1] = 65535u*65537u;
+    }
+    else
+    {
+        color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
+        if ((y+1)/2 == 1)
+        {
+            dst -= x/4;
+            *dst = color_choice[1];
+            ++dst;
+            *dst = color_choice[1];
+            dst += x/4 - 1;
+        }
+        else if ((y+1)/2 == 3)
+        {
+            dst -= x/4;
+            *dst = 16843009u*BG_COLOR;
+            ++dst;
+            *dst = 16843009u*BG_COLOR;
+            dst += x/4 - 1;
+        }
+    }
 
-    uint8_t row = (font[cmd] >> y) & 15;
+    y = ((y/2))*4; // make y now how much to shift for font row
+    uint8_t row = (font[hex[j]] >> y) & 15;
+    *(++dst) = color_choice[0];
+    for (int k=0; k<4; ++k)
+    {
+        *(++dst) = color_choice[row&1];
+        row >>= 1;
+    }
+    *(++dst) = color_choice[0];
+    row = (font[':'] >> y) & 15;
+    for (int k=0; k<4; ++k)
+    {
+        *(++dst) = color_choice[row&1];
+        row >>= 1;
+    }
+    *(++dst) = color_choice[0];
+    *(++dst) = color_choice[0];
+    row = (font[cmd] >> y) & 15;
     if (smash_together)
     {
-        *(++dst) = color_choice[0];
         *(++dst) = color_choice[0];
         for (int k=0; k<4; ++k)
         {
@@ -282,7 +335,6 @@ void verse_render_cmd(int i, int j, int x, int y)
     }
     else
     {
-        *(++dst) = color_choice[0];
         for (int k=0; k<4; ++k)
         {
             *(++dst) = color_choice[row&1];
@@ -298,6 +350,46 @@ void verse_render_cmd(int i, int j, int x, int y)
         }
     }
     *(++dst) = color_choice[0];
+}
+
+void verse_adjust_parameter(int direction)
+{
+    if (!direction)
+        return;
+    uint8_t cmd = instrument[verse_instrument].cmd[verse_instrument_pos];
+    uint8_t param = cmd>>4;
+    cmd &= 15;
+    
+    switch (cmd)
+    {
+        case BREAK:
+            return;
+        case SIDE:
+            param = (param+direction)&3;
+            break;
+        case WAVEFORM:
+            param = param+direction;
+            if (param > 240)
+                param = WF_SINE;
+            else if (param > WF_SINE)
+                param = WF_NOISE;
+            break;
+        case VOLUME:
+        case NOTE:
+        case WAIT:
+        case FADE_IN:
+        case FADE_OUT:
+        case VIBRATO:
+        case VIBRATO_RATE:
+        case INERTIA:
+        case BITCRUSH:
+        case DUTY:
+        case DUTY_DELTA:
+        case JUMP:
+            param = (param+direction)&15;
+            break;
+    }
+    instrument[verse_instrument].cmd[verse_instrument_pos] = cmd | (param<<4);
 }
 
 void verse_line()
@@ -380,11 +472,63 @@ void verse_controls()
     if (GAMEPAD_PRESS(0, L))
     {
         verse_instrument = (verse_instrument-1)&3;
+        verse_instrument_pos = 0;
     }
     if (GAMEPAD_PRESS(0, R))
     {
         verse_instrument = (verse_instrument+1)&3;
+        verse_instrument_pos = 0;
     }
+    int movement = 0;
+    if (GAMEPAD_PRESSING(0, down))
+    {
+        if (verse_edit_track_not_instrument)
+        {
+        }
+        else
+        {
+            if (verse_instrument_pos < 15 && 
+                instrument[verse_instrument].cmd[verse_instrument_pos])
+                ++verse_instrument_pos;
+        }
+        movement = 1;
+    }
+    if (GAMEPAD_PRESSING(0, up))
+    {
+        if (verse_edit_track_not_instrument)
+        {
+        }
+        else
+        {
+            if (verse_instrument_pos)
+                --verse_instrument_pos;
+        }
+        movement = 1;
+    }
+    if (GAMEPAD_PRESSING(0, left))
+    {
+        if (verse_edit_track_not_instrument)
+        {
+        }
+        else
+        {
+            verse_adjust_parameter(-1);
+        }
+        movement = 1;
+    }
+    if (GAMEPAD_PRESSING(0, right))
+    {
+        if (verse_edit_track_not_instrument)
+        {
+        }
+        else
+        {
+            verse_adjust_parameter(+1);
+        }
+        movement = 1;
+    }
+    if (movement)
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
     
     if (GAMEPAD_PRESS(0, select))
     {
