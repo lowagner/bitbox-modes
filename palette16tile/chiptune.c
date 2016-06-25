@@ -115,8 +115,99 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
         case NOTE: // + = set relative note
             instrument[i].note = param + instrument[i].track_note + instrument[i].track_octave*12 + song_transpose;
             break;
-        //case 5: //    could reintroduce slides (bend and bendd)
-        //    break;
+        case RANDOMIZE:
+            switch (instrument[i].cmd[param]&15)
+            {
+                case BREAK:
+                    break;
+                case SIDE:
+                    instrument[i].cmd[param] = SIDE | ((rand()%4)<<4);
+                    break;
+                case WAVEFORM:
+                    instrument[i].cmd[param] = WAVEFORM | ((rand()%WF_VIOLET)<<4);
+                    break;
+                case VOLUME:
+                    instrument[i].cmd[param] = VOLUME | ((rand()%16)<<4);
+                    break;
+                case NOTE:
+                    instrument[i].cmd[param] = NOTE | ((rand()%16)<<4);
+                    break;
+                case RANDOMIZE:
+                    instrument[i].cmd[param] = RANDOMIZE | ((rand()%16)<<4);
+                    break;
+                case WAIT:
+                    instrument[i].cmd[param] = WAIT | ((1+rand()%15)<<4);
+                    break;
+                case FADE_IN:
+                    instrument[i].cmd[param] = FADE_IN | ((1 + rand()%15)<<4);
+                    break;
+                case FADE_OUT:
+                    instrument[i].cmd[param] = FADE_OUT | ((1 + rand()%15)<<4);
+                    break;
+                case VIBRATO:
+                    instrument[i].cmd[param] = VIBRATO | ((rand()%16)<<4);
+                    break;
+                case VIBRATO_RATE:
+                    instrument[i].cmd[param] = VIBRATO_RATE | ((1+rand()%15)<<4);
+                    break;
+                case INERTIA:
+                    instrument[i].cmd[param] = INERTIA | ((rand()%16)<<4);
+                    break;
+                case BITCRUSH:
+                    instrument[i].cmd[param] = BITCRUSH | ((rand()%16)<<4);
+                    break;
+                case DUTY:
+                    instrument[i].cmd[param] = DUTY | ((rand()%16)<<4);
+                    break;
+                case DUTY_DELTA:
+                    instrument[i].cmd[param] = DUTY_DELTA | ((rand()%16)<<4);
+                    break;
+                case JUMP:
+                {
+                    // jump randomly to a wait, 
+                    // or before the wait 
+                    // where there is no
+                    // jumps in between.
+                    int work[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
+                        -1, -1, -1, -1, -1, -1, -1, -1
+                    };
+                    int work_size = 0;
+                    int dontlookback = 0;
+                    for (int j=0; j<16; ++j)
+                    {
+                        if ((instrument[i].cmd[j]&15) == WAIT)
+                        {
+                            work[work_size++] = j;
+                            for (int k=j-1; k>dontlookback; --k)
+                            {
+                                if ((instrument[i].cmd[k]&15) != JUMP)
+                                    work[work_size++] = k;
+                                else
+                                    break;
+                            }
+                            dontlookback = j;
+                        }
+                    }
+                    #ifdef EMULATOR
+                    if (work_size > 16)
+                    {
+                        message("got something to overflow in JUMP randomizer.\n");
+                        break;
+                    }
+                    message("got randomized JUMP:\n [");
+                    for (int j=0; j<work_size; ++j)
+                        message("%d, ", work[j]);
+                    message("]\n");
+                    #endif
+                   
+                    if (work_size)
+                        instrument[i].cmd[param] = JUMP | (work[rand()%work_size]<<4);
+                    else
+                        message("should have some ability to work a JUMP out!\n");
+                    break;
+                }
+            }
+            break;
         case WAIT: // t = timing 
             instrument[i].wait = param;
             break;
@@ -139,7 +230,7 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
             instrument[i].bitcrush = param;
             break;
         case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PULSE
-            instrument[i].duty = param << 12;
+            instrument[i].duty = 16384 + (param << 11);
             break;
         case DUTY_DELTA: // m = duty variation
             instrument[i].dutyd = param << 10;
@@ -449,6 +540,8 @@ static inline uint16_t gen_sample()
     // Note that we always run this so the noise is not dependent on the
     // oscillators frequencies.
     static uint32_t noiseseed = 1;
+    static uint32_t rednoise = 0;
+    static uint32_t violetnoise = 0;
     uint32_t newbit;
     newbit = 0;
     if (noiseseed & 0x80000000L) newbit ^= 1;
@@ -456,6 +549,10 @@ static inline uint16_t gen_sample()
     if (noiseseed & 0x00000040L) newbit ^= 1;
     if (noiseseed & 0x00000200L) newbit ^= 1;
     noiseseed = (noiseseed << 1) | newbit;
+    rednoise = 3*rednoise/4 + (noiseseed&63)/4;
+    // violet should be the derivative of white noise, but that wasn't nice:
+    // this gives some higher freqs, and a metallic ring too:
+    violetnoise = violetnoise/6 + ((noiseseed&31)-32); 
 
     int16_t acc[2] = { 0, 0 }; // accumulators for each channel
     // Now compute the value of each oscillator and mix them
@@ -468,6 +565,9 @@ static inline uint16_t gen_sample()
 
         switch(instrument[i].waveform) 
         {
+            case WF_SINE:
+                value = sine_table[instrument[i].phase>>10]>>2;
+                break;
             case WF_TRIANGLE:
                 // Triangle: the part before 0x8000 raises, then it goes back
                 // down.
@@ -488,8 +588,13 @@ static inline uint16_t gen_sample()
                 // Noise: from the generator. Only the low order bits are used.
                 value = (noiseseed & 63) - 32;
                 break;
-            case WF_SINE:
-                value = sine_table[instrument[i].phase>>10]>>2;
+            case WF_RED:
+                // Red Noise, integrated from white noise..
+                value = (rednoise & 63) - 32;
+                break;
+            case WF_VIOLET:
+                // Violet Noise, derivative of white noise, at least supposedly.
+                value = (violetnoise & 63) - 32;
                 break;
             default:
                 value = 0;

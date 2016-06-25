@@ -83,11 +83,13 @@ void chip_note(uint8_t ch, uint8_t note, uint8_t track_volume);
 // These are our possible waveforms. Any other value plays silence.
 enum 
 {
-    WF_NOISE = 0, // = !*@?
+    WF_SINE = 0,  // 
     WF_TRIANGLE, // = /\/\,
     WF_SAW, // = /|/| 
     WF_PULSE, // = |_|- (adjustable duty)
-    WF_SINE,  // 
+    WF_NOISE, // = !*@?
+    WF_RED, // = integral of NOISE
+    WF_VIOLET // = derivative of NOISE
 };
 
 #define BREAK 0
@@ -95,7 +97,7 @@ enum
 #define WAVEFORM 2
 #define VOLUME 3
 #define NOTE 4
-// define ?? 5
+#define RANDOMIZE 5
 #define WAIT 6
 #define FADE_IN 7
 #define FADE_OUT 8

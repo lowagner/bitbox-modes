@@ -5,6 +5,7 @@
 #include "font.h"
 #include "io.h"
 
+#include <stdlib.h> // rand
 #include <string.h> // memset
 
 uint8_t verse_color_names[16][3] = {
@@ -27,7 +28,7 @@ uint8_t verse_color_names[16][3] = {
 };
 
 #define BG_COLOR 192
-#define NUMBER_LINES 18
+#define NUMBER_LINES 20
 
 uint8_t verse_note CCM_MEMORY;
 uint8_t verse_track CCM_MEMORY;
@@ -36,6 +37,7 @@ uint8_t verse_instrument_pos CCM_MEMORY;
 uint8_t verse_position CCM_MEMORY;
 uint8_t verse_edit_track_not_instrument CCM_MEMORY;
 uint8_t verse_show_instrument CCM_MEMORY;
+uint8_t verse_bad_instrument CCM_MEMORY;
 
 void verse_init()
 {
@@ -43,6 +45,7 @@ void verse_init()
     verse_instrument = 0;
     verse_position = 0;
     verse_edit_track_not_instrument = 0;
+    verse_bad_instrument = 0;
 }
 
 void verse_reset()
@@ -228,9 +231,9 @@ void verse_render_cmd(int i, int j, int x, int y)
         case WAVEFORM:
             switch (param)
             {
-                case WF_NOISE:
-                    cmd = 0;
-                    param = 0;
+                case WF_SINE:
+                    cmd = 1;
+                    param = 2;
                     break;
                 case WF_TRIANGLE:
                     cmd = '/';
@@ -244,9 +247,17 @@ void verse_render_cmd(int i, int j, int x, int y)
                     cmd = 5;
                     param = 6;
                     break;
-                case WF_SINE:
-                    cmd = 1;
-                    param = 2;
+                case WF_NOISE:
+                    cmd = 7;
+                    param = 8;
+                    break;
+                case WF_RED:
+                    cmd = 7;
+                    param = 9;
+                    break;
+                case WF_VIOLET:
+                    cmd = 7;
+                    param = 10;
                     break;
                 default:
                     cmd = ' ';
@@ -261,6 +272,10 @@ void verse_render_cmd(int i, int j, int x, int y)
             param %= 12;
             cmd = verse_color_names[4+param][0];
             param = verse_color_names[4+param][1];
+            break;
+        case RANDOMIZE:
+            cmd = 'R';
+            param = hex[param];
             break;
         case WAIT:
             cmd = 'W';
@@ -279,7 +294,7 @@ void verse_render_cmd(int i, int j, int x, int y)
             param = hex[param];
             break;
         case VIBRATO_RATE:
-            cmd = 128+32+13; // nu
+            cmd = 157; // nu
             param = hex[param];
             break;
         case INERTIA:
@@ -287,7 +302,7 @@ void verse_render_cmd(int i, int j, int x, int y)
             param = hex[param];
             break;
         case BITCRUSH:
-            cmd = 7;
+            cmd = 9;
             param = hex[param];
             break;
         case DUTY:
@@ -356,6 +371,24 @@ void verse_render_cmd(int i, int j, int x, int y)
     *(++dst) = color_choice[0];
 }
 
+int _verse_check_instrument(int i);
+
+void verse_check_instrument(int i)
+{
+    // check if that parameter broke something
+    if (_verse_check_instrument(i))
+    {
+        verse_bad_instrument = 1; 
+        instrument[i].track_volume = 0; // shut it down now!
+        strcpy((char *)game_message, "bad jump, need wait in loop.");
+    }
+    else
+    {
+        verse_bad_instrument = 0; 
+        game_message[0] = 0;
+    }
+}
+
 void verse_adjust_parameter(int direction)
 {
     if (!direction)
@@ -367,19 +400,20 @@ void verse_adjust_parameter(int direction)
     switch (cmd)
     {
         case BREAK:
-            return;
+            break;
         case SIDE:
             param = (param+direction)&3;
             break;
         case WAVEFORM:
             param = param+direction;
             if (param > 240)
+                param = WF_VIOLET;
+            else if (param > WF_VIOLET)
                 param = WF_SINE;
-            else if (param > WF_SINE)
-                param = WF_NOISE;
             break;
         case VOLUME:
         case NOTE:
+        case RANDOMIZE:
         case WAIT:
         case FADE_IN:
         case FADE_OUT:
@@ -394,33 +428,111 @@ void verse_adjust_parameter(int direction)
             break;
     }
     instrument[verse_instrument].cmd[verse_instrument_pos] = cmd | (param<<4);
+
+    verse_check_instrument(verse_instrument);
+}
+
+int _verse_check_instrument(int i)
+{
+    // check for a JUMP which loops back on itself without waiting at least a little bit.
+    // return 1 if so, 0 if not.
+    int j=0; // current command index
+    int j_last_jump = -1;
+    int found_wait = 0;
+    for (int k=0; k<32; ++k)
+    {
+        if (j >= 16) // got to the end
+        {
+            message("made it to end, good!\n");
+            return 0;
+        }
+        message("scanning instrument %d: line %d\n", i, j);
+        if (j_last_jump >= 0)
+        {
+            int j_next_jump = -1;
+            if (j == j_last_jump) // we found our loop-back point
+            {
+                message("returned to the jump\n");
+                return !(found_wait); // did we find a wait?
+            }
+            switch (instrument[i].cmd[j]&15)
+            {
+                case JUMP:
+                    j_next_jump = instrument[i].cmd[j]>>4;
+                    if (j_next_jump == j_last_jump) // jumping forward to the original jump
+                    {
+                        message("jumped to the old jump\n");
+                        return !(found_wait);
+                    }
+                    else if (j_next_jump > j_last_jump) // jumping past original jump
+                    {
+                        message("This probably shouldn't happen.\n");
+                        j_last_jump = -1; // can't look for loops...
+                    }
+                    else
+                    {
+                        message("jumped backwards again?\n");
+                        j_last_jump = j;
+                        found_wait = 0;
+                    }
+                    j = j_next_jump;
+                    break;
+                case WAIT:
+                    message("saw wait at j=%d\n", j);
+                    if (instrument[i].cmd[j]>>4)
+                        found_wait = 1;
+                    ++j;
+                    break;
+                default:
+                    ++j;
+            }
+        }
+        else
+        {
+            if ((instrument[i].cmd[j]&15) != JUMP)
+                ++j;
+            else
+            {
+                j_last_jump = j;
+                j = instrument[i].cmd[j]>>4;
+                if (j > j_last_jump)
+                {
+                    message("This probably shouldn't happen??\n");
+                    j_last_jump = -1; // don't care, we moved ahead
+                }
+                else if (j == j_last_jump)
+                {
+                    message("jumped to itself\n");
+                    return 1; // this is bad
+                }
+                else
+                    found_wait = 0;
+            }
+        }
+    }
+    message("couldn't finish after 32 iterations. congratulations\n");
+    return 1;
 }
 
 void verse_line()
 {
-    if (vga_line < 22)
+    if (vga_line < 16)
     {
-        if (vga_line/2 == 0 || vga_line/2 == 10)
+        if (vga_line/2 == 0)
         {
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
             return;
         }
         return;
     }
-    else if (vga_line >= SCREEN_H - 22)
+    else if (vga_line >= 16 + NUMBER_LINES*10)
     {
-        if (vga_line/2 == (SCREEN_H - 20)/2)
+        if (vga_line/2 == (16 +NUMBER_LINES*10)/2)
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
-    else if (vga_line >= 22 + NUMBER_LINES*10)
-    {
-        if (vga_line/2 == (22 +NUMBER_LINES*10)/2)
-            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        return;
-    }
-    int line = (vga_line-22) / 10;
-    int internal_line = (vga_line-22) % 10;
+    int line = (vga_line-16) / 10;
+    int internal_line = (vga_line-16) % 10;
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
@@ -447,7 +559,11 @@ void verse_line()
                 font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             }
             break;
+        case 19:
+            font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
+            break;
         case 1:
+        case 18:
             break;
         case 2:
             verse_show_instrument = 1; 
@@ -460,7 +576,6 @@ void verse_line()
         default:
             if (verse_show_instrument)
                 verse_render_cmd(verse_instrument, line-2, 16, internal_line);
-            //verse_render_instrument(verse_instrument, 16, internal_line);
             break; 
         }
 
@@ -469,26 +584,6 @@ void verse_line()
 
 void verse_controls()
 {
-    if (GAMEPAD_PRESS(0, B))
-    {
-        if (verse_note)
-            chip_note(verse_instrument, --verse_note, 240); 
-    }
-    if (GAMEPAD_PRESS(0, Y))
-    {
-        if (verse_note < MAX_NOTE-1)
-            chip_note(verse_instrument, ++verse_note, 240); 
-    }
-    if (GAMEPAD_PRESS(0, L))
-    {
-        verse_instrument = (verse_instrument-1)&3;
-        verse_instrument_pos = 0;
-    }
-    if (GAMEPAD_PRESS(0, R))
-    {
-        verse_instrument = (verse_instrument+1)&3;
-        verse_instrument_pos = 0;
-    }
     int movement = 0;
     if (GAMEPAD_PRESSING(0, down))
     {
@@ -497,9 +592,13 @@ void verse_controls()
         }
         else
         {
-            if (verse_instrument_pos < 15 && 
+            if (verse_instrument_pos < MAX_INSTRUMENT_LENGTH && 
                 instrument[verse_instrument].cmd[verse_instrument_pos])
+            {
                 ++verse_instrument_pos;
+            }
+            else
+                verse_instrument_pos = 0;
         }
         movement = 1;
     }
@@ -512,6 +611,14 @@ void verse_controls()
         {
             if (verse_instrument_pos)
                 --verse_instrument_pos;
+            else
+            {
+                while (verse_instrument_pos < MAX_INSTRUMENT_LENGTH && 
+                    (instrument[verse_instrument].cmd[verse_instrument_pos]&15) != BREAK)
+                {
+                    ++verse_instrument_pos;
+                }
+            }
         }
         movement = 1;
     }
@@ -538,8 +645,66 @@ void verse_controls()
         movement = 1;
     }
     if (movement)
+    {
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        return;
+    }
+
+    if (GAMEPAD_PRESS(0, X))
+    {
+        // delete
+        for (int j=verse_instrument_pos; j<MAX_INSTRUMENT_LENGTH; ++j)
+        {
+            // TODO: could do fancier things here, like check for JUMP indices to correct
+            if ((instrument[verse_instrument].cmd[j] = instrument[verse_instrument].cmd[j+1]) == 0)
+                break;
+        }
+        verse_check_instrument(verse_instrument);
+        return;
+    }
+
+    if (GAMEPAD_PRESS(0, A))
+    {
+        // insert
+        if ((instrument[verse_instrument].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
+        {
+            strcpy((char *)game_message, "list full, can't insert.");
+            return;
+        }
+        for (int j=MAX_INSTRUMENT_LENGTH-1; j>verse_instrument_pos; --j)
+        {
+            // TODO: could do fancier things here, like check for JUMP indices to correct
+            instrument[verse_instrument].cmd[j] = instrument[verse_instrument].cmd[j-1];
+        }
+        instrument[verse_instrument].cmd[verse_instrument_pos] = rand()%16;
+        verse_check_instrument(verse_instrument);
+    }
     
+    if (GAMEPAD_PRESS(0, B))
+    {
+        instrument[verse_instrument].cmd[verse_instrument_pos] =
+        (instrument[verse_instrument].cmd[verse_instrument_pos] + 1)&15;
+        verse_check_instrument(verse_instrument);
+    }
+   
+    if (verse_bad_instrument) // can't leave until you fix this
+        return;
+
+    if (GAMEPAD_PRESS(0, Y))
+    {
+        chip_note(verse_instrument, verse_note++, 240); 
+        verse_note %= 12;
+    }
+    if (GAMEPAD_PRESS(0, L))
+    {
+        verse_instrument = (verse_instrument-1)&3;
+        verse_instrument_pos = 0;
+    }
+    if (GAMEPAD_PRESS(0, R))
+    {
+        verse_instrument = (verse_instrument+1)&3;
+        verse_instrument_pos = 0;
+    }
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;

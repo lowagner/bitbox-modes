@@ -31,22 +31,22 @@ characters = [
     "*  *",
     "*  *",
     "*  *"],
-   ["*   ", 
+   ["* * ",  # noise
+    " * *",
+    "* * ",
+    " * *"],
+   ["    ",  # white noise spectrum
+    "    ",
+    "****",
+    "****"],
+   ["*   ",  # red noise spectrum
     "**  ",
     "*** ",
     "****"],
-   ["", 
-    "",
-    "",
-    ""],
-   ["", 
-    "",
-    "",
-    ""],
-   ["", 
-    "",
-    "",
-    ""],
+   ["   *",  # violet noise spectrum
+    "  **",
+    " ***",
+    "****"],
    ["", 
     "",
     "",
@@ -527,39 +527,43 @@ characters = [
     " * *",
     "** *",
     "****"],
-   ["****", # Theta (skip Epsilon, Zeta, Eta, they look like E, Z, H)
+   ["****", # 131 - Theta (skip Epsilon, Zeta, Eta, they look like E, Z, H)
     "** *",
     "* **",
     "****"],
-   [" *  ", # Lambda (skip Iota, Kappa, they look like l, K)
+   [" *  ", # 132 - Lambda (skip Iota, Kappa, they look like l, K)
     "* * ",
     "* **",
     "* **"],
-   ["****", # Xi (skip Mu, Nu, they look like M, N)
+   ["****", # 133 - Xi (skip Mu, Nu, they look like M, N)
     " ** ",
     "    ",
     "****"],
-   ["****", # Pi (skip Omicron, it looks like O)
+   ["****", # 134 - Pi (skip Omicron, it looks like O)
     "* **",
     "* **",
     "* **"],
-   ["****", # Sigma (skip Rho, it looks like P)
+   ["****", # 135 - Sigma (skip Rho, it looks like P)
     " ** ",
     "*   ",
     "****"],
-   ["* **", # Phi (skip Tau, Upsilon, they look like T, Y)
+   ["* **", # 136 - Phi (skip Tau, Upsilon, they look like T, Y)
     " * *",
     "* * ",
     "** *"],
-   ["*  *", # Psi (skip Chi, it looks like X)
+   ["*  *", # 137 - Psi (skip Chi, it looks like X)
     "* * ",
     " *  ",
     "* **"],
-   [" ** ", # Omega
+   [" ** ", # 138 - Omega
     "*  *",
     "** *",
     "** *"],
-   ["", 
+   ["", # 139
+    "",
+    "",
+    ""],
+   ["", # 140
     "",
     "",
     ""],
@@ -575,107 +579,103 @@ characters = [
     "",
     "",
     ""],
-   ["", 
+   ["", # 144
     "",
     "",
     ""],
-   ["", 
-    "",
-    "",
-    ""],
-   ["   *", # alpha
+   ["   *", # 145 - alpha
     " ** ",
     "* * ",
     "** *"],
-   [" ** ", # beta
+   [" ** ", # 146 - beta
     " ** ",
     " * *",
     "****"],
-   ["*  *", # gamma
+   ["*  *", # 147 - gamma
     " ** ",
     "* * ",
     "**  "],
-   [" *  ", # delta
+   [" *  ", # 148 - delta
     " ** ",
     "* **",
     " ** "],
-   [" ** ", # epsilon
+   [" ** ", # 149 - epsilon
     " ***",
     "*   ",
     " ** "],
-   [" ***", # zeta
+   [" ***", # 150 - zeta
     "*   ",
     "*** ",
     "   * "],
-   ["*** ", # eta
+   ["*** ", # 151 - eta
     "*  *",
     "*  *",
     "   * "],
-   [" ** ", # theta
+   [" ** ", # 152 - theta
     "** *",
     "* **",
     " ** "],
-   ["    ", # iota
+   ["    ", # 153 - iota
     " ** ",
     " ** ",
     " ** "],
-   ["    ", # kappa
+   ["    ", # 154 - kappa
     "** *",
     "*** ",
     "** *"],
-   ["**  ", # lambda
+   ["**  ", # 155 - lambda
     "  * ",
     " * *",
     "*  *"],
-   ["    ", # mu
+   ["    ", # 156 - mu
     "*  *",
     "****",
     "   *"],
-   ["    ", # nu
+   ["    ", # 157 - nu
     "** *",
     " ** ",
     " *  "],
-   ["**  ", # xi
+   ["**  ", # 158 - xi
     "*** ",
     "*   ",
     " ***"],
-   ["    ", # skip omicron, go to pi
+   ["    ", # 159 - skip omicron, go to pi
     "****",
     "* * ",
     "* * "],
-   ["  * ", # rho 
+   ["  * ", # 160 - rho 
     " * *",
     " ** ",
     "**  "],
-   ["    ", # sigma (circle)
+   ["    ", # 161 - sigma (circle)
     " ***",
     "* * ",
     " *  "],
-   [" ** ", # sigma (open)
+   [" ** ", # 162 - sigma (open)
     "*   ",
     " ***",
     "   *"],
-   ["    ", # tau
+   ["    ", # 163 - tau
     "****",
     " ** ",
     " ** "],
-   ["    ", # upsilon
+   ["    ", # 164 - upsilon
     "*  *",
     " * *",
     " ** "],
-   ["*   ", # phi
+   ["*   ", # 165 - phi
     " ** ",
     " ** ",
     "   *"],
-   ["** *", # chi
+   ["** *", # 166 - chi
     " ** ",
     "* * ",
     "  **"],
-   [" * *", # psi
+   [" * *", # 167 - psi
     " ** ",
     " ***",
     "*   "],
-   ["    ", # omega
+   ["    ", # 168 - omega
     "*  *",
     "** *",
     " ** "],
