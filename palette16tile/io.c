@@ -1,4 +1,5 @@
 #include "bitbox.h"
+#include "chiptune.h"
 #include "common.h"
 #include "tiles.h"
 #include "name.h"
@@ -522,6 +523,7 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
 
 FileError io_save_map()
 {
+    // TODO:  need to save sprite locations in here, too.
     if (tile_map_height <= 0 || tile_map_width <= 0 || 
         (tile_map_width*tile_map_height > TILE_MAP_MEMORY))
         return ConstraintError;
@@ -591,6 +593,7 @@ FileError io_save_map()
 
 FileError io_load_map()
 {
+    // TODO:  need to load sprite locations in here, too.
     char filename[13];
     if (io_set_extension(filename, "M16"))
         return MountError;
@@ -653,6 +656,152 @@ FileError io_load_map()
         }
         src += read_size;
     } 
+    
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_load_instrument(unsigned int i)
+{
+    // TODO:  need to load sprite locations in here, too.
+    char filename[13];
+    if (io_set_extension(filename, "I16"))
+        return MountError;
+    
+    fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING);
+    if (fat_result != FR_OK)
+        return OpenError;
+
+    UINT bytes_get; 
+    if (i >= 4)
+    {
+        for (i=0; i<4; ++i)
+        {
+            fat_result = f_read(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError;
+            }
+            if (bytes_get != 1)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+            fat_result = f_read(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return ReadError;
+            }
+            if (bytes_get != MAX_INSTRUMENT_LENGTH)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    f_lseek(&fat_file, i*(MAX_INSTRUMENT_LENGTH+1)); 
+    fat_result = f_read(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != 1)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    fat_result = f_read(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != MAX_INSTRUMENT_LENGTH)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_save_instrument(unsigned int i)
+{
+    char filename[13];
+    if (io_set_extension(filename, "I16"))
+        return MountError; 
+
+    if (i >= 4)
+    {
+        fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
+        if (fat_result != FR_OK)
+            return OpenError;
+
+        for (i=0; i<4; ++i)
+        {
+            UINT bytes_get; 
+            fat_result = f_write(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError;
+            }
+            if (bytes_get != 1)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+            fat_result = f_write(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
+            if (fat_result != FR_OK)
+            {
+                f_close(&fat_file);
+                return WriteError;
+            }
+            if (bytes_get != MAX_INSTRUMENT_LENGTH)
+            {
+                f_close(&fat_file);
+                return MissingDataError;
+            }
+        }
+        f_close(&fat_file);
+        return NoError;
+    }
+
+    FileError ferr = io_open_or_zero_file(filename, 16*(sizeof(tile_draw[0])+4));
+    if (ferr)
+        return ferr;
+
+    f_lseek(&fat_file, i*(MAX_INSTRUMENT_LENGTH+1)); 
+    UINT bytes_get; 
+    fat_result = f_write(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != 1)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    fat_result = f_write(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != MAX_INSTRUMENT_LENGTH)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
     
     f_close(&fat_file);
     return NoError;

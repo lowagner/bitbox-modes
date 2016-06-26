@@ -25,5 +25,7 @@ FileError io_save_sprite(unsigned int i, unsigned int f);
 FileError io_load_sprite(unsigned int i, unsigned int f);
 FileError io_save_map();
 FileError io_load_map();
+FileError io_save_instrument(unsigned int i);
+FileError io_load_instrument(unsigned int i);
 
 #endif
