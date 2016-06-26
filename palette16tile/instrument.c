@@ -382,6 +382,7 @@ void check_instrument(int i)
         instrument_bad = 0; 
         game_message[0] = 0;
     }
+    instrument[instrument_i].track_volume = 0;
 }
 
 void instrument_adjust_parameter(int direction)
