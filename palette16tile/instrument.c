@@ -602,7 +602,7 @@ void instrument_line()
                 strcpy((char *)buffer, "fade out");
                 break;
             case VIBRATO:
-                strcpy((char *)buffer, "vibrato");
+                strcpy((char *)buffer, "vibrato depth");
                 break;
             case VIBRATO_RATE:
                 strcpy((char *)buffer, "vibrato rate");
@@ -743,10 +743,10 @@ void instrument_line()
         font_render_line_doubled((uint8_t *)"adjust parameter", 112, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 11:
-        font_render_line_doubled((uint8_t *)"A: insert", 96+2*9, internal_line, 65535, BG_COLOR*257);
+        font_render_line_doubled((uint8_t *)"A: insert cmd", 96+2*9, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 12:
-        font_render_line_doubled((uint8_t *)"X: delete", 96+2*9, internal_line, 65535, BG_COLOR*257);
+        font_render_line_doubled((uint8_t *)"X: delete cmd", 96+2*9, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 13:
         if (!instrument_bad)
