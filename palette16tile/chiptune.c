@@ -34,7 +34,6 @@ uint8_t chip_repeat CCM_MEMORY;
  */
 
 struct instrument instrument[CHANNELS] CCM_MEMORY;
-uint8_t drum_cmd[CHANNELS][MAX_DRUM_LENGTH] CCM_MEMORY;
 
 /* 
     tracks
@@ -168,6 +167,10 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                     // or before the wait 
                     // where there is no
                     // jumps in between.
+                    
+                    // TODO:  probably can create this once, per instrument,
+                    // and re-use it.  as long as other commands in the instrument
+                    // don't get modified, it would be fine to keep it.
                     uint8_t work[16] = { -1, -1, -1, -1, -1, -1, -1, -1,
                         -1, -1, -1, -1, -1, -1, -1, -1
                     };

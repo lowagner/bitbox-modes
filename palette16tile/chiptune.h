@@ -1,10 +1,3 @@
-/** Initialize the player to play the given song.
- * - Oscillators are reset to silence
- * - Song position is reset to 0
- * - Tracks and instruments are loaded from the song.
- *
- * Pass NULL to stop playing and not load a new song.
- */
 /* Simple soundengine for the BitBox
  * Copyright 2014, Adrien Destugues <pulkomandy@pulkomandy.tk>
  * Copyright 2007, Linus Akesson
@@ -69,9 +62,10 @@ struct instrument
     uint16_t phase; // phase (except for noise, unused)
     uint8_t waveform; // waveform (from the enum above)
     uint8_t bitcrush; // 0-f level of quantization (power of 2)
-}; 
+};
 
 extern struct instrument instrument[CHANNELS];
+extern uint8_t chip_track[16][4][1 + MAX_TRACK_LENGTH/2]; 
 
 void chip_init(); // initialize all variables at start of game (stuff that only happens once)
 void chip_reset(); // put in a random tune.
