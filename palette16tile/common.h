@@ -35,6 +35,7 @@ typedef enum {
     EditTileOrSprite,
     EditTileOrSpriteProperties,
     EditPalette,
+    EditInstrument,
     EditVerse,
     SaveLoadScreen,
     ChooseFilename

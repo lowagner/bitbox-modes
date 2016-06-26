@@ -2,6 +2,7 @@
 #include "common.h"
 #include "sprites.h"
 #include "chiptune.h"
+#include "instrument.h"
 #include "verse.h"
 #include "tiles.h"
 #include "edit.h"
@@ -58,6 +59,7 @@ void game_init()
         map_reset();
         sprites_reset();
         verse_reset();
+        instrument_reset();
     }
     else // there was a filename to look into
     {
@@ -84,6 +86,9 @@ void game_init()
         //
         {
             verse_reset();
+        }
+        {
+            instrument_reset();
         }
     }
 }
@@ -116,6 +121,9 @@ void game_frame()
         break;
     case EditVerse:
         verse_controls();
+        break;
+    case EditInstrument:
+        instrument_controls();
         break;
     default:
         break;
@@ -173,6 +181,9 @@ void graph_line()
             break;
         case EditVerse:
             verse_line();
+            break;
+        case EditInstrument:
+            instrument_line();
             break;
         default:
         {
