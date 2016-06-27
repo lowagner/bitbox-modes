@@ -13,6 +13,44 @@ FATFS fat_fs;
 FIL fat_file;
 FRESULT fat_result;
 char old_base_filename[9] CCM_MEMORY;
+       
+
+void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
+{
+    switch (error)
+    {
+    case NoError:
+        if (save_not_load == 1)
+            strcpy((char *)msg, "saved!");
+        else
+            strcpy((char *)msg, "loaded!");
+        break;
+    case MountError:
+        strcpy((char *)msg, "fs unmounted!");
+        break;
+    case ConstraintError:
+        strcpy((char *)msg, "unconstrained!");
+        break;
+    case OpenError:
+        strcpy((char *)msg, "no open!");
+        break;
+    case ReadError:
+        strcpy((char *)msg, "no read!");
+        break;
+    case WriteError:
+        strcpy((char *)msg, "no write!");
+        break;
+    case NoDataError:
+        strcpy((char *)msg, "no data!");
+        break;
+    case MissingDataError:
+        strcpy((char *)msg, "miss data!");
+        break;
+    case BotchedIt:
+        strcpy((char *)msg, "fully bungled.");
+        break;
+    }
+}
 
 FileError io_init()
 {
@@ -705,7 +743,8 @@ FileError io_load_instrument(unsigned int i)
     }
 
     f_lseek(&fat_file, i*(MAX_INSTRUMENT_LENGTH+1)); 
-    fat_result = f_read(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+    uint8_t read;
+    fat_result = f_read(&fat_file, &read, 1, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
@@ -716,6 +755,8 @@ FileError io_load_instrument(unsigned int i)
         f_close(&fat_file);
         return MissingDataError;
     }
+    instrument[i].is_drum = read&15;
+    instrument[i].initial_track_octave = read >> 4;
     fat_result = f_read(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
     if (fat_result != FR_OK)
     {
@@ -780,7 +821,8 @@ FileError io_save_instrument(unsigned int i)
 
     f_lseek(&fat_file, i*(MAX_INSTRUMENT_LENGTH+1)); 
     UINT bytes_get; 
-    fat_result = f_write(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+    uint8_t write = (instrument[i].is_drum ? 1 : 0) | (instrument[i].initial_track_octave << 4);
+    fat_result = f_write(&fat_file, &write, 1, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);

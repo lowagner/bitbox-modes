@@ -262,39 +262,7 @@ void edit2_controls()
             else
                 error = io_load_tile(edit_tile);
         }
-        switch (error)
-        {
-        case NoError:
-            if (save_or_load == 1)
-                strcpy((char *)game_message, "saved!");
-            else
-                strcpy((char *)game_message, "loaded!");
-            break;
-        case MountError:
-            strcpy((char *)game_message, "fs unmounted!");
-            break;
-        case ConstraintError:
-            strcpy((char *)game_message, "unconstrained!");
-            break;
-        case OpenError:
-            strcpy((char *)game_message, "no open!");
-            break;
-        case ReadError:
-            strcpy((char *)game_message, "no read!");
-            break;
-        case WriteError:
-            strcpy((char *)game_message, "no write!");
-            break;
-        case NoDataError:
-            strcpy((char *)game_message, "no data!");
-            break;
-        case MissingDataError:
-            strcpy((char *)game_message, "miss data!");
-            break;
-        case BotchedIt:
-            strcpy((char *)game_message, "fully bungled.");
-            break;
-        }
+        io_message_from_error(game_message, error, save_or_load);
         return;
     }
     if (GAMEPAD_PRESS(0, Y))

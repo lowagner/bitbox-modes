@@ -8,6 +8,8 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
+// TODO:  allow setting initial_track_octave and is_drum from line 0
+
 const uint8_t note16_name[16][2] = {
     { 'S', ' ' }, // black, stop/silence
     { 'V', ' ' }, // gray, volume fade
@@ -31,6 +33,7 @@ const uint8_t note16_name[16][2] = {
 #define NUMBER_LINES 20
 
 uint8_t instrument_note CCM_MEMORY;
+uint8_t instrument_save_not_load CCM_MEMORY;
 uint8_t instrument_i CCM_MEMORY;
 uint8_t instrument_j CCM_MEMORY;
 uint8_t show_instrument CCM_MEMORY;
@@ -41,13 +44,14 @@ void instrument_init()
     instrument_i = 0;
     instrument_j = 0;
     instrument_bad = 0;
+    instrument_save_not_load = 1;
 }
 
 void instrument_reset()
 {
     int i=0; // isntrument
     int ci = 0; // command index
-    instrument[i].track_octave = 2;
+    instrument[i].initial_track_octave = 2;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SAW<<4); 
@@ -64,7 +68,7 @@ void instrument_reset()
     
     i = 1;
     ci = 0;
-    instrument[i].track_octave = 3;
+    instrument[i].initial_track_octave = 3;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = INERTIA | (15<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
@@ -78,7 +82,7 @@ void instrument_reset()
     
     i = 2;
     ci = 0;
-    instrument[i].track_octave = 4;
+    instrument[i].initial_track_octave = 4;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_NOISE<<4); 
@@ -98,7 +102,7 @@ void instrument_reset()
     
     i = 3;
     ci = 0; 
-    instrument[i].track_octave = 3;
+    instrument[i].initial_track_octave = 3;
     instrument[i].is_drum = 1; // drums get MAX_INSTRUMENT_LENGTH/4 commands for each sub-instrument
     instrument[i].cmd[ci] = WAIT | (5<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
@@ -119,8 +123,64 @@ void instrument_reset()
     instrument[i].cmd[++ci] = 0;  // that was the third (last) sub-instrument
 }
 
-void instrument_render_cmd(int i, int j, int x, int y)
+void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
 {
+    switch (cmd&15)
+    {
+        case BREAK:
+            strcpy((char *)buffer, "break");
+            break;
+        case SIDE:
+            strcpy((char *)buffer, "stereo");
+            break;
+        case WAVEFORM:
+            strcpy((char *)buffer, "waveform");
+            break;
+        case VOLUME:
+            strcpy((char *)buffer, "volume");
+            break;
+        case NOTE:
+            strcpy((char *)buffer, "note");
+            break;
+        case RANDOMIZE:
+            strcpy((char *)buffer, "randomize");
+            break;
+        case WAIT:
+            strcpy((char *)buffer, "wait");
+            break;
+        case FADE_IN:
+            strcpy((char *)buffer, "fade in");
+            break;
+        case FADE_OUT:
+            strcpy((char *)buffer, "fade out");
+            break;
+        case VIBRATO:
+            strcpy((char *)buffer, "vibrato");
+            break;
+        case VIBRATO_RATE:
+            strcpy((char *)buffer, "vibrato rate");
+            break;
+        case INERTIA:
+            strcpy((char *)buffer, "inertia");
+            break;
+        case BITCRUSH:
+            strcpy((char *)buffer, "bitcrush");
+            break;
+        case DUTY:
+            strcpy((char *)buffer, "duty");
+            break;
+        case DUTY_DELTA:
+            strcpy((char *)buffer, "change duty");
+            break;
+        case JUMP:
+            strcpy((char *)buffer, "jump");
+            break;
+    }
+}
+
+void instrument_render_cmd(int i, int j, int y)
+{
+    int x = 32;
     #ifdef EMULATOR
     if (y < 0 || y >= 8)
     {
@@ -162,6 +222,7 @@ void instrument_render_cmd(int i, int j, int x, int y)
         else
             color_choice[0] = 16843009u*9;
     }
+
     if (j != instrument_j)
     {
         color_choice[1] = 65535u*65537u;
@@ -171,22 +232,21 @@ void instrument_render_cmd(int i, int j, int x, int y)
         color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
         if ((y+1)/2 == 1)
         {
-            dst -= x/4;
+            dst -= 4;
             *dst = color_choice[1];
             ++dst;
             *dst = color_choice[1];
-            dst += x/4 - 1;
+            dst += 4 - 1;
         }
         else if ((y+1)/2 == 3)
         {
-            dst -= x/4;
+            dst -= 4;
             *dst = 16843009u*BG_COLOR;
             ++dst;
             *dst = 16843009u*BG_COLOR;
-            dst += x/4 - 1;
+            dst += 4 - 1;
         }
     }
-
     
     if (cmd == 0)
     {
@@ -541,9 +601,11 @@ void instrument_line()
     case 0:
     {
         // edit instrument
-        uint8_t msg[] = { 'e', 'd', 'i', 't', ' ', 
-            'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
+        uint8_t msg[] = { 'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
             ' ', hex[instrument_i],
+            ' ',  'o', 'c', 't', 'a', 'v', 'e',
+            ' ',  hex[instrument[instrument_i].initial_track_octave],
+            ' ', 'd', 'r', 'u', 'm', ' ', (instrument[instrument_i].is_drum ? 'Y' : 'N'),
         0 };
         font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
         break;
@@ -553,7 +615,7 @@ void instrument_line()
     case 2:
     {
         show_instrument = 1; 
-        instrument_render_cmd(instrument_i, line-2, 16, internal_line);
+        instrument_render_cmd(instrument_i, line-2, internal_line);
         // command
         uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[instrument_j], ':', 0 };
         font_render_line_doubled(msg, 96, internal_line, 65535, BG_COLOR*257);
@@ -563,7 +625,7 @@ void instrument_line()
         if (instrument[instrument_i].is_drum || show_instrument)
         {
             show_instrument = 1; 
-            instrument_render_cmd(instrument_i, line-2, 16, internal_line);
+            instrument_render_cmd(instrument_i, line-2, internal_line);
         }
         break;
     case 18:
@@ -629,111 +691,13 @@ void instrument_line()
         font_render_line_doubled((uint8_t *)"switch to:", 102, internal_line, 65535, BG_COLOR*257); 
         goto maybe_show_instrument;
     case 6:
-        switch ((instrument[instrument_i].cmd[instrument_j]-1)&15)
-        {
-            case BREAK:
-                strcpy((char *)buffer, "L: break");
-                break;
-            case SIDE:
-                strcpy((char *)buffer, "L: stereo");
-                break;
-            case WAVEFORM:
-                strcpy((char *)buffer, "L: waveform");
-                break;
-            case VOLUME:
-                strcpy((char *)buffer, "L: volume");
-                break;
-            case NOTE:
-                strcpy((char *)buffer, "L: note");
-                break;
-            case RANDOMIZE:
-                strcpy((char *)buffer, "L: randomize");
-                break;
-            case WAIT:
-                strcpy((char *)buffer, "L: wait");
-                break;
-            case FADE_IN:
-                strcpy((char *)buffer, "L: fade in");
-                break;
-            case FADE_OUT:
-                strcpy((char *)buffer, "L: fade out");
-                break;
-            case VIBRATO:
-                strcpy((char *)buffer, "L: vibrato");
-                break;
-            case VIBRATO_RATE:
-                strcpy((char *)buffer, "L: vibrato rate");
-                break;
-            case INERTIA:
-                strcpy((char *)buffer, "L: inertia");
-                break;
-            case BITCRUSH:
-                strcpy((char *)buffer, "L: bitcrush");
-                break;
-            case DUTY:
-                strcpy((char *)buffer, "L: duty");
-                break;
-            case DUTY_DELTA:
-                strcpy((char *)buffer, "L: change duty");
-                break;
-            case JUMP:
-                strcpy((char *)buffer, "L: jump");
-                break;
-        }
+        buffer[0] = 'L'; buffer[1] = ':';
+        instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]-1);
         font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 7:
-        switch ((instrument[instrument_i].cmd[instrument_j]+1)&15)
-        {
-            case BREAK:
-                strcpy((char *)buffer, "R: break");
-                break;
-            case SIDE:
-                strcpy((char *)buffer, "R: stereo");
-                break;
-            case WAVEFORM:
-                strcpy((char *)buffer, "R: waveform");
-                break;
-            case VOLUME:
-                strcpy((char *)buffer, "R: volume");
-                break;
-            case NOTE:
-                strcpy((char *)buffer, "R: note");
-                break;
-            case RANDOMIZE:
-                strcpy((char *)buffer, "R: randomize");
-                break;
-            case WAIT:
-                strcpy((char *)buffer, "R: wait");
-                break;
-            case FADE_IN:
-                strcpy((char *)buffer, "R: fade in");
-                break;
-            case FADE_OUT:
-                strcpy((char *)buffer, "R: fade out");
-                break;
-            case VIBRATO:
-                strcpy((char *)buffer, "R: vibrato");
-                break;
-            case VIBRATO_RATE:
-                strcpy((char *)buffer, "R: vibrato rate");
-                break;
-            case INERTIA:
-                strcpy((char *)buffer, "R: inertia");
-                break;
-            case BITCRUSH:
-                strcpy((char *)buffer, "R: bitcrush");
-                break;
-            case DUTY:
-                strcpy((char *)buffer, "R: duty");
-                break;
-            case DUTY_DELTA:
-                strcpy((char *)buffer, "R: change duty");
-                break;
-            case JUMP:
-                strcpy((char *)buffer, "R: jump");
-                break;
-        }
+        buffer[0] = 'R'; buffer[1] = ':';
+        instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]+1);
         font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 8:
@@ -743,23 +707,33 @@ void instrument_line()
         font_render_line_doubled((uint8_t *)"adjust parameter", 112, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 11:
-        font_render_line_doubled((uint8_t *)"A: insert cmd", 96+2*9, internal_line, 65535, BG_COLOR*257);
+        font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 12:
-        font_render_line_doubled((uint8_t *)"X: delete cmd", 96+2*9, internal_line, 65535, BG_COLOR*257);
+        font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 13:
         if (!instrument_bad)
-            font_render_line_doubled((uint8_t *)"B/Y: play note", 96, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"Y:play note", 96, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 15:
-        if (!instrument_bad)
-            font_render_line_doubled((uint8_t *)"start: edit verse", 96, internal_line, 65535, BG_COLOR*257);
+        font_render_line_doubled((uint8_t *)"B:toggle save/load", 96, internal_line, 65535, BG_COLOR*257);
+        goto maybe_show_instrument;
+    case 17:
+        if (instrument_save_not_load)
+        {
+            if (!instrument_bad)
+                font_render_line_doubled((uint8_t *)"start:save instrument", 96, internal_line, 65535, BG_COLOR*257);
+        }
+        else
+        {
+            font_render_line_doubled((uint8_t *)"start:load instrument", 96, internal_line, 65535, BG_COLOR*257);
+        }
         goto maybe_show_instrument;
     default:
       maybe_show_instrument:
         if (show_instrument)
-            instrument_render_cmd(instrument_i, line-2, 16, internal_line);
+            instrument_render_cmd(instrument_i, line-2, internal_line);
         break; 
     }
 }
@@ -931,37 +905,62 @@ void instrument_controls()
         *cmd = ((*cmd + 1)&15) | ((*cmd)&240);
         check_instrument(instrument_i);
     }
+    
+    if (GAMEPAD_PRESS(0, B))
+    {
+        instrument_save_not_load = 1 - instrument_save_not_load; 
+        return;
+    }
+    
+    if (GAMEPAD_PRESS(0, start))
+    {
+        FileError error;
+        if (instrument_save_not_load)
+        {
+            if (!instrument_bad)
+                error = io_save_instrument(instrument_i);
+            else
+            {
+                strcpy((char *)game_message, "can't save bad jump.");
+                return;
+            }
+        }
+        else
+        {
+            error = io_load_instrument(instrument_i);
+            check_instrument(instrument_i);
+        }
+        io_message_from_error(game_message, error, instrument_save_not_load);
+        return;
+    } 
    
-    if (instrument_bad) // can't leave until you fix this
+    if (instrument_bad) // can't do anything else until you fix this
         return;
 
     if (GAMEPAD_PRESS(0, Y))
     {
-        instrument_note = (instrument_note + 1)%24;
-        chip_note(instrument_i, instrument_note, 240); 
-    }
-    if (GAMEPAD_PRESS(0, B))
-    {
-        if (--instrument_note > 23)
+        // play a note
+        if (instrument_save_not_load)
+            instrument_note = (instrument_note + 1)%24;
+        else if (--instrument_note > 23)
             instrument_note = 23;
+        instrument[instrument_i].track_octave = instrument[instrument_i].initial_track_octave;
         chip_note(instrument_i, instrument_note, 240); 
     }
 
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        previous_visual_mode = None;
         instrument_j = 0;
-        //game_switch(SaveLoadScreen);
-        // eventually go to EditSong...?
-        return;
-    } 
-    
-    if (GAMEPAD_PRESS(0, start))
-    {
-        game_message[0] = 0;
-        instrument_j = 0;
-        game_switch(EditVerse);
+        if (previous_visual_mode)
+        {
+            game_switch(previous_visual_mode);
+        }
+        else
+        {
+            previous_visual_mode = None;
+            game_switch(EditVerse);
+        }
         return;
     } 
 }

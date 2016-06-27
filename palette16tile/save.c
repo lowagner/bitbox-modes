@@ -204,40 +204,8 @@ void save_controls()
             }
             break;
         }
-       
-        switch (error)
-        {
-        case NoError:
-            if (save_or_load == 1)
-                strcpy((char *)game_message + offset, "saved!");
-            else
-                strcpy((char *)game_message + offset, "loaded!");
-            break;
-        case MountError:
-            strcpy((char *)game_message + offset, "fs unmounted!");
-            break;
-        case ConstraintError:
-            strcpy((char *)game_message + offset, "unconstrained!");
-            break;
-        case OpenError:
-            strcpy((char *)game_message + offset, "no open!");
-            break;
-        case ReadError:
-            strcpy((char *)game_message + offset, "no read!");
-            break;
-        case WriteError:
-            strcpy((char *)game_message + offset, "no write!");
-            break;
-        case NoDataError:
-            strcpy((char *)game_message + offset, "no data!");
-            break;
-        case MissingDataError:
-            strcpy((char *)game_message + offset, "miss data!");
-            break;
-        case BotchedIt:
-            strcpy((char *)game_message + offset, "fully bungled.");
-            break;
-        }
+      
+        io_message_from_error(game_message+offset, error, save_or_load);
         return;
     }
     if (GAMEPAD_PRESS(0, B))

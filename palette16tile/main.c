@@ -38,6 +38,7 @@ void game_init()
     sprites_init();
     palette_init();
     verse_init();
+    instrument_init();
 
     // init game mode
     visual_mode = GameOn;
@@ -87,6 +88,7 @@ void game_init()
         {
             verse_reset();
         }
+        if (io_load_instrument(4))
         {
             instrument_reset();
         }

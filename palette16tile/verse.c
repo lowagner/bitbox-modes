@@ -77,7 +77,7 @@ void verse_line()
             }
             case 8:
             {
-                font_render_line_doubled((uint8_t *)"X: edit instrument", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:edit instrument", 16, internal_line, 65535, BG_COLOR*257);
                 break;
             }
         }

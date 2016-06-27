@@ -1,6 +1,8 @@
 #ifndef IO_H
 #define IO_H
 
+#include <stdint.h>
+
 typedef enum {
     NoError = 0,
     MountError,
@@ -13,10 +15,10 @@ typedef enum {
     BotchedIt
 } FileError;
 
-
 FileError io_init();
 FileError io_set_recent_filename();
 FileError io_get_recent_filename();
+void io_message_from_error(uint8_t *msg, FileError error, int save_not_load);
 FileError io_save_palette();
 FileError io_load_palette();
 FileError io_save_tile(unsigned int i);
