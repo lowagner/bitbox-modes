@@ -124,17 +124,9 @@ void save_controls()
 
     int save_or_load = 0;
     if (GAMEPAD_PRESS(0, A))
-    {
-        game_message[0] = 0;
-        // save
-        save_or_load = 1;
-    }
+        save_or_load = 1;  // save
     if (GAMEPAD_PRESS(0, X))
-    {
-        game_message[0] = 0;
-        // load
-        save_or_load = 2;
-    }
+        save_or_load = 2; // load
     if (save_or_load)
     {
         FileError error = BotchedIt;

@@ -34,7 +34,7 @@ struct instrument
     uint8_t track_sounding; // whether playing a note or not
     uint8_t side; // 0 = no sound, 1 = left side, 2 = right side, 3 = left and right side
 
-    uint8_t initial_track_octave;
+    uint8_t initial_octave;
     uint8_t track_octave;
     uint8_t note; // actual note being played, chosen using cmd array and track_note:
     uint8_t track_note; // note supposed to be played

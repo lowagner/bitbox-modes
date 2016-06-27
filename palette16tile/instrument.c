@@ -3,12 +3,11 @@
 #include "common.h"
 #include "chiptune.h"
 #include "font.h"
+#include "name.h"
 #include "io.h"
 
 #include <stdlib.h> // rand
 #include <string.h> // memset
-
-// TODO:  allow setting initial_track_octave and is_drum from line 0
 
 const uint8_t note16_name[16][2] = {
     { 'S', ' ' }, // black, stop/silence
@@ -30,28 +29,33 @@ const uint8_t note16_name[16][2] = {
 };
 
 #define BG_COLOR 192
+#define BOX_COLOR RGB(255, 100, 200)
 #define NUMBER_LINES 20
 
 uint8_t instrument_note CCM_MEMORY;
-uint8_t instrument_save_not_load CCM_MEMORY;
+uint8_t instrument_menu_not_edit CCM_MEMORY;
 uint8_t instrument_i CCM_MEMORY;
 uint8_t instrument_j CCM_MEMORY;
 uint8_t show_instrument CCM_MEMORY;
 uint8_t instrument_bad CCM_MEMORY;
+uint8_t instrument_copying CCM_MEMORY;
+uint8_t instrument_cursor CCM_MEMORY;
 
 void instrument_init()
 {
     instrument_i = 0;
     instrument_j = 0;
     instrument_bad = 0;
-    instrument_save_not_load = 1;
+    instrument_menu_not_edit = 0;
+    instrument_copying = 4;
+    instrument_cursor = 0;
 }
 
 void instrument_reset()
 {
     int i=0; // isntrument
     int ci = 0; // command index
-    instrument[i].initial_track_octave = 2;
+    instrument[i].initial_octave = 2;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SAW<<4); 
@@ -68,7 +72,7 @@ void instrument_reset()
     
     i = 1;
     ci = 0;
-    instrument[i].initial_track_octave = 3;
+    instrument[i].initial_octave = 3;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = INERTIA | (15<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
@@ -82,7 +86,7 @@ void instrument_reset()
     
     i = 2;
     ci = 0;
-    instrument[i].initial_track_octave = 4;
+    instrument[i].initial_octave = 4;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_NOISE<<4); 
@@ -102,7 +106,7 @@ void instrument_reset()
     
     i = 3;
     ci = 0; 
-    instrument[i].initial_track_octave = 3;
+    instrument[i].initial_octave = 3;
     instrument[i].is_drum = 1; // drums get MAX_INSTRUMENT_LENGTH/4 commands for each sub-instrument
     instrument[i].cmd[ci] = WAIT | (5<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
@@ -230,21 +234,24 @@ void instrument_render_cmd(int i, int j, int y)
     else
     {
         color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
-        if ((y+1)/2 == 1)
+        if (!instrument_menu_not_edit)
         {
-            dst -= 4;
-            *dst = color_choice[1];
-            ++dst;
-            *dst = color_choice[1];
-            dst += 4 - 1;
-        }
-        else if ((y+1)/2 == 3)
-        {
-            dst -= 4;
-            *dst = 16843009u*BG_COLOR;
-            ++dst;
-            *dst = 16843009u*BG_COLOR;
-            dst += 4 - 1;
+            if ((y+1)/2 == 1)
+            {
+                dst -= 4;
+                *dst = color_choice[1];
+                ++dst;
+                *dst = color_choice[1];
+                dst += 4 - 1;
+            }
+            else if ((y+1)/2 == 3)
+            {
+                dst -= 4;
+                *dst = 16843009u*BG_COLOR;
+                ++dst;
+                *dst = 16843009u*BG_COLOR;
+                dst += 4 - 1;
+            }
         }
     }
     
@@ -592,6 +599,19 @@ void instrument_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+        if (instrument_menu_not_edit && line == 0)
+        {
+            uint16_t *dst = draw_buffer + (22 + instrument_cursor*7) * 9 - 1;
+            const uint16_t color = BOX_COLOR;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;
+            *dst++ = color;     
+        }
         return;
     }
     --internal_line;
@@ -604,7 +624,7 @@ void instrument_line()
         uint8_t msg[] = { 'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
             ' ', hex[instrument_i],
             ' ',  'o', 'c', 't', 'a', 'v', 'e',
-            ' ',  hex[instrument[instrument_i].initial_track_octave],
+            ' ',  hex[instrument[instrument_i].initial_octave],
             ' ', 'd', 'r', 'u', 'm', ' ', (instrument[instrument_i].is_drum ? 'Y' : 'N'),
         0 };
         font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
@@ -688,47 +708,89 @@ void instrument_line()
         font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     case 5:
-        font_render_line_doubled((uint8_t *)"switch to:", 102, internal_line, 65535, BG_COLOR*257); 
+        font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
         goto maybe_show_instrument;
     case 6:
-        buffer[0] = 'L'; buffer[1] = ':';
-        instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]-1);
-        font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 7:
-        buffer[0] = 'R'; buffer[1] = ':';
-        instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]+1);
-        font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 8:
-        font_render_line_doubled((uint8_t *)"left/right:", 102, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 9:
-        font_render_line_doubled((uint8_t *)"adjust parameter", 112, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 11:
-        font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 12:
-        font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 13:
-        if (!instrument_bad)
-            font_render_line_doubled((uint8_t *)"Y:play note", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 15:
-        font_render_line_doubled((uint8_t *)"B:toggle save/load", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 17:
-        if (instrument_save_not_load)
+        if (instrument_menu_not_edit)
         {
-            if (!instrument_bad)
-                font_render_line_doubled((uint8_t *)"start:save instrument", 96, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"L:prev instrument", 112, internal_line, 65535, BG_COLOR*257);
         }
         else
         {
-            font_render_line_doubled((uint8_t *)"start:load instrument", 96, internal_line, 65535, BG_COLOR*257);
+            buffer[0] = 'L'; buffer[1] = ':';
+            instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]-1);
+            font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
         }
+        goto maybe_show_instrument;
+    case 7:
+        if (instrument_menu_not_edit)
+        {
+            font_render_line_doubled((uint8_t *)"R:next instrument", 112, internal_line, 65535, BG_COLOR*257);
+        }
+        else
+        {
+            buffer[0] = 'R'; buffer[1] = ':';
+            instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]+1);
+            font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
+        }
+        goto maybe_show_instrument;
+    case 8:
+        font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257);
+        goto maybe_show_instrument;
+    case 9:
+        font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
+        goto maybe_show_instrument;
+    case 11:
+        if (instrument_menu_not_edit)
+        {
+            if (instrument_copying < 4)
+                font_render_line_doubled((uint8_t *)"A:cancel copy", 96, internal_line, 65535, BG_COLOR*257);
+            else if (!instrument_bad)
+                font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
+        }
+        else
+            font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
+        goto maybe_show_instrument;
+    case 12:
+        if (instrument_menu_not_edit)
+        {
+            if (instrument_copying < 4)
+                font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
+
+            else
+                font_render_line_doubled((uint8_t *)"X:load from file", 96, internal_line, 65535, BG_COLOR*257);
+        }
+        else
+            font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
+        goto maybe_show_instrument;
+    case 13:
+        if (instrument_menu_not_edit)
+        {
+            if (instrument_copying < 4)
+                font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
+
+            else if (!instrument_bad)
+                font_render_line_doubled((uint8_t *)"B:copy", 96, internal_line, 65535, BG_COLOR*257);
+        }
+        else
+        {
+            if (!instrument_bad)
+                font_render_line_doubled((uint8_t *)"B/Y:play note", 96, internal_line, 65535, BG_COLOR*257);
+        }
+        goto maybe_show_instrument;
+    case 15:
+        if (instrument_menu_not_edit && !instrument_bad)
+        {
+            strcpy((char *)buffer, "Y:file ");
+            strcpy((char *)(buffer+7), base_filename);
+            font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
+        }
+        goto maybe_show_instrument;
+    case 17:
+        if (instrument_menu_not_edit)
+            font_render_line_doubled((uint8_t *)"start:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
+        else
+            font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
     default:
       maybe_show_instrument:
@@ -740,218 +802,337 @@ void instrument_line()
 
 void instrument_controls()
 {
-    int movement = 0;
-    if (GAMEPAD_PRESSING(0, down))
-    {
-        if (!instrument[instrument_i].is_drum)
-        {
-            if (instrument_j < MAX_INSTRUMENT_LENGTH-1 &&
-                instrument[instrument_i].cmd[instrument_j])
-            {
-                ++instrument_j;
-            }
-            else
-                instrument_j = 0;
-        }
-        else
-        {
-            int next_j;
-            if (instrument_j < 2*MAX_DRUM_LENGTH)
-                next_j = 2*MAX_DRUM_LENGTH;
-            else if (instrument_j < 3*MAX_DRUM_LENGTH)
-                next_j = 3*MAX_DRUM_LENGTH;
-            else
-                next_j = 0;
-
-            if (instrument_j < MAX_INSTRUMENT_LENGTH-1)
-            {
-                if ((instrument[instrument_i].cmd[instrument_j]&15) == BREAK)
-                {
-                    instrument_j = next_j;
-                }
-                else
-                {
-                    ++instrument_j;
-                }
-            }
-            else
-                instrument_j = 0;
-        }
-        movement = 1;
-    }
-    if (GAMEPAD_PRESSING(0, up))
-    {
-        if (!instrument[instrument_i].is_drum)
-        {
-            if (instrument_j)
-                --instrument_j;
-            else
-            {
-                while (instrument_j < MAX_INSTRUMENT_LENGTH-1 && 
-                    (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
-                {
-                    ++instrument_j;
-                }
-            }
-        }
-        else 
-        {
-            int move_here_then_up = -1;
-            int but_no_further_than;
-            switch (instrument_j)
-            {
-                case 0:
-                    move_here_then_up = 3*MAX_DRUM_LENGTH; 
-                    but_no_further_than = 4*MAX_DRUM_LENGTH;
-                    break;
-                case 2*MAX_DRUM_LENGTH:
-                    move_here_then_up = 0; 
-                    but_no_further_than = 2*MAX_DRUM_LENGTH;
-                    break;
-                case 3*MAX_DRUM_LENGTH:
-                    move_here_then_up = 2*MAX_DRUM_LENGTH; 
-                    but_no_further_than = 3*MAX_DRUM_LENGTH;
-                    break;
-                default:
-                    --instrument_j;
-            }
-            if (move_here_then_up >= 0)
-            {
-                instrument_j = move_here_then_up;
-                while (instrument_j < but_no_further_than-1 && 
-                    (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
-                {
-                    ++instrument_j;
-                }
-            }
-        }
-        movement = 1;
-    }
-    if (GAMEPAD_PRESSING(0, left))
-    {
-        instrument_adjust_parameter(-1);
-        movement = 1;
-    }
-    if (GAMEPAD_PRESSING(0, right))
-    {
-        instrument_adjust_parameter(+1);
-        movement = 1;
-    }
-    if (movement)
-    {
-        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-        return;
-    }
-
-    if (GAMEPAD_PRESS(0, X))
-    {
-        // delete
-        if (!instrument[instrument_i].is_drum)
-        {
-            for (int j=instrument_j; j<MAX_INSTRUMENT_LENGTH-1; ++j)
-            {
-                if ((instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j+1]) == 0)
-                    break;
-            }
-            instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1] = BREAK;
-        }
-        else
-        {
-            int max_j;
-            if (instrument_j < 2*MAX_DRUM_LENGTH)
-                max_j = 2*MAX_DRUM_LENGTH;
-            else if (instrument_j < 3*MAX_DRUM_LENGTH)
-                max_j = 3*MAX_DRUM_LENGTH;
-            else
-                max_j = 4*MAX_DRUM_LENGTH;
-            
-            for (int j=instrument_j; j<max_j-1; ++j)
-            {
-                if ((instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j+1]) == 0)
-                    break;
-            }
-            instrument[instrument_i].cmd[max_j-1] = BREAK;
-        }
-        check_instrument(instrument_i);
-        return;
-    }
-
-    if (GAMEPAD_PRESS(0, A))
-    {
-        // insert
-        if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
-        {
-            strcpy((char *)game_message, "list full, can't insert.");
-            return;
-        }
-        for (int j=MAX_INSTRUMENT_LENGTH-1; j>instrument_j; --j)
-        {
-            // TODO: could do fancier things here, like check for JUMP indices to correct
-            instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
-        }
-        instrument[instrument_i].cmd[instrument_j] = WAIT | ((rand()%16)<<4);
-        check_instrument(instrument_i);
-    }
-    
-    if (GAMEPAD_PRESS(0, L))
-    {
-        uint8_t *cmd = &instrument[instrument_i].cmd[instrument_j];
-        *cmd = ((*cmd - 1)&15) | ((*cmd)&240);
-        check_instrument(instrument_i);
-    }
-    if (GAMEPAD_PRESS(0, R))
-    {
-        uint8_t *cmd = &instrument[instrument_i].cmd[instrument_j];
-        *cmd = ((*cmd + 1)&15) | ((*cmd)&240);
-        check_instrument(instrument_i);
-    }
-    
-    if (GAMEPAD_PRESS(0, B))
-    {
-        instrument_save_not_load = 1 - instrument_save_not_load; 
-        return;
-    }
-    
     if (GAMEPAD_PRESS(0, start))
     {
-        FileError error;
-        if (instrument_save_not_load)
+        if (game_message[0] == 's' || game_message[0] == 'l')
+            game_message[0] = 0;
+        instrument_menu_not_edit = 1 - instrument_menu_not_edit; 
+        instrument_copying = 4;
+        instrument[instrument_i].track_volume = 0;
+        return;
+    }
+
+    if (instrument_menu_not_edit)
+    {
+        if (GAMEPAD_PRESS(0, left) || GAMEPAD_PRESS(0, right))
         {
-            if (!instrument_bad)
-                error = io_save_instrument(instrument_i);
+            instrument_cursor = 1 - instrument_cursor;
+            return;
+        }
+
+        int moved = 0;
+        if (GAMEPAD_PRESSING(0, up))
+            ++moved;
+        if (GAMEPAD_PRESSING(0, down))
+            --moved;
+        if (moved)
+        {
+            game_message[0] = 0;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            if (instrument_cursor) // drums
+            {
+                if (instrument[instrument_i].is_drum) 
+                    instrument[instrument_i].is_drum = 0;
+                else
+                    instrument[instrument_i].is_drum = 1;
+            }
             else
+            {
+                instrument[instrument_i].initial_octave += moved;
+                if (instrument[instrument_i].initial_octave > 255)
+                    instrument[instrument_i].initial_octave = 6;
+                else if (instrument[instrument_i].initial_octave > 6)
+                    instrument[instrument_i].initial_octave = 0;
+            }
+        }
+
+        int save_or_load = 0;
+        if (GAMEPAD_PRESS(0, A))
+        {
+            // save
+            save_or_load = 1;
+            if (instrument_bad)
             {
                 strcpy((char *)game_message, "can't save bad jump.");
                 return;
             }
         }
-        else
+        if (GAMEPAD_PRESS(0, X))
+            save_or_load = 2; // load
+        if (save_or_load)
         {
-            error = io_load_instrument(instrument_i);
+            if (instrument_copying < 4)
+            {
+                // cancel a copy 
+                instrument_copying = 4;
+                return;
+            }
+
+            FileError error = BotchedIt;
+            if (save_or_load == 1)
+                error = io_save_instrument(instrument_i);
+            else
+            {
+                error = io_load_instrument(instrument_i);
+                check_instrument(instrument_i);
+            }
+            io_message_from_error(game_message, error, save_or_load);
+            return;
+        }
+
+        if (instrument_bad)
+            return;
+
+        if (GAMEPAD_PRESS(0, B))
+        {
+            // copy or uncopy
+            if (instrument_copying < 4)
+                instrument_copying = 4;
+            else if (!instrument_bad)
+                instrument_copying = instrument_i;
+            return;
+        }
+        
+        if (GAMEPAD_PRESS(0, Y))
+        {
+            if (instrument_copying < 4)
+            {
+                // paste
+                if (instrument_i == instrument_copying)
+                {
+                    instrument_copying = 4;
+                    strcpy((char *)game_message, "pasting to same thing"); 
+                    return;
+                }
+                uint8_t *src, *dst;
+                src = &instrument[instrument_copying].cmd[0];
+                dst = &instrument[instrument_i].cmd[0];
+                instrument[instrument_i].initial_octave = instrument[instrument_copying].initial_octave;
+                instrument[instrument_i].is_drum = instrument[instrument_copying].is_drum;
+                memcpy(dst, src, MAX_INSTRUMENT_LENGTH);
+                strcpy((char *)game_message, "pasted."); 
+                instrument_copying = 4;
+            }
+            else
+            {
+                // switch to choose name and hope to come back
+                game_message[0] = 0;
+                game_switch(ChooseFilename);
+                previous_visual_mode = EditInstrument;
+            }
+            return;
+        }
+
+        moved = 0;
+        if (GAMEPAD_PRESSING(0, R))
+            ++moved;
+        if (GAMEPAD_PRESSING(0, L))
+            --moved;
+        if (moved)
+        {
+            game_message[0] = 0;
+            instrument_i = (instrument_i + moved)&3;
+            instrument_j = 0;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT*2;
+            return;
+        }
+    }
+    else
+    {
+        // not in the menu, editing the instrument
+        int movement = 0;
+        if (GAMEPAD_PRESSING(0, down))
+        {
+            if (!instrument[instrument_i].is_drum)
+            {
+                if (instrument_j < MAX_INSTRUMENT_LENGTH-1 &&
+                    instrument[instrument_i].cmd[instrument_j])
+                {
+                    ++instrument_j;
+                }
+                else
+                    instrument_j = 0;
+            }
+            else
+            {
+                int next_j;
+                if (instrument_j < 2*MAX_DRUM_LENGTH)
+                    next_j = 2*MAX_DRUM_LENGTH;
+                else if (instrument_j < 3*MAX_DRUM_LENGTH)
+                    next_j = 3*MAX_DRUM_LENGTH;
+                else
+                    next_j = 0;
+
+                if (instrument_j < MAX_INSTRUMENT_LENGTH-1)
+                {
+                    if ((instrument[instrument_i].cmd[instrument_j]&15) == BREAK)
+                    {
+                        instrument_j = next_j;
+                    }
+                    else
+                    {
+                        ++instrument_j;
+                    }
+                }
+                else
+                    instrument_j = 0;
+            }
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, up))
+        {
+            if (!instrument[instrument_i].is_drum)
+            {
+                if (instrument_j)
+                    --instrument_j;
+                else
+                {
+                    while (instrument_j < MAX_INSTRUMENT_LENGTH-1 && 
+                        (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
+                    {
+                        ++instrument_j;
+                    }
+                }
+            }
+            else 
+            {
+                int move_here_then_up = -1;
+                int but_no_further_than;
+                switch (instrument_j)
+                {
+                    case 0:
+                        move_here_then_up = 3*MAX_DRUM_LENGTH; 
+                        but_no_further_than = 4*MAX_DRUM_LENGTH;
+                        break;
+                    case 2*MAX_DRUM_LENGTH:
+                        move_here_then_up = 0; 
+                        but_no_further_than = 2*MAX_DRUM_LENGTH;
+                        break;
+                    case 3*MAX_DRUM_LENGTH:
+                        move_here_then_up = 2*MAX_DRUM_LENGTH; 
+                        but_no_further_than = 3*MAX_DRUM_LENGTH;
+                        break;
+                    default:
+                        --instrument_j;
+                }
+                if (move_here_then_up >= 0)
+                {
+                    instrument_j = move_here_then_up;
+                    while (instrument_j < but_no_further_than-1 && 
+                        (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
+                    {
+                        ++instrument_j;
+                    }
+                }
+            }
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, left))
+        {
+            instrument_adjust_parameter(-1);
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, right))
+        {
+            instrument_adjust_parameter(+1);
+            movement = 1;
+        }
+        if (movement)
+        {
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            return;
+        }
+
+        if (GAMEPAD_PRESS(0, X))
+        {
+            // delete
+            if (!instrument[instrument_i].is_drum)
+            {
+                for (int j=instrument_j; j<MAX_INSTRUMENT_LENGTH-1; ++j)
+                {
+                    if ((instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j+1]) == 0)
+                        break;
+                }
+                instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1] = BREAK;
+            }
+            else
+            {
+                int max_j;
+                if (instrument_j < 2*MAX_DRUM_LENGTH)
+                    max_j = 2*MAX_DRUM_LENGTH;
+                else if (instrument_j < 3*MAX_DRUM_LENGTH)
+                    max_j = 3*MAX_DRUM_LENGTH;
+                else
+                    max_j = 4*MAX_DRUM_LENGTH;
+                
+                for (int j=instrument_j; j<max_j-1; ++j)
+                {
+                    if ((instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j+1]) == 0)
+                        break;
+                }
+                instrument[instrument_i].cmd[max_j-1] = BREAK;
+            }
+            check_instrument(instrument_i);
+            return;
+        }
+
+        if (GAMEPAD_PRESS(0, A))
+        {
+            // insert
+            if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
+            {
+                strcpy((char *)game_message, "list full, can't insert.");
+                return;
+            }
+            for (int j=MAX_INSTRUMENT_LENGTH-1; j>instrument_j; --j)
+            {
+                // TODO: could do fancier things here, like check for JUMP indices to correct
+                instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
+            }
+            instrument[instrument_i].cmd[instrument_j] = WAIT | ((rand()%16)<<4);
             check_instrument(instrument_i);
         }
-        io_message_from_error(game_message, error, instrument_save_not_load);
-        return;
-    } 
-   
-    if (instrument_bad) // can't do anything else until you fix this
-        return;
+        
+        if (GAMEPAD_PRESS(0, L))
+        {
+            uint8_t *cmd = &instrument[instrument_i].cmd[instrument_j];
+            *cmd = ((*cmd - 1)&15) | ((*cmd)&240);
+            check_instrument(instrument_i);
+        }
+        if (GAMEPAD_PRESS(0, R))
+        {
+            uint8_t *cmd = &instrument[instrument_i].cmd[instrument_j];
+            *cmd = ((*cmd + 1)&15) | ((*cmd)&240);
+            check_instrument(instrument_i);
+        }
+        
+        if (instrument_bad) // can't do anything else until you fix this
+            return;
 
-    if (GAMEPAD_PRESS(0, Y))
-    {
-        // play a note
-        if (instrument_save_not_load)
+        if (GAMEPAD_PRESS(0, Y))
+        {
+            // play a note
+            game_message[0] = 0;
             instrument_note = (instrument_note + 1)%24;
-        else if (--instrument_note > 23)
-            instrument_note = 23;
-        instrument[instrument_i].track_octave = instrument[instrument_i].initial_track_octave;
-        chip_note(instrument_i, instrument_note, 240); 
+            instrument[instrument_i].track_octave = instrument[instrument_i].initial_octave;
+            chip_note(instrument_i, instrument_note, 240); 
+        }
+        if (GAMEPAD_PRESS(0, B))
+        {
+            // play a note
+            game_message[0] = 0;
+            if (--instrument_note > 23)
+                instrument_note = 23;
+            instrument[instrument_i].track_octave = instrument[instrument_i].initial_octave;
+            chip_note(instrument_i, instrument_note, 240); 
+        }
     }
 
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
         instrument_j = 0;
+        instrument_copying = 4;
         if (previous_visual_mode)
         {
             game_switch(previous_visual_mode);
