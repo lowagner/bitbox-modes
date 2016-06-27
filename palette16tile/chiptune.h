@@ -68,6 +68,14 @@ struct instrument
 extern struct instrument instrument[CHANNELS];
 extern uint8_t chip_track[16][4][1 + MAX_TRACK_LENGTH/2]; 
 
+extern uint8_t track_pos;
+extern uint8_t track_length;
+
+extern uint8_t song_transpose;
+extern uint8_t song_length;
+extern uint8_t song_speed;
+extern uint8_t song_pos;
+
 void chip_init(); // initialize all variables at start of game (stuff that only happens once)
 void chip_reset(); // put in a random tune.
 void chip_switch(); // re-initialize current tune to start over.

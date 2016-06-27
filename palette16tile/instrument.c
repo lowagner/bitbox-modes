@@ -9,12 +9,8 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
-const uint8_t note16_name[16][2] = {
-    { 'S', ' ' }, // black, stop/silence
-    { 'V', ' ' }, // gray, volume fade
-    { 'R', ' ' }, // white, repeat note
-    { 'P', ' ' }, // pink
-    { 'C', ' ' }, // red
+const uint8_t note_name[12][2] = {
+    { 'C', ' ' }, 
     { 'C', '#' }, 
     { 'D', ' ' }, 
     { 'E', 'b' }, 
@@ -332,8 +328,8 @@ void instrument_render_cmd(int i, int j, int y)
             if (param >= 12)
                 color_choice[1] = RGB(150,150,255)|(65535<<16);
             param %= 12;
-            cmd = note16_name[4+param][0];
-            param = note16_name[4+param][1];
+            cmd = note_name[4+param][0];
+            param = note_name[4+param][1];
             break;
         case RANDOMIZE:
             cmd = 'R';

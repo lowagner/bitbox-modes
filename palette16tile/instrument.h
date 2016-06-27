@@ -3,7 +3,7 @@
 
 #include <stdint.h> // uint
 
-extern const uint8_t note16_name[16][2];
+extern const uint8_t note_name[12][2];
 extern uint8_t instrument_i;
 
 void instrument_init();
