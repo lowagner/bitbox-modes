@@ -1,6 +1,7 @@
 # DO NOT FORGET to define BITBOX environment variable 
 
 USE_SDCARD = 1      # allow use of SD card for io
+DEFINES += DEBUG_CHIPTUNE
 
 NAME = 16tiles
 # font files need to be first in order to be generated first:

@@ -44,6 +44,7 @@ void key_name(uint8_t *name, uint8_t key)
 
 void verse_init()
 {
+    song_speed = 4;
     verse_track = 0;
     verse_track_pos = 1;
     verse_track_offset = 1;
@@ -286,7 +287,10 @@ void verse_line()
             }
             else
             {
-                font_render_line_doubled((uint8_t *)"A:fill", 12+3*9, internal_line, 65535, BG_COLOR*257);
+                if (chip_play_track)
+                    font_render_line_doubled((uint8_t *)"A:stop", 12+3*9, internal_line, 65535, BG_COLOR*257);
+                else
+                    font_render_line_doubled((uint8_t *)"A:play", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 verse_render_command(verse_color[verse_last_painted], 12+3*9+7*9, internal_line);
             }
             break;
@@ -496,31 +500,26 @@ void verse_controls()
         }
         if (GAMEPAD_PRESS(0, A))
         {
-            // fill a line
-            uint8_t old_color = verse_track_color(verse_track_pos);
-            uint8_t start = verse_track_pos, end = verse_track_pos;
-            while (start > 1 && verse_track_color(start-1) == old_color)
-                --start;
-            while (end < track_length && verse_track_color(end+1) == old_color)
-                ++end;
-            if (start % 2)
+            track_pos = 0;
+            if (chip_play_track)
+                chip_play_track = 0;
+            else if (verse_track_pos == 0)
             {
-                verse_track_paint(start, verse_last_painted);
-                ++start;
+                // play all tracks
+                for (int i=0; i<4; ++i)
+                    instrument[i].track_read_pos = 0;
+                chip_play_track = 1;
             }
-            if (end % 2)
+            else
             {
-                verse_track_paint(end, verse_last_painted);
-                --end;
+                // play only this instrument track
+                for (int i=0; i<instrument_i; ++i)
+                    instrument[i].track_read_pos = 255;
+                instrument[instrument_i].track_read_pos = 0;
+                for (int i=instrument_i+1; i<4; ++i)
+                    instrument[i].track_read_pos = 255;
+                chip_play_track = 1;
             }
-            if (end > start)
-            {
-                memset(&chip_track[verse_track][instrument_i][0] + 1 + start/2, 
-                    verse_color[verse_last_painted]|(verse_color[verse_last_painted]<<4),
-                    (end-start)/2);
-            }
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-            return;
         } 
         if (movement)
         {

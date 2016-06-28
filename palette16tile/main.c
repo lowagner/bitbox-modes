@@ -334,6 +334,8 @@ void draw_parade(int line, uint8_t bg_color)
 
 void game_switch(VisualMode new_visual_mode)
 {
+    chip_play = 0;
+    chip_play_track = 0;
     for (int i=0; i<4; ++i)
         instrument[i].track_volume = 0;
 

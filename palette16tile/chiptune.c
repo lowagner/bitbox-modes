@@ -247,63 +247,6 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
     }
 }
 
-//static void track_run_cmd(uint8_t ch, uint8_t cmd) 
-//{
-//    switch(cmd) {
-//        case 1: // 0 = note off
-//            instrument[ch].track_volume = 0;
-//            break;
-//        case 2: // d = duty cycle
-//            instrument[ch].duty = param << 8;
-//            break;
-//        case 3: // f = volume slide
-//            instrument[ch].volumed = param;
-//            break;
-//        case 4: // i = inertia (auto note slides)
-//            instrument[ch].inertia = param << 1;
-//            break;
-//        case 5: // j = instrument jump
-//            instrument[ch].cmd_index = param;
-//            break;
-//        case 6: // used to be slide
-//            break;
-//        case 7: // m = duty variation
-//            channel[ch].dutyd = param << 6;
-//            break;
-//        case 8: // t = timing (for instrument, song speed for track context)
-//            if (!context)
-//                channel[ch].instrument_wait = param;
-//            else
-//                song_speed = param;
-//            break;
-//        case 9: // v = volume
-//            channel[ch].volume = param;
-//            break;
-//        case 10: // w = select waveform
-//            channel[ch].waveform = param;
-//            break;
-//        case 11: // ~ = vibrato
-//            if (channel[ch].vibrato_depth != (param >> 4)) {
-//                channel[ch].vibrato_phase = 0;
-//            }
-//            channel[ch].vibrato_depth = param >> 4;
-//            channel[ch].vibrato_rate = param & 15;
-//            break;
-//        case 12: // + = set relative note
-//            instrument[ch].note = param + instrument[ch].track_note - 12 * 4;
-//            break;
-//        case 13: // = = set absolute note in instrument context or instrument in pattern context
-//            if (!context)
-//                channel[ch].instrument_note = param;
-//            else
-//                channel[ch].lastinstr = param;
-//            break;
-//        case 14:
-//            channel[ch].bitcrush=param;
-//    }
-//}
-
-
 void chip_init()
 {
 }
@@ -381,39 +324,76 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
         --instrument[i].track_emphasis;
 }
 
+static int track_run_command(int i, uint8_t note) 
+{
+    // return a 1 if you need to read in the next command.
+    // return a 0 if the command is finished.
+    #ifdef DEBUG_CHIPTUNE
+    message("cmd: %d |", note);
+    #endif
+    if (note >= 4)
+    {
+        #ifdef DEBUG_CHIPTUNE
+        message("n: %d ", (note-4));
+        #endif
+        // if necessary, update instrument[i].track_octave and song_transpose
+        if (!instrument[i].track_volume || instrument[i].track_note != note-4)
+        {
+            chip_note(i, note-4, 240);
+            #ifdef DEBUG_CHIPTUNE
+            message("sound |");
+            #endif
+        }
+        #ifdef DEBUG_CHIPTUNE
+        else
+            message("hold |");
+        #endif
+
+    }
+    else switch (note)
+    {
+        case 0:
+            instrument[i].track_volume = 0;
+            break;
+        case 1:
+            break;
+        case 2:
+            break;
+        case 3:
+            break;
+    }
+    return 0;
+}
+
 static void chip_track_update()
 {
     #ifdef DEBUG_CHIPTUNE
-    message ("%d |", track_pos);
+    message("%d |", track_pos);
     #endif
 
+    uint8_t fields;
     for (int i=0; i<4; ++i) 
     {
         if (instrument[i].track_read_pos > track_pos)
             continue;
 
-        uint8_t fields = chip_track[instrument[i].track_num][i][1+instrument[i].track_read_pos/2];
+        read_next_command:
+
+        fields = chip_track[instrument[i].track_num][i][1+(instrument[i].track_read_pos++)/2];
+
+        #ifdef DEBUG_CHIPTUNE
+        message("f: %d |", fields);
+        #endif
         if (instrument[i].track_read_pos % 2)
         {
-            uint8_t note = fields >> 4;
-            if (note >= 4)
-            {
-                // if necessary, update instrument[i].track_octave and song_transpose
-                chip_note(i, note-4, 240);
-                continue;
-            }
+            if (track_run_command(i, fields>>4))
+                goto read_next_command;
         }
         else
         {
-            uint8_t note = fields & 15;
-            if (note >= 4)
-            {
-                chip_note(i, note-4, 240);
-                continue;
-            }
+            if (track_run_command(i, fields&15))
+                goto read_next_command; 
         }
-        
-        ++instrument[i].track_read_pos;
     }
 
     #ifdef DEBUG_CHIPTUNE
@@ -421,7 +401,11 @@ static void chip_track_update()
     #endif
 
     if (++track_pos == track_length)
+    {
+        for (int i=0; i<4; ++i)
+            instrument[i].track_read_pos = 0;
         track_pos = 0;
+    }
 }
 
 static void chip_song_update()
@@ -638,7 +622,15 @@ void game_snd_buffer(uint16_t* buffer, int len)
     if (chip_play)
         chip_song_update();
     else if (chip_play_track)
-        chip_track_update();
+    {
+        if (song_wait) 
+            --song_wait;
+        else
+        {
+            song_wait = song_speed;
+            chip_track_update();
+        }
+    }
     // Even if song is not playing, update oscillators in case a "chip_note" gets called.
     chip_update();
     // Generate enough samples to fill the buffer.
