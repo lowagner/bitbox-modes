@@ -40,7 +40,7 @@ struct instrument
     uint8_t track_octave;
     uint8_t note; // actual note being played, chosen using cmd array and track_note:
     uint8_t track_note; // note supposed to be played
-    uint8_t previous_track_note; // previous note which was supposed to be played
+    uint8_t track_note_hold; // how long have you held track_note for
 
     uint8_t vibrato_depth;
     uint8_t track_vibrato_depth;

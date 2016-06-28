@@ -291,7 +291,6 @@ void verse_line()
                     font_render_line_doubled((uint8_t *)"A:stop", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
                     font_render_line_doubled((uint8_t *)"A:play", 12+3*9, internal_line, 65535, BG_COLOR*257);
-                verse_render_command(verse_color[verse_last_painted], 12+3*9+7*9, internal_line);
             }
             break;
         case 10:
@@ -503,16 +502,10 @@ void verse_controls()
             track_pos = 0;
             if (chip_play_track)
                 chip_play_track = 0;
-            else if (verse_track_pos == 0)
-            {
-                // play all tracks
-                for (int i=0; i<4; ++i)
-                    instrument[i].track_read_pos = 0;
-                chip_play_track = 1;
-            }
             else
             {
-                // play only this instrument track
+                // play this instrument track.
+                // after the repeat, all tracks will sound.
                 for (int i=0; i<instrument_i; ++i)
                     instrument[i].track_read_pos = 255;
                 instrument[instrument_i].track_read_pos = 0;

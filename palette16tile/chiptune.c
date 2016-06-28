@@ -275,8 +275,6 @@ void chip_switch()
 
 void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
 {
-    instrument[i].previous_track_note = instrument[i].track_note;
-    
     // now set some defaults and startup the command index
     if (instrument[i].is_drum)
     {
@@ -329,7 +327,7 @@ static int track_run_command(int i, uint8_t note)
     // return a 1 if you need to read in the next command.
     // return a 0 if the command is finished.
     #ifdef DEBUG_CHIPTUNE
-    message("cmd: %d |", note);
+    message("cmd: %d -> ", note);
     #endif
     if (note >= 4)
     {
@@ -340,26 +338,36 @@ static int track_run_command(int i, uint8_t note)
         if (!instrument[i].track_volume || instrument[i].track_note != note-4)
         {
             chip_note(i, note-4, 240);
+            instrument[i].track_note_hold = 1;
             #ifdef DEBUG_CHIPTUNE
             message("sound |");
             #endif
         }
-        #ifdef DEBUG_CHIPTUNE
         else
+        {
+            ++instrument[i].track_note_hold;
+            #ifdef DEBUG_CHIPTUNE
             message("hold |");
-        #endif
+            #endif
+        }
 
     }
     else switch (note)
     {
-        case 0:
+        case 0: // black
             instrument[i].track_volume = 0;
+            instrument[i].track_note_hold = 0;
             break;
-        case 1:
+        case 1: // gray
             break;
-        case 2:
+        case 2: // white
+            chip_note(i, instrument[i].track_note, 240);
+            instrument[i].track_note_hold = 1;
+            #ifdef DEBUG_CHIPTUNE
+            message("white repeat |");
+            #endif
             break;
-        case 3:
+        case 3: // pink
             break;
     }
     return 0;
@@ -378,11 +386,12 @@ static void chip_track_update()
             continue;
 
         read_next_command:
-
+        if (instrument[i].track_read_pos >= track_length)
+            continue;
         fields = chip_track[instrument[i].track_num][i][1+(instrument[i].track_read_pos++)/2];
 
         #ifdef DEBUG_CHIPTUNE
-        message("f: %d |", fields);
+        message("i: %d |", i);
         #endif
         if (instrument[i].track_read_pos % 2)
         {
@@ -403,7 +412,10 @@ static void chip_track_update()
     if (++track_pos == track_length)
     {
         for (int i=0; i<4; ++i)
+        {
             instrument[i].track_read_pos = 0;
+            // also reset chained control sequences
+        }
         track_pos = 0;
     }
 }
