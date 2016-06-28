@@ -178,7 +178,7 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
     }
 }
 
-void instrument_render_cmd(int i, int j, int y)
+void instrument_render_command(int i, int j, int y)
 {
     int x = 32;
     #ifdef EMULATOR
@@ -631,7 +631,7 @@ void instrument_line()
     case 2:
     {
         show_instrument = 1; 
-        instrument_render_cmd(instrument_i, line-2, internal_line);
+        instrument_render_command(instrument_i, line-2, internal_line);
         // command
         uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[instrument_j], ':', 0 };
         font_render_line_doubled(msg, 96, internal_line, 65535, BG_COLOR*257);
@@ -641,7 +641,7 @@ void instrument_line()
         if (instrument[instrument_i].is_drum || show_instrument)
         {
             show_instrument = 1; 
-            instrument_render_cmd(instrument_i, line-2, internal_line);
+            instrument_render_command(instrument_i, line-2, internal_line);
         }
         break;
     case 18:
@@ -791,7 +791,7 @@ void instrument_line()
     default:
       maybe_show_instrument:
         if (show_instrument)
-            instrument_render_cmd(instrument_i, line-2, internal_line);
+            instrument_render_command(instrument_i, line-2, internal_line);
         break; 
     }
 }

@@ -13,7 +13,9 @@
 #define MAX_NOTE 84
 #define CHANNELS 4
 
-extern uint8_t chip_play_song;
+extern uint8_t chip_play;
+extern uint8_t chip_play_track;
+extern uint8_t chip_repeat;
 
 struct instrument 
 {
@@ -71,7 +73,7 @@ extern uint8_t chip_track[16][4][1 + MAX_TRACK_LENGTH/2];
 extern uint8_t track_pos;
 extern uint8_t track_length;
 
-extern uint8_t song_transpose;
+extern int8_t song_transpose;
 extern uint8_t song_length;
 extern uint8_t song_speed;
 extern uint8_t song_pos;

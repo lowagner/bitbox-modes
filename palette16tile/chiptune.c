@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 uint8_t chip_play CCM_MEMORY;
+uint8_t chip_play_track CCM_MEMORY;
 uint8_t chip_repeat CCM_MEMORY;
 
 /* 
@@ -380,6 +381,49 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
         --instrument[i].track_emphasis;
 }
 
+static void chip_track_update()
+{
+    #ifdef DEBUG_CHIPTUNE
+    message ("%d |", track_pos);
+    #endif
+
+    for (int i=0; i<4; ++i) 
+    {
+        if (instrument[i].track_read_pos > track_pos)
+            continue;
+
+        uint8_t fields = chip_track[instrument[i].track_num][i][1+instrument[i].track_read_pos/2];
+        if (instrument[i].track_read_pos % 2)
+        {
+            uint8_t note = fields >> 4;
+            if (note >= 4)
+            {
+                // if necessary, update instrument[i].track_octave and song_transpose
+                chip_note(i, note-4, 240);
+                continue;
+            }
+        }
+        else
+        {
+            uint8_t note = fields & 15;
+            if (note >= 4)
+            {
+                chip_note(i, note-4, 240);
+                continue;
+            }
+        }
+        
+        ++instrument[i].track_read_pos;
+    }
+
+    #ifdef DEBUG_CHIPTUNE
+    message("\n");
+    #endif
+
+    if (++track_pos == track_length)
+        track_pos = 0;
+}
+
 static void chip_song_update()
 // this shall be called each 1/60 sec, but only if chip_play is true.
 // one buffer is 512 samples @32kHz, which is ~ 62.5 Hz,
@@ -419,45 +463,8 @@ static void chip_song_update()
         
         song_pos++;
     }
-
-    #ifdef DEBUG_CHIPTUNE
-    message ("%d |", track_pos);
-    #endif
-
-    for (int i=0; i<4; ++i) 
-    {
-        if (instrument[i].track_read_pos > track_pos)
-            continue;
-
-        uint8_t fields = chip_track[instrument[i].track_num][i][1+instrument[i].track_read_pos/2];
-        if (instrument[i].track_read_pos % 2)
-        {
-            uint8_t note = fields >> 4;
-            if (note >= 4)
-            {
-                // if necessary, update instrument[i].track_octave and song_transpose
-                chip_note(i, note-4, 240);
-                continue;
-            }
-        }
-        else
-        {
-            uint8_t note = fields & 15;
-            if (note >= 4)
-            {
-                chip_note(i, note-4, 240);
-                continue;
-            }
-        }
-        
-        ++instrument[i].track_read_pos;
-    }
-    #ifdef DEBUG_CHIPTUNE
-    message("\n");
-    #endif
-
-    if (++track_pos == track_length)
-        track_pos = 0;
+    
+    chip_track_update();
 }
 
 static void chip_update()
@@ -630,6 +637,8 @@ void game_snd_buffer(uint16_t* buffer, int len)
 {
     if (chip_play)
         chip_song_update();
+    else if (chip_play_track)
+        chip_track_update();
     // Even if song is not playing, update oscillators in case a "chip_note" gets called.
     chip_update();
     // Generate enough samples to fill the buffer.
