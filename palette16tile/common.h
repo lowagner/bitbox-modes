@@ -35,8 +35,9 @@ typedef enum {
     EditTileOrSprite,
     EditTileOrSpriteProperties,
     EditPalette,
-    EditInstrument,
+    EditAnthem,
     EditVerse,
+    EditInstrument,
     SaveLoadScreen,
     ChooseFilename
 } VisualMode;

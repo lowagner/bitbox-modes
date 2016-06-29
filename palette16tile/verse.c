@@ -57,7 +57,7 @@ void verse_reset()
     track_length = MAX_TRACK_LENGTH;
 }
 
-void verse_render_command(uint8_t value, int x, int y)
+void render_command(uint8_t value, int x, int y)
 {
     value &= 15;
     uint32_t *dst = (uint32_t *)draw_buffer + x/2;
@@ -279,7 +279,7 @@ void verse_line()
         case 9:
             if (verse_menu_not_edit)
             {
-                if (verse_copying < 64)
+                if (verse_copying < 16)
                     font_render_line_doubled((uint8_t *)"A:cancel copy", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
                     font_render_line_doubled((uint8_t *)"A:save to file", 12+3*9, internal_line, 65535, BG_COLOR*257);
@@ -295,7 +295,7 @@ void verse_line()
         case 10:
             if (verse_menu_not_edit)
             {
-                if (verse_copying < 64)
+                if (verse_copying < 16)
                     font_render_line_doubled((uint8_t *)"X:  \"     \"", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
                     font_render_line_doubled((uint8_t *)"X:load from file", 12+3*9, internal_line, 65535, BG_COLOR*257);
@@ -306,7 +306,7 @@ void verse_line()
         case 11:
             if (verse_menu_not_edit)
             {
-                if (verse_copying < 64)
+                if (verse_copying < 16)
                     font_render_line_doubled((uint8_t *)"B:  \"     \"", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
                     font_render_line_doubled((uint8_t *)"B:copy", 12+3*9, internal_line, 65535, BG_COLOR*257);
@@ -314,20 +314,20 @@ void verse_line()
             else
             {
                 font_render_line_doubled((uint8_t *)"B:put", 12+3*9, internal_line, 65535, BG_COLOR*257);
-                verse_render_command(verse_color[1], 12+3*9+6*9, internal_line);
+                render_command(verse_color[1], 12+3*9+6*9, internal_line);
                 if (verse_last_painted)
                 {
                     font_render_line_doubled((uint8_t *)"L:", 150, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[1]-1, 150+2*9, internal_line);
+                    render_command(verse_color[1]-1, 150+2*9, internal_line);
                     font_render_line_doubled((uint8_t *)"R:", 200, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[1]+1, 200+2*9, internal_line);
+                    render_command(verse_color[1]+1, 200+2*9, internal_line);
                 }
             }
             break;
         case 12:
             if (verse_menu_not_edit)
             {
-                if (verse_copying < 64)
+                if (verse_copying < 16)
                     font_render_line_doubled((uint8_t *)"Y:paste", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
                 {
@@ -339,16 +339,20 @@ void verse_line()
             else
             {
                 font_render_line_doubled((uint8_t *)"Y:put", 12+3*9, internal_line, 65535, BG_COLOR*257);
-                verse_render_command(verse_color[0], 12+3*9+6*9, internal_line);
+                render_command(verse_color[0], 12+3*9+6*9, internal_line);
                 if (!verse_last_painted)
                 {
                     font_render_line_doubled((uint8_t *)"L:", 150, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[0]-1, 150+2*9, internal_line);
+                    render_command(verse_color[0]-1, 150+2*9, internal_line);
                     font_render_line_doubled((uint8_t *)"R:", 200, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[0]+1, 200+2*9, internal_line);
+                    render_command(verse_color[0]+1, 200+2*9, internal_line);
                 }
             }
             break;
+        case 15:
+            font_render_line_doubled(game_message, 12, internal_line, 65535, BG_COLOR*257);
+            break;
+            
     }
 }
 
@@ -378,22 +382,6 @@ void verse_track_paint(uint8_t pos, uint8_t p)
 
 void verse_controls()
 {
-    if (GAMEPAD_PRESS(0, start))
-    {
-        game_message[0] = 0;
-        verse_menu_not_edit = 1 - verse_menu_not_edit; 
-        if (verse_menu_not_edit)
-            verse_track_pos = 0;
-        else
-            verse_track_pos = 1;
-        verse_track_offset = 1;
-        verse_copying = 128;
-        for (int i=0; i<4; ++i)
-            instrument[i].track_volume = 0;
-        chip_play_track = 0;
-        return;
-    }
-
     int movement = 0;
     if (GAMEPAD_PRESSING(0, down))
     {
@@ -425,13 +413,29 @@ void verse_controls()
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;
         }
-
-        if (GAMEPAD_PRESS(0, X))
-        { 
-        }
+        
+        int save_or_load = 0;
         if (GAMEPAD_PRESS(0, A))
+            save_or_load = 1; // save
+        if (GAMEPAD_PRESS(0, X))
+            save_or_load = 2; // load
+        if (save_or_load)
         {
-        } 
+            if (verse_copying < 16)
+            {
+                // cancel a copy 
+                verse_copying = 16;
+                return;
+            }
+
+            FileError error = BotchedIt;
+            if (save_or_load == 1)
+                error = io_save_verse(verse_track);
+            else
+                error = io_load_verse(verse_track);
+            io_message_from_error(game_message, error, save_or_load);
+            return;
+        }
         if (GAMEPAD_PRESS(0, L))
         {
         }
@@ -449,8 +453,7 @@ void verse_controls()
     {
         if (GAMEPAD_PRESSING(0, left))
         {
-            --verse_track_pos;
-            if (verse_track_pos == 0)
+            if (--verse_track_pos == 0)
             {
                 verse_track_pos = track_length;
                 verse_track_offset = verse_track_pos - 15; 
@@ -463,8 +466,7 @@ void verse_controls()
         }
         if (GAMEPAD_PRESSING(0, right))
         {
-            ++verse_track_pos;
-            if (verse_track_pos > track_length)
+            if (++verse_track_pos > track_length)
             {
                 verse_track_pos = 1;
                 verse_track_offset = 1;
@@ -529,11 +531,27 @@ void verse_controls()
         }
     }
     
+    if (GAMEPAD_PRESS(0, start))
+    {
+        game_message[0] = 0;
+        verse_menu_not_edit = 1 - verse_menu_not_edit; 
+        if (verse_menu_not_edit)
+            verse_track_pos = 0;
+        else
+            verse_track_pos = 1;
+        verse_track_offset = 1;
+        verse_copying = 16;
+        for (int i=0; i<4; ++i)
+            instrument[i].track_volume = 0;
+        chip_play_track = 0;
+        return;
+    }
+
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
         previous_visual_mode = None;
-        game_switch(SaveLoadScreen);
+        game_switch(EditAnthem);
         return;
     } 
 }

@@ -71,6 +71,7 @@ struct instrument
 
 extern struct instrument instrument[CHANNELS];
 extern uint8_t chip_track[16][4][1 + MAX_TRACK_LENGTH/2]; 
+extern uint16_t chip_song[MAX_SONG_LENGTH]; // a nibble for the track to play for each channel
 
 extern uint8_t track_pos;
 extern uint8_t track_length;

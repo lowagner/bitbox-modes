@@ -4,6 +4,7 @@
 #include "chiptune.h"
 #include "instrument.h"
 #include "verse.h"
+#include "anthem.h"
 #include "tiles.h"
 #include "edit.h"
 #include "edit2.h"
@@ -59,6 +60,7 @@ void game_init()
         tiles_reset();
         map_reset();
         sprites_reset();
+        anthem_reset();
         verse_reset();
         instrument_reset();
     }
@@ -85,6 +87,10 @@ void game_init()
             sprites_reset();
         }
         //
+        {
+            anthem_reset();
+        }
+        if (io_load_verse(16))
         {
             verse_reset();
         }
@@ -121,6 +127,9 @@ void game_frame()
     case ChooseFilename:
         name_controls();
         break;
+    case EditAnthem:
+        anthem_controls();
+        break;
     case EditVerse:
         verse_controls();
         break;
@@ -128,6 +137,8 @@ void game_frame()
         instrument_controls();
         break;
     default:
+        if (GAMEPAD_PRESS(0, select))
+            game_switch(SaveLoadScreen);
         break;
     }
     
@@ -180,6 +191,9 @@ void graph_line()
             break;
         case ChooseFilename:
             name_line();
+            break;
+        case EditAnthem:
+            anthem_line();
             break;
         case EditVerse:
             verse_line();
