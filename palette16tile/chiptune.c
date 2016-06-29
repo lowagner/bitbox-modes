@@ -268,6 +268,7 @@ inline static void reset_instrument(int i)
     instrument[i].track_vibrato_rate = 0;
     instrument[i].track_vibrato_depth = 0;
     instrument[i].track_emphasis = 0;
+    instrument[i].track_octave = instrument[i].initial_octave;
 }
 
 void chip_play_init(int pos) 
