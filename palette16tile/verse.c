@@ -179,10 +179,10 @@ void verse_line()
                 {
                     // this is normal unpacking of nibbles, 
                     // since verse_track_offset should be 1 for the start of the track values.
+                    uint8_t *value = &chip_track[verse_track][i][verse_track_offset/2];
                     for (int j=0; j<8; ++j)
                     {
-                        uint8_t value = chip_track[verse_track][i][1+j+verse_track_offset/2];
-                        uint8_t command = value&15;
+                        uint8_t command = (*(++value))&15;
                         uint8_t row = (font[hex[command]] >> y) & 15;
                         uint32_t color_choice[2];
                         color_choice[0] = palette[command] | (palette[command]<<16);
@@ -198,7 +198,7 @@ void verse_line()
                         *(++dst) = color_choice[0];
                         *(++dst) = color_choice[0];
 
-                        command = value>>4;
+                        command = (*value)>>4;
                         row = (font[hex[command]] >> y) & 15;
                         color_choice[0] = palette[command] | (palette[command]<<16);
                         color_choice[1] = ~color_choice[0];
@@ -216,10 +216,10 @@ void verse_line()
                 else
                 {
                     // this is offset unpacking of nibbles.
-                    uint8_t value = chip_track[verse_track][i][1+verse_track_offset/2];
+                    uint8_t *value = &chip_track[verse_track][i][verse_track_offset/2];
                     for (int j=0; j<8; ++j)
                     {
-                        uint8_t command = value>>4;
+                        uint8_t command = (*value)>>4;
                         uint8_t row = (font[hex[command]] >> y) & 15;
                         uint32_t color_choice[2];
                         color_choice[0] = palette[command] | (palette[command]<<16);
@@ -235,8 +235,7 @@ void verse_line()
                         *(++dst) = color_choice[0];
                         *(++dst) = color_choice[0];
     
-                        value = chip_track[verse_track][i][2+j+verse_track_offset/2];
-                        command = value&15;
+                        command = (*(++value))&15;
                         row = (font[hex[command]] >> y) & 15;
                         color_choice[0] = palette[command] | (palette[command]<<16);
                         color_choice[1] = ~color_choice[0];
@@ -470,7 +469,7 @@ void verse_controls()
                 verse_track_pos = 1;
                 verse_track_offset = 1;
             }
-            else if (verse_track_pos >= verse_track_offset+16)
+            else if (verse_track_pos > verse_track_offset+15)
             {
                 verse_track_offset = verse_track_pos - 15;
             }

@@ -439,13 +439,22 @@ static void chip_track_update()
             continue;
 
         read_next_command:
-        if (instrument[i].track_read_pos >= 2*track_length)
+        if (instrument[i].track_read_pos < track_length)
         {
-            message("can't read past a second track.\n");
-            reset_instrument(i);
-            continue;
+            fields = chip_track[instrument[i].track_num][i]
+                [1+(instrument[i].track_read_pos)/2];
+            if (instrument[i].track_read_pos++ % 2)
+            {
+                if (track_run_command(i, fields>>4))
+                    goto read_next_command;
+            }
+            else
+            {
+                if (track_run_command(i, fields&15))
+                    goto read_next_command; 
+            }
         }
-        else if (instrument[i].track_read_pos >= track_length)
+        else if (instrument[i].track_read_pos < 2*track_length)
         {
             fields = chip_track[instrument[i].next_track_num][i]
                 [1+(instrument[i].track_read_pos - track_length)/2];
@@ -462,18 +471,10 @@ static void chip_track_update()
         }
         else
         {
-            fields = chip_track[instrument[i].track_num][i]
-                [1+(instrument[i].track_read_pos)/2];
-            if (instrument[i].track_read_pos++ % 2)
-            {
-                if (track_run_command(i, fields>>4))
-                    goto read_next_command;
-            }
-            else
-            {
-                if (track_run_command(i, fields&15))
-                    goto read_next_command; 
-            }
+            message("can't read past a second track.\n");
+            instrument[i].track_read_pos = track_length;
+            reset_instrument(i);
+            continue;
         }
     }
 

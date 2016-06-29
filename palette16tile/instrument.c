@@ -328,8 +328,8 @@ void instrument_render_command(int i, int j, int y)
             if (param >= 12)
                 color_choice[1] = RGB(150,150,255)|(65535<<16);
             param %= 12;
-            cmd = note_name[4+param][0];
-            param = note_name[4+param][1];
+            cmd = note_name[param][0];
+            param = note_name[param][1];
             break;
         case RANDOMIZE:
             cmd = 'R';

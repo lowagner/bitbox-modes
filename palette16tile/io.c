@@ -715,7 +715,8 @@ FileError io_load_instrument(unsigned int i)
     {
         for (i=0; i<4; ++i)
         {
-            fat_result = f_read(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+            uint8_t read;
+            fat_result = f_read(&fat_file, &read, 1, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
@@ -726,6 +727,8 @@ FileError io_load_instrument(unsigned int i)
                 f_close(&fat_file);
                 return MissingDataError;
             }
+            instrument[i].is_drum = read&15;
+            instrument[i].initial_octave = read >> 4;
             fat_result = f_read(&fat_file, &instrument[i].cmd[0], MAX_INSTRUMENT_LENGTH, &bytes_get);
             if (fat_result != FR_OK)
             {
@@ -788,7 +791,8 @@ FileError io_save_instrument(unsigned int i)
         for (i=0; i<4; ++i)
         {
             UINT bytes_get; 
-            fat_result = f_write(&fat_file, &instrument[i].is_drum, 1, &bytes_get);
+            uint8_t write = (instrument[i].is_drum ? 1 : 0) | (instrument[i].initial_octave << 4);
+            fat_result = f_write(&fat_file, &write, 1, &bytes_get);
             if (fat_result != FR_OK)
             {
                 f_close(&fat_file);
