@@ -255,21 +255,55 @@ void chip_reset()
 {
     song_length = 16;
     track_length = 32;
-
+    song_speed = 8;
 }
 
-void chip_switch() 
+inline static void reset_instrument(int i)
+{
+    instrument[i].track_state = 0;
+    instrument[i].track_note_hold = 0;
+    instrument[i].track_state_counter = 0;
+    instrument[i].track_volume = 0;
+    instrument[i].track_volumed = 0;
+    instrument[i].track_vibrato_rate = 0;
+    instrument[i].track_vibrato_depth = 0;
+    instrument[i].track_emphasis = 0;
+}
+
+void chip_play_init(int pos) 
 {
     song_wait = 0;
     track_pos = 0;
     chip_play = 1;
-    song_pos = 0;
-    song_speed = 8; // default speed
-
-    for (int i=0; i<4; i++) 
+    song_pos = pos%MAX_SONG_LENGTH;
+    
+    for (int i=0; i<4; ++i)
     {
-        instrument[i].volume = 0;
-        instrument[i].bitcrush = 5;
+        instrument[i].track_read_pos = 0;
+        reset_instrument(i);
+    }
+
+    uint16_t tracks = chip_song[song_pos];
+    instrument[0].next_track_num = tracks & 15;
+    instrument[1].next_track_num = (tracks >> 4) & 15;
+    instrument[2].next_track_num = (tracks >> 8) & 15;
+    instrument[3].next_track_num = tracks >> 12;
+}
+
+void chip_play_track_init(int track)
+{
+    song_wait = 0;
+    track_pos = 0;
+    chip_play = 0;
+    chip_play_track = 1;
+   
+    track &= 15;
+    for (int i=0; i<4; ++i)
+    {
+        instrument[i].track_read_pos = 0;
+        reset_instrument(i);
+        instrument[i].next_track_num = track;
+        instrument[i].track_num = track;
     }
 }
 
@@ -340,14 +374,14 @@ static int track_run_command(int i, uint8_t note)
             chip_note(i, note-4, 240);
             instrument[i].track_note_hold = 1;
             #ifdef DEBUG_CHIPTUNE
-            message("sound |");
+            message("sound");
             #endif
         }
         else
         {
             ++instrument[i].track_note_hold;
             #ifdef DEBUG_CHIPTUNE
-            message("hold |");
+            message("hold");
             #endif
         }
 
@@ -355,16 +389,32 @@ static int track_run_command(int i, uint8_t note)
     else switch (note)
     {
         case 0: // black
-            instrument[i].track_volume = 0;
-            instrument[i].track_note_hold = 0;
+            reset_instrument(i);
+            #ifdef DEBUG_CHIPTUNE
+            message("black off");
+            #endif
             break;
         case 1: // gray
+            if (instrument[i].track_volume)
+            {
+                if (!instrument[i].track_note_hold)
+                {
+                    message("unexpected that track_note_hold was zero here\n");
+                    break;
+                }
+                instrument[i].track_volumed = -240/(song_wait*instrument[i].track_note_hold);
+                if (instrument[i].track_volumed == 0)
+                    instrument[i].track_volumed = -1;
+                #ifdef DEBUG_CHIPTUNE
+                message("gray fade out");
+                #endif
+            }
             break;
         case 2: // white
             chip_note(i, instrument[i].track_note, 240);
             instrument[i].track_note_hold = 1;
             #ifdef DEBUG_CHIPTUNE
-            message("white repeat |");
+            message("white repeat");
             #endif
             break;
         case 3: // pink
@@ -376,32 +426,54 @@ static int track_run_command(int i, uint8_t note)
 static void chip_track_update()
 {
     #ifdef DEBUG_CHIPTUNE
-    message("%d |", track_pos);
+    message("%02d", track_pos);
     #endif
 
     uint8_t fields;
     for (int i=0; i<4; ++i) 
     {
+        #ifdef DEBUG_CHIPTUNE
+        message(" | i: %d (%02d/%02d) ", i, instrument[i].track_read_pos, track_pos);
+        #endif
         if (instrument[i].track_read_pos > track_pos)
             continue;
 
         read_next_command:
-        if (instrument[i].track_read_pos >= track_length)
-            continue;
-        fields = chip_track[instrument[i].track_num][i][1+(instrument[i].track_read_pos++)/2];
-
-        #ifdef DEBUG_CHIPTUNE
-        message("i: %d |", i);
-        #endif
-        if (instrument[i].track_read_pos % 2)
+        if (instrument[i].track_read_pos >= 2*track_length)
         {
-            if (track_run_command(i, fields>>4))
-                goto read_next_command;
+            message("can't read past a second track.\n");
+            reset_instrument(i);
+            continue;
+        }
+        else if (instrument[i].track_read_pos >= track_length)
+        {
+            fields = chip_track[instrument[i].next_track_num][i]
+                [1+(instrument[i].track_read_pos - track_length)/2];
+            if ((instrument[i].track_read_pos++ - track_length) % 2)
+            {
+                if (track_run_command(i, fields>>4))
+                    goto read_next_command;
+            }
+            else
+            {
+                if (track_run_command(i, fields&15))
+                    goto read_next_command; 
+            }
         }
         else
         {
-            if (track_run_command(i, fields&15))
-                goto read_next_command; 
+            fields = chip_track[instrument[i].track_num][i]
+                [1+(instrument[i].track_read_pos)/2];
+            if (instrument[i].track_read_pos++ % 2)
+            {
+                if (track_run_command(i, fields>>4))
+                    goto read_next_command;
+            }
+            else
+            {
+                if (track_run_command(i, fields&15))
+                    goto read_next_command; 
+            }
         }
     }
 
@@ -413,8 +485,11 @@ static void chip_track_update()
     {
         for (int i=0; i<4; ++i)
         {
-            instrument[i].track_read_pos = 0;
-            // also reset chained control sequences
+            instrument[i].track_read_pos -= track_length;
+            #ifdef DEBUG_CHIPTUNE
+            message("switching %d track read pos to %d\n", i, instrument[i].track_read_pos);
+            #endif
+            instrument[i].track_num = instrument[i].next_track_num;
         }
         track_pos = 0;
     }
@@ -447,17 +522,13 @@ static void chip_song_update()
         #ifdef DEBUG_CHIPTUNE
         message("Now at position %d of song\n", song_pos);
         #endif
-        
+       
+        song_pos = (song_pos+1)%song_length;
         uint16_t tracks = chip_song[song_pos];
-        instrument[0].track_num = tracks & 15;
-        instrument[1].track_num = (tracks >> 4) & 15;
-        instrument[2].track_num = (tracks >> 8) & 15;
-        instrument[3].track_num = tracks >> 12;
-
-        for (int i=0; i<4; ++i)
-            instrument[i].track_read_pos = 0;
-        
-        song_pos++;
+        instrument[0].next_track_num = tracks & 15;
+        instrument[1].next_track_num = (tracks >> 4) & 15;
+        instrument[2].next_track_num = (tracks >> 8) & 15;
+        instrument[3].next_track_num = tracks >> 12;
     }
     
     chip_track_update();
@@ -522,8 +593,16 @@ static void chip_update()
         instrument[i].volume = vol;
         
         vol = instrument[i].track_volume + instrument[i].track_volumed;
-        if (vol < 0) vol = 0;
-        if (vol > 240) vol = 240;
+        if (vol < 0) 
+        {
+            vol = 0;
+            instrument[i].track_volumed *= -1;
+        }
+        if (vol > 240) 
+        {
+            vol = 240;
+            instrument[i].track_volumed *= -1;
+        }
         instrument[i].track_volume = vol;
 
         // not sure if it's necessary to check duty, but we can put it back if necessary.

@@ -344,9 +344,9 @@ void verse_line()
                 if (!verse_last_painted)
                 {
                     font_render_line_doubled((uint8_t *)"L:", 150, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[1]-1, 150+2*9, internal_line);
+                    verse_render_command(verse_color[0]-1, 150+2*9, internal_line);
                     font_render_line_doubled((uint8_t *)"R:", 200, internal_line, 65535, BG_COLOR*257);
-                    verse_render_command(verse_color[1]+1, 200+2*9, internal_line);
+                    verse_render_command(verse_color[0]+1, 200+2*9, internal_line);
                 }
             }
             break;
@@ -501,17 +501,21 @@ void verse_controls()
         {
             track_pos = 0;
             if (chip_play_track)
+            {
                 chip_play_track = 0;
+                for (int i=0; i<4; ++i)
+                    instrument[i].track_volume = 0;
+            }
             else
             {
                 // play this instrument track.
                 // after the repeat, all tracks will sound.
+                chip_play_track_init(verse_track);
+                // avoid playing other instruments for now:
                 for (int i=0; i<instrument_i; ++i)
-                    instrument[i].track_read_pos = 255;
-                instrument[instrument_i].track_read_pos = 0;
+                    instrument[i].track_read_pos = track_length;
                 for (int i=instrument_i+1; i<4; ++i)
-                    instrument[i].track_read_pos = 255;
-                chip_play_track = 1;
+                    instrument[i].track_read_pos = track_length;
             }
         } 
         if (movement)

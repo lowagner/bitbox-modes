@@ -73,12 +73,18 @@ music editing
                         as described below. (also it shouldn't be possible to do that anyway.)
                     also, read index increments to after pink, so that pink won't act again.
                 elif gray then gray then pink:
-                    toggle major/minor.  this only has an effect if a track is labeled in a key. 
+                    toggle GLOBAL major/minor.  this only has an effect if a track is labeled in a key. 
                 elif 2+X grays then pink:
                     (where X >= 1)
                     do not play the next X notes that you encounter.
+                    or possibly randomize the next X notes (within the given key)
 
             3 (pink) - control/command
+                if color then pink then same color:
+                    toggle vibrato
+                elif color then pink then a different color:
+                    toggle inertia
+
                 for pink to act as the beginning of one of the following control statements, 
                 it must come after a white or a black,
                 or a gray which was fading out something.  

@@ -19,52 +19,54 @@ extern uint8_t chip_repeat;
 
 struct instrument 
 {
-    // properties related to things you can change from song
-    uint8_t track_num;
-    uint8_t track_read_pos; // because of control notes, you can be a bit ahead of the actual track_pos
+    uint8_t is_drum;
+    uint8_t side; // 0 = no sound, 1 = left side, 2 = right side, 3 = left and right side
+    uint8_t wait;
+    uint8_t cmd_index;
 
     // commands which create the instrument sound
     // stuff in the cmd array can be modified externally.
     uint8_t cmd[MAX_INSTRUMENT_LENGTH];
-    uint8_t cmd_index;
-    uint8_t is_drum;
     
     // properties specific to the instrument (set/modified using cmd array above)
     // and properties which can be set by the track (prefixed by `track_`).
-    uint8_t wait;
-
-    uint8_t track_sounding; // whether playing a note or not
-    uint8_t side; // 0 = no sound, 1 = left side, 2 = right side, 3 = left and right side
-
+    uint8_t track_num;
+    uint8_t track_read_pos; // because of control notes, you can be a bit ahead of the actual track_pos
+    uint8_t next_track_num;
     uint8_t initial_octave;
+    
     uint8_t track_octave;
     uint8_t note; // actual note being played, chosen using cmd array and track_note:
     uint8_t track_note; // note supposed to be played
     uint8_t track_note_hold; // how long have you held track_note for
 
-    uint8_t vibrato_depth;
+    uint8_t track_state; //
+    uint8_t track_state_counter;
+    uint8_t track_vibrato_rate; 
     uint8_t track_vibrato_depth;
+
+    uint8_t vibrato_depth;
     uint8_t vibrato_rate;
-    uint8_t track_vibrato_rate;
     uint8_t vibrato_phase;
+    uint8_t track_emphasis; // +15 to track_volume, how many times to do this.
+
+    uint8_t track_volume; // 0-240
+    int8_t track_volumed;
+    uint8_t volume; // 0-255
+    int8_t volumed;
+    
+    uint8_t waveform; // waveform (from the enum above)
+    uint8_t bitcrush; // 0-f level of quantization (power of 2) 
+    uint16_t slur; // internally how we keep track of note with inertia
 
     int16_t inertia;
     int16_t track_inertia;
-    uint16_t slur; // internally how we keep track of note with inertia
-    
+
     uint16_t duty; // duty cycle (pulse wave only)
     uint16_t dutyd;
-    
-    uint8_t volume; // 0-255
-    uint8_t track_volume; // 0-240
-    uint8_t track_emphasis; // +15 to track_volume, how many times to do this.
-    int8_t volumed;
-    int8_t track_volumed;
-    
+
     uint16_t freq; // frequency (except for noise, unused)
     uint16_t phase; // phase (except for noise, unused)
-    uint8_t waveform; // waveform (from the enum above)
-    uint8_t bitcrush; // 0-f level of quantization (power of 2)
 };
 
 extern struct instrument instrument[CHANNELS];
@@ -80,7 +82,8 @@ extern uint8_t song_pos;
 
 void chip_init(); // initialize all variables at start of game (stuff that only happens once)
 void chip_reset(); // put in a random tune.
-void chip_switch(); // re-initialize current tune to start over.
+void chip_play_init(); // re-initialize current tune to start over.
+void chip_play_track_init(int track); // 
 
 // play a note of this instrument now - useful for FX !
 void chip_note(uint8_t ch, uint8_t note, uint8_t track_volume);
