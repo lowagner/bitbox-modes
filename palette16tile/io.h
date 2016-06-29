@@ -31,5 +31,7 @@ FileError io_save_instrument(unsigned int i);
 FileError io_load_instrument(unsigned int i);
 FileError io_save_verse(unsigned int i);
 FileError io_load_verse(unsigned int i);
+FileError io_save_anthem();
+FileError io_load_anthem();
 
 #endif

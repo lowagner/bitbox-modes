@@ -153,9 +153,9 @@ void edit_line()
             if (edit_sprite_not_tile)
             {
                 uint8_t text[] = {  
-                    's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
-                    ' ', 's', 'p', 'r', 'i', 't', 'e', ' ',
+                    's', 'p', 'r', 'i', 't', 'e', ' ',
                     hex[edit_sprite/8], '.', direction[(edit_sprite%8)/2], hex[(edit_sprite%8)%2],
+                    ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
                 uint8_t invisible = sprite_info[edit_sprite/8][edit_sprite%8]&31;
@@ -165,16 +165,16 @@ void edit_line()
             else if (previous_visual_mode)
             {
                 uint8_t text[] = { 
-                    's', 't', 'a', 'r', 't', ':', 'b', 'a', 'c', 'k',
-                    ' ', 't', 'i', 'l', 'e', ' ', hex[edit_tile], 
+                    't', 'i', 'l', 'e', ' ', hex[edit_tile], 
+                    ' ', ' ', ' ', 's', 't', 'a', 'r', 't', ':', 'b', 'a', 'c', 'k',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
             else
             {
                 uint8_t text[] = { 
-                    's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
-                    ' ', 't', 'i', 'l', 'e', ' ', hex[edit_tile], 
+                    't', 'i', 'l', 'e', ' ', hex[edit_tile], 
+                    ' ', ' ', ' ', 's', 't', 'a', 'r', 't', ':', 'm', 'e', 'n', 'u',
                     0 };
                 font_render_line_doubled(text, 16, line, 65535, 0);
             }
@@ -676,19 +676,6 @@ void edit_spot_fill(uint8_t p)
 void edit_controls()
 { 
     int make_wait = 0;
-    if (GAMEPAD_PRESSING(0, R))
-    {
-        game_message[0] = 0;
-        edit_color[edit_last_painted] = (edit_color[edit_last_painted] + 1)&15;
-        make_wait = 1;
-    }
-    else if (GAMEPAD_PRESSING(0, L))
-    {
-        game_message[0] = 0;
-        edit_color[edit_last_painted] = (edit_color[edit_last_painted] - 1)&15;
-        make_wait = 1;
-    }
-    
     if (GAMEPAD_PRESSING(0, A))
     {
         game_message[0] = 0;
@@ -714,6 +701,18 @@ void edit_controls()
         game_message[0] = 0;
         edit_spot_paint(1);
         paint_if_moved = 2;
+    }
+    
+    int switched = 0;
+    if (GAMEPAD_PRESSING(0, R))
+        ++switched;
+    if (GAMEPAD_PRESSING(0, L))
+        --switched;
+    if (switched)
+    {
+        game_message[0] = 0;
+        edit_color[edit_last_painted] = (edit_color[edit_last_painted] + switched)&15;
+        make_wait = 1;
     }
     
     int moved = 0;

@@ -606,7 +606,7 @@ void instrument_line()
             *dst++ = color;
             *dst++ = color;
             *dst++ = color;
-            *dst++ = color;     
+            *dst++ = color;
         }
         return;
     }
@@ -643,8 +643,6 @@ void instrument_line()
             show_instrument = 1; 
             instrument_render_command(instrument_i, line-2, internal_line);
         }
-        break;
-    case 18:
         break;
     case 19:
         font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
@@ -788,6 +786,9 @@ void instrument_line()
         else
             font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
         goto maybe_show_instrument;
+    case 18:
+        font_render_line_doubled((uint8_t *)"select:back to track", 96, internal_line, 65535, BG_COLOR*257);
+        break;
     default:
       maybe_show_instrument:
         if (show_instrument)

@@ -124,7 +124,7 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                     instrument[i].cmd[param] = SIDE | ((rand()%4)<<4);
                     break;
                 case WAVEFORM:
-                    instrument[i].cmd[param] = WAVEFORM | ((rand()%WF_VIOLET)<<4);
+                    instrument[i].cmd[param] = WAVEFORM | ((rand()%(WF_VIOLET+1))<<4);
                     break;
                 case VOLUME:
                     instrument[i].cmd[param] = VOLUME | ((rand()%16)<<4);

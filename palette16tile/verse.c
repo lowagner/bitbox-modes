@@ -10,7 +10,7 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
-#define BG_COLOR 164
+#define BG_COLOR 141
 #define BOX_COLOR (RGB(180, 200, 250)|(RGB(180, 200, 250)<<16))
 #define MATRIX_WING_COLOR (RGB(30, 20, 0) | (RGB(30, 20, 0)<<16))
 #define NUMBER_LINES 20
@@ -44,7 +44,6 @@ void key_name(uint8_t *name, uint8_t key)
 
 void verse_init()
 {
-    song_speed = 4;
     verse_track = 0;
     verse_track_pos = 1;
     verse_track_offset = 1;
@@ -54,7 +53,6 @@ void verse_init()
 
 void verse_reset()
 {
-    track_length = MAX_TRACK_LENGTH;
 }
 
 void render_command(uint8_t value, int x, int y)
@@ -309,7 +307,7 @@ void verse_line()
                 if (verse_copying < 16)
                     font_render_line_doubled((uint8_t *)"B:  \"     \"", 12+3*9, internal_line, 65535, BG_COLOR*257);
                 else
-                    font_render_line_doubled((uint8_t *)"B:copy", 12+3*9, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"B:copy lines", 12+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -349,32 +347,67 @@ void verse_line()
                 }
             }
             break;
+        case 14:
+            if (verse_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"start:edit track", 12, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"start:track menu", 12, internal_line, 65535, BG_COLOR*257);
+            break;
         case 15:
+            font_render_line_doubled((uint8_t *)"select:back to anthem", 12, internal_line, 65535, BG_COLOR*257);
+            break;
+        case 17:
+            render_command(verse_color[verse_last_painted], 12, internal_line);
+            switch (verse_color[verse_last_painted])
+            {
+                case 0:
+                    font_render_line_doubled((uint8_t *)":silence", 30, internal_line, 65535, BG_COLOR*257);
+                    break;
+                case 1:
+                    font_render_line_doubled((uint8_t *)":fade in/out", 30, internal_line, 65535, BG_COLOR*257);
+                    break;
+                case 2:
+                    font_render_line_doubled((uint8_t *)":repeat note", 30, internal_line, 65535, BG_COLOR*257);
+                    break;
+                case 3:
+                    font_render_line_doubled((uint8_t *)":control note", 30, internal_line, 65535, BG_COLOR*257);
+                    break;
+                default:
+                {
+                    uint8_t msg[12] = { ':', 'n', 'o', 't', 'e', ' ', 0, 0, 0 };
+                    key_name(msg+6, verse_color[verse_last_painted]-4);
+                    
+                    font_render_line_doubled(msg, 30, internal_line, 65535, BG_COLOR*257);
+                    break;
+                }
+            }
+            break;
+        case 19:
             font_render_line_doubled(game_message, 12, internal_line, 65535, BG_COLOR*257);
             break;
             
     }
 }
 
-uint8_t verse_track_color(uint8_t pos)
+uint8_t verse_track_color()
 {
-    if (pos == 0)
+    if (verse_track_pos == 0)
         message ("ERROR!  shouldn't get pos= 0 in verse_track_color\n");
-    uint8_t value = chip_track[verse_track][instrument_i][(pos+1)/2];
-    if (pos % 2) // note the following are switched because of the pos-1 offset.
+    uint8_t value = chip_track[verse_track][instrument_i][(verse_track_pos+1)/2];
+    if (verse_track_pos % 2) // note the following are switched because of the pos-1 offset.
         return value & 15;
     else
         return value >> 4;
 }
 
-void verse_track_paint(uint8_t pos, uint8_t p)
+void verse_track_paint(uint8_t p)
 {
-    if (pos == 0)
+    if (verse_track_pos == 0)
         message ("ERROR!  shouldn't get pos= 0 in verse_track_paint\n");
     verse_last_painted = p;
 
-    uint8_t *memory = &chip_track[verse_track][instrument_i][(pos+1)/2];
-    if (pos % 2) // note the following are switched because of the pos-1 offset.
+    uint8_t *memory = &chip_track[verse_track][instrument_i][(verse_track_pos+1)/2];
+    if (verse_track_pos % 2) // note the following are switched because of the pos-1 offset.
         *memory = (verse_color[p]) | ((*memory) & 240);
     else
         *memory = ((*memory)&15) | (verse_color[p]<<4);
@@ -382,20 +415,19 @@ void verse_track_paint(uint8_t pos, uint8_t p)
 
 void verse_controls()
 {
-    int movement = 0;
-    if (GAMEPAD_PRESSING(0, down))
-    {
-        instrument_i = (instrument_i+1)&3;
-        movement = 1;
-    }
-    if (GAMEPAD_PRESSING(0, up))
-    {
-        instrument_i = (instrument_i-1)&3;
-        movement = 1;
-    }
-
     if (verse_menu_not_edit)
     {
+        int movement = 0;
+        if (GAMEPAD_PRESSING(0, down))
+        {
+            instrument_i = (instrument_i+1)&3;
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, up))
+        {
+            instrument_i = (instrument_i-1)&3;
+            movement = 1;
+        }
         if (GAMEPAD_PRESSING(0, left))
         {
             if (--chip_track[verse_track][instrument_i][0] == 255)
@@ -425,6 +457,7 @@ void verse_controls()
             {
                 // cancel a copy 
                 verse_copying = 16;
+                game_message[0] = 0;
                 return;
             }
 
@@ -436,21 +469,91 @@ void verse_controls()
             io_message_from_error(game_message, error, save_or_load);
             return;
         }
-        if (GAMEPAD_PRESS(0, L))
+        int switched = 0;
+        if (GAMEPAD_PRESSING(0, L))
+            --switched;
+        if (GAMEPAD_PRESSING(0, R))
+            ++switched;
+        if (switched)
         {
+            verse_track = (verse_track+switched)&15;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            return;
         }
-        if (GAMEPAD_PRESS(0, R))
-        {
-        } 
         if (GAMEPAD_PRESS(0, Y))
         {
+            if (verse_copying < 16)
+            {
+                // paste
+                if (verse_copying == verse_track)
+                {
+                    verse_copying = 16;
+                    strcpy((char *)game_message, "pasting to same thing"); 
+                    return;
+                }
+                uint8_t *src, *dst;
+                src = &chip_track[verse_copying][0][0];
+                dst = &chip_track[verse_track][0][0];
+                memcpy(dst, src, sizeof(chip_track[0]));
+                strcpy((char *)game_message, "pasted."); 
+                verse_copying = 16;
+            }
+            else
+            {
+                // switch to choose name and hope to come back
+                game_message[0] = 0;
+                game_switch(ChooseFilename);
+                previous_visual_mode = EditVerse;
+            }
+            return;
         }
         if (GAMEPAD_PRESS(0, B))
         {
+            if (verse_copying < 16)
+            {
+                verse_copying = 16;
+                game_message[0] = 0;
+            }
+            else
+            {
+                verse_copying = verse_track;
+                strcpy((char *)game_message, "copied.");
+            }
         }
     }
     else // editing, not menu
     {
+        int paint_if_moved = 0;
+        if (GAMEPAD_PRESSING(0, Y))
+        {
+            verse_track_paint(0);
+            paint_if_moved = 1;
+        }
+        if (GAMEPAD_PRESSING(0, B))
+        {
+            verse_track_paint(1);
+            paint_if_moved = 2;
+        }
+
+        int switched = 0;
+        if (GAMEPAD_PRESSING(0, L))
+            --switched;
+        if (GAMEPAD_PRESSING(0, R))
+            ++switched;
+        if (switched)
+            verse_color[verse_last_painted] = (verse_color[verse_last_painted]+switched)&15;
+
+        int moved = 0;
+        if (GAMEPAD_PRESSING(0, down))
+        {
+            instrument_i = (instrument_i+1)&3;
+            moved = 1;
+        }
+        if (GAMEPAD_PRESSING(0, up))
+        {
+            instrument_i = (instrument_i-1)&3;
+            moved = 1;
+        }
         if (GAMEPAD_PRESSING(0, left))
         {
             if (--verse_track_pos == 0)
@@ -462,7 +565,7 @@ void verse_controls()
             {
                 verse_track_offset = verse_track_pos;
             }
-            movement = 1;
+            moved = 1;
         }
         if (GAMEPAD_PRESSING(0, right))
         {
@@ -475,29 +578,17 @@ void verse_controls()
             {
                 verse_track_offset = verse_track_pos - 15;
             }
-            movement = 1;
+            moved = 1;
         }
+        if (moved)
+        {
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            if (paint_if_moved)
+                verse_track_paint(paint_if_moved-1);
+        }
+        else if (switched || paint_if_moved)
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
 
-        if (GAMEPAD_PRESSING(0, Y))
-        {
-            verse_track_paint(verse_track_pos, 0);
-            movement = 1;
-        }
-        if (GAMEPAD_PRESSING(0, B))
-        {
-            verse_track_paint(verse_track_pos, 1);
-            movement = 1;
-        }
-        int switched = 0;
-        if (GAMEPAD_PRESSING(0, L))
-            --switched;
-        if (GAMEPAD_PRESSING(0, R))
-            ++switched;
-        if (switched)
-        {
-            verse_color[verse_last_painted] = (verse_color[verse_last_painted]+switched)&15;
-            movement = 1;
-        }
         if (GAMEPAD_PRESS(0, A))
         {
             track_pos = 0;
@@ -519,7 +610,7 @@ void verse_controls()
                     instrument[i].track_read_pos = track_length;
             }
         } 
-        if (movement)
+        if (moved)
         {
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;
@@ -549,6 +640,7 @@ void verse_controls()
 
     if (GAMEPAD_PRESS(0, select))
     {
+        verse_copying = 16;
         game_message[0] = 0;
         previous_visual_mode = None;
         game_switch(EditAnthem);

@@ -952,3 +952,97 @@ FileError io_save_verse(unsigned int i)
     f_close(&fat_file);
     return NoError;
 }
+
+FileError io_load_anthem()
+{
+    char filename[13];
+    if (io_set_extension(filename, "A16"))
+        return MountError; 
+
+    fat_result = f_open(&fat_file, filename, FA_READ | FA_OPEN_EXISTING); 
+    if (fat_result)
+        return OpenError;
+
+    uint8_t stuff[3];
+    UINT bytes_get; 
+    fat_result = f_read(&fat_file, &stuff[0], 3, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != 3)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    song_length = stuff[0];
+    song_speed = stuff[1];
+    track_length = stuff[2];
+
+    if (song_length < 16 || song_length > MAX_SONG_LENGTH || 
+        song_speed < 2 || song_speed > 100 ||
+        track_length < 16 || track_length > MAX_TRACK_LENGTH)
+    {
+        song_length = 16;
+        track_length = 16;
+        song_speed = 4;
+        f_close(&fat_file);
+        return ConstraintError;
+    }
+    
+    fat_result = f_read(&fat_file, &chip_song[0], 2*song_length, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != 2*song_length)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+
+    f_close(&fat_file);
+    return NoError;
+}
+
+FileError io_save_anthem()
+{
+    char filename[13];
+    if (io_set_extension(filename, "A16"))
+        return MountError; 
+
+    fat_result = f_open(&fat_file, filename, FA_WRITE | FA_CREATE_ALWAYS); 
+    if (fat_result)
+        return OpenError;
+
+    uint8_t stuff[] = { song_length, song_speed, track_length };
+    UINT bytes_get; 
+    fat_result = f_write(&fat_file, &stuff[0], 3, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != 3)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    
+    fat_result = f_write(&fat_file, &chip_song[0], 2*song_length, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != 2*song_length)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+
+    f_close(&fat_file);
+    return NoError;
+}

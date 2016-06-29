@@ -1,5 +1,6 @@
 #include "bitbox.h"
 #include "common.h"
+#include "chiptune.h"
 #include "sprites.h"
 #include "tiles.h"
 #include "edit.h"
@@ -33,6 +34,7 @@ void run_switch()
         tile_map_y = tile_map_height*16 - SCREEN_H;
     
     update_objects(); 
+    chip_play_init(0);
 }
 
 void run_line()

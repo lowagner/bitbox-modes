@@ -38,13 +38,9 @@ void game_init()
     tiles_init();
     sprites_init();
     palette_init();
+    anthem_init();
     verse_init();
     instrument_init();
-
-    // init game mode
-    visual_mode = GameOn;
-    previous_visual_mode = None;
-    old_visual_mode = None;
 
     // now load everything else
     if (io_get_recent_filename())
@@ -86,7 +82,7 @@ void game_init()
             // and so on...
             sprites_reset();
         }
-        //
+        if (io_load_anthem())
         {
             anthem_reset();
         }
@@ -99,6 +95,11 @@ void game_init()
             instrument_reset();
         }
     }
+
+    // init game mode
+    old_visual_mode = None;
+    previous_visual_mode = None;
+    game_switch(GameOn);
 }
 
 void game_frame()

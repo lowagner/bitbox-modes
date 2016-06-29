@@ -70,8 +70,11 @@ void save_line()
             case 4:
                 font_render_line_doubled((const uint8_t *)"palette in", 16, internal_line, 65535, SAVE_COLOR*257);
                 save_text_offset += 11*9;
-                break;
-                
+                break;        
+            case 5:
+                font_render_line_doubled((const uint8_t *)"music in", 16, internal_line, 65535, SAVE_COLOR*257);
+                save_text_offset += 11*9;
+                break;        
             }
             font_render_line_doubled((uint8_t *)base_filename, save_text_offset, internal_line, 65535, SAVE_COLOR*257);
             break;
@@ -162,6 +165,27 @@ void save_controls()
                 offset = 8;
                 break;
             }
+            error = (save_or_load == 1) ? io_save_anthem() : io_load_anthem();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "anthem ");
+                offset = 7;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_verse(16) : io_load_verse(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "verse ");
+                offset = 6;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_instrument(4) : io_load_instrument(4);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "instr. ");
+                offset = 7;
+                break;
+            }
             break;
         case 1:
             error = (save_or_load == 1) ? io_save_tile(16) : io_load_tile(16);
@@ -195,6 +219,28 @@ void save_controls()
                 offset = 8;
             }
             break;
+        case 5:
+            error = (save_or_load == 1) ? io_save_anthem() : io_load_anthem();
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "anthem ");
+                offset = 7;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_verse(16) : io_load_verse(16);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "verse ");
+                offset = 6;
+                break;
+            }
+            error = (save_or_load == 1) ? io_save_instrument(4) : io_load_instrument(4);
+            if (error != NoError)
+            {
+                strcpy((char *)game_message, "instr. ");
+                offset = 7;
+                break;
+            }
         }
       
         io_message_from_error(game_message+offset, error, save_or_load);
@@ -220,13 +266,13 @@ void save_controls()
         if (save_only)
             --save_only;
         else
-            save_only = 4;
+            save_only = 5;
         return;
     } 
     if (GAMEPAD_PRESS(0, R))
     {
         game_message[0] = 0;
-        if (save_only < 4)
+        if (save_only < 5)
             ++save_only; 
         else
             save_only = 0;

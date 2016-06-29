@@ -16,6 +16,7 @@
 #define MATRIX_WING_COLOR (RGB(30, 20, 0) | (RGB(30, 20, 0)<<16))
 #define NUMBER_LINES 20
 
+uint8_t anthem_cursor CCM_MEMORY;
 uint8_t anthem_menu_not_edit CCM_MEMORY;
 uint8_t anthem_song_pos CCM_MEMORY;
 uint8_t anthem_song_offset CCM_MEMORY;
@@ -24,17 +25,19 @@ uint8_t anthem_last_painted CCM_MEMORY;
 
 void anthem_init()
 {
+    anthem_cursor = 0;
     song_speed = 4;
-    track_length = MAX_TRACK_LENGTH;
-    anthem_color[1] = 1;
-    anthem_color[0] = 0;
+    track_length = 32;
+    anthem_color[1] = 0;
+    anthem_color[0] = 1;
 }
 
 void anthem_reset()
 {
+    anthem_cursor = 0;
     song_length = 16;
     song_speed = 4;
-    track_length = MAX_TRACK_LENGTH;
+    track_length = 32;
 }
 
 void anthem_line()
@@ -59,7 +62,23 @@ void anthem_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        if (line > 2 && line < 7)
+        if (line == 0) 
+        {
+            if (anthem_menu_not_edit)
+            {
+                uint32_t *dst = (uint32_t *)draw_buffer + 57 + anthem_cursor*41;
+                const uint32_t color = BOX_COLOR;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+                *(++dst) = color;
+            }
+        }
+        else if (line > 2 && line < 7)
         {
             if (line - 3 == instrument_i)
             {
@@ -99,7 +118,7 @@ void anthem_line()
                 ' ', 'X', '0' + anthem_song_pos/10, '0' + anthem_song_pos%10, '/',
                 '0' + song_length/10, '0' + song_length%10,
                 ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+song_speed/10, '0'+song_speed%10,
-                ' ', 'V', 'l', 'e', 'n', ' ', '0'+track_length/10, '0'+track_length%10,
+                ' ', 't', 'k', 'l', 'e', 'n', ' ', '0'+track_length/10, '0'+track_length%10,
             0 };
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -189,14 +208,14 @@ void anthem_line()
         }
         case 8:
             if (anthem_menu_not_edit)
-                font_render_line_doubled((uint8_t *)"dpad:adjust key", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"dpad:adjust song values", 16, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"dpad:move cursor", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 9:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"A:save to file", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"A:save song and instruments", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -209,15 +228,15 @@ void anthem_line()
         case 10:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"X:load from file", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:load anthem only from file", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
-                font_render_line_doubled((uint8_t *)"X:edit instrument", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:edit track under cursor", 16+3*9, internal_line, 65535, BG_COLOR*257);
             break;
         case 11:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"B:copy", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"B:save anthem only", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -259,18 +278,18 @@ void anthem_line()
     }
 }
 
-uint8_t anthem_song_color(uint8_t pos)
+uint8_t anthem_song_color()
 {
-    return (chip_song[pos] >> (instrument_i*4))&15;
+    return (chip_song[anthem_song_pos] >> (instrument_i*4))&15;
 }
 
-void anthem_song_paint(uint8_t pos, uint8_t p)
+void anthem_song_paint(uint8_t p)
 {
     anthem_last_painted = p;
 
-    uint16_t *memory = &chip_song[pos];
-    *memory &= ~(15*(instrument_i<<4)); // clear out current value there
-    *memory |= (anthem_color[p]*(instrument_i<<4)); // add this value
+    uint16_t *memory = &chip_song[anthem_song_pos];
+    *memory &= ~(15 << (instrument_i*4)); // clear out current value there
+    *memory |= (anthem_color[p] << (instrument_i*4)); // add this value
 }
 
 void anthem_controls()
@@ -280,14 +299,54 @@ void anthem_controls()
         int movement = 0;
         if (GAMEPAD_PRESSING(0, up))
         {
-            if (++song_speed > 100)
-                song_speed = 100;
+            game_message[0] = 0;
+            switch (anthem_cursor)
+            {
+                case 0:
+                    if (++song_length > MAX_SONG_LENGTH)
+                        song_length = MAX_SONG_LENGTH;
+                    break;
+                case 1:
+                    if (++song_speed > 100)
+                        song_speed = 100;
+                    break;
+                case 2:
+                    if (++track_length > MAX_TRACK_LENGTH)
+                        track_length = MAX_TRACK_LENGTH;
+                    break;
+            }
             movement = 1;
         }
         if (GAMEPAD_PRESSING(0, down))
         {
-            if (--song_speed < 2)
-                song_speed = 2;
+            game_message[0] = 0;
+            switch (anthem_cursor)
+            {
+                case 0:
+                    if (--song_length < 16)
+                        song_length = 16;
+                    break;
+                case 1:
+                    if (--song_speed < 2)
+                        song_speed = 2;
+                    break;
+                case 2:
+                    if (--track_length < 16)
+                        track_length = 16;
+                    break;
+            }
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, left))
+        {
+            if (--anthem_cursor == 255)
+                anthem_cursor = 2;
+            movement = 1;
+        }
+        if (GAMEPAD_PRESSING(0, right))
+        {
+            if (++anthem_cursor > 2)
+                anthem_cursor = 0;
             movement = 1;
         }
         if (movement)
@@ -303,12 +362,43 @@ void anthem_controls()
             save_or_load = 2; // load
         if (save_or_load)
         {
-            //FileError error = BotchedIt;
-            //if (save_or_load == 1)
-            //    error = io_save_anthem();
-            //else
-            //    error = io_load_anthem();
-            //io_message_from_error(game_message, error, save_or_load);
+            FileError error = BotchedIt;
+            if (save_or_load == 1)
+            {
+                error = io_save_anthem();
+                if (!error)
+                {
+                    error = io_save_verse(16);
+                    if (!error)
+                    {
+                        error = io_save_instrument(4);
+                        if (!error)
+                        {
+                            io_message_from_error(game_message, NoError, 1);
+                        }
+                        else
+                        {
+                            strcpy((char *)game_message, "instr. ");
+                            io_message_from_error(game_message+7, error, 1);
+                        }
+                    }
+                    else
+                    {
+                        strcpy((char *)game_message, "track ");
+                        io_message_from_error(game_message+6, error, 1);
+                    }
+                }
+                else
+                {
+                    strcpy((char *)game_message, "anthem ");
+                    io_message_from_error(game_message+7, error, 1);
+                }
+            }
+            else
+            {
+                error = io_load_anthem();
+                io_message_from_error(game_message, error, 2);
+            }
             return;
         }
         if (GAMEPAD_PRESS(0, L))
@@ -319,25 +409,53 @@ void anthem_controls()
         } 
         if (GAMEPAD_PRESS(0, Y))
         {
+            // switch to choose name and hope to come back
+            game_message[0] = 0;
+            game_switch(ChooseFilename);
+            previous_visual_mode = EditAnthem;
+            return;
         }
         if (GAMEPAD_PRESS(0, B))
         {
+            // save just anthem
+            FileError error = io_save_anthem();
+            io_message_from_error(game_message, error, 1);
+            return;
         }
     }
     else // editing, not menu
     {
-        int movement = 0;
+        int paint_if_moved = 0; 
+        if (GAMEPAD_PRESSING(0, Y))
+        {
+            anthem_song_paint(0);
+            paint_if_moved = 1;
+        }
+        if (GAMEPAD_PRESSING(0, B))
+        {
+            anthem_song_paint(1);
+            paint_if_moved = 2;
+        }
+
+        int switched = 0;
+        if (GAMEPAD_PRESSING(0, L))
+            --switched;
+        if (GAMEPAD_PRESSING(0, R))
+            ++switched;
+        if (switched)
+            anthem_color[anthem_last_painted] = (anthem_color[anthem_last_painted]+switched)&15;
+        
+        int moved = 0;
         if (GAMEPAD_PRESSING(0, down))
         {
             instrument_i = (instrument_i+1)&3;
-            movement = 1;
+            moved = 1;
         }
         if (GAMEPAD_PRESSING(0, up))
         {
             instrument_i = (instrument_i-1)&3;
-            movement = 1;
+            moved = 1;
         }
-
         if (GAMEPAD_PRESSING(0, left))
         {
             if (--anthem_song_pos >= song_length)
@@ -347,7 +465,7 @@ void anthem_controls()
             }
             else if (anthem_song_pos < anthem_song_offset)
                 anthem_song_offset = anthem_song_pos;
-            movement = 1;
+            moved = 1;
         }
         if (GAMEPAD_PRESSING(0, right))
         {
@@ -358,29 +476,17 @@ void anthem_controls()
             }
             else if (anthem_song_pos > anthem_song_offset+15)
                 anthem_song_offset = anthem_song_pos - 15;
-            movement = 1;
+            moved = 1;
         }
+        if (moved)
+        {
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            if (paint_if_moved)
+                anthem_song_paint(paint_if_moved-1);
+        }
+        else if (switched || paint_if_moved)
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
 
-        if (GAMEPAD_PRESSING(0, Y))
-        {
-            anthem_song_paint(anthem_song_pos, 0);
-            movement = 1;
-        }
-        if (GAMEPAD_PRESSING(0, B))
-        {
-            anthem_song_paint(anthem_song_pos, 1);
-            movement = 1;
-        }
-        int switched = 0;
-        if (GAMEPAD_PRESSING(0, L))
-            --switched;
-        if (GAMEPAD_PRESSING(0, R))
-            ++switched;
-        if (switched)
-        {
-            anthem_color[anthem_last_painted] = (anthem_color[anthem_last_painted]+switched)&15;
-            movement = 1;
-        }
         if (GAMEPAD_PRESS(0, A))
         {
             track_pos = 0;
@@ -393,14 +499,9 @@ void anthem_controls()
             else
                 chip_play_init(anthem_song_pos);
         } 
-        if (movement)
-        {
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-            return;
-        }
         if (GAMEPAD_PRESS(0, X))
         {
-            verse_track = anthem_song_color(anthem_song_pos);
+            verse_track = anthem_song_color();
             game_switch(EditVerse);
             return;
         }
