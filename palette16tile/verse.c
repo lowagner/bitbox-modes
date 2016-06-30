@@ -10,9 +10,9 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
-#define BG_COLOR 141
-#define BOX_COLOR (RGB(180, 200, 250)|(RGB(180, 200, 250)<<16))
-#define MATRIX_WING_COLOR (RGB(30, 20, 0) | (RGB(30, 20, 0)<<16))
+#define BG_COLOR 132
+#define BOX_COLOR (RGB(200, 200, 230)|(RGB(200, 200, 230)<<16))
+#define MATRIX_WING_COLOR (RGB(30, 90, 90) | (RGB(30, 90, 90)<<16))
 #define NUMBER_LINES 20
 
 uint8_t verse_track CCM_MEMORY;

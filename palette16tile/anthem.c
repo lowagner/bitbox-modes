@@ -11,9 +11,9 @@
 #include <stdlib.h> // rand
 #include <string.h> // memset
 
-#define BG_COLOR 132
-#define BOX_COLOR (RGB(180, 200, 250)|(RGB(180, 200, 250)<<16))
-#define MATRIX_WING_COLOR (RGB(30, 20, 0) | (RGB(30, 20, 0)<<16))
+#define BG_COLOR 128
+#define BOX_COLOR (RGB(180, 250, 180)|(RGB(180, 250, 180)<<16))
+#define MATRIX_WING_COLOR (RGB(30, 90, 30) | (RGB(30, 90, 30)<<16))
 #define NUMBER_LINES 20
 
 uint8_t anthem_cursor CCM_MEMORY;
@@ -520,6 +520,7 @@ void anthem_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
+        anthem_menu_not_edit = 0;
         previous_visual_mode = None;
         game_switch(SaveLoadScreen);
         return;

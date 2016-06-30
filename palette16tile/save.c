@@ -6,7 +6,7 @@
 
 #include <string.h> // memset
 
-#define SAVE_COLOR 5 // a uint8_t, uint16_t color is (SAVE_COLOR)|(SAVE_COLOR<<8)
+#define BG_COLOR 192 // a uint8_t, uint16_t color is (BG_COLOR)|(BG_COLOR<<8)
 
 uint8_t save_only CCM_MEMORY; // 0 - everything, 1 - tiles, 2 - sprites, 3 - map, 4 - palette
 
@@ -22,24 +22,24 @@ void save_line()
     if (vga_line < 22)
     {
         if (vga_line/2 == 0)
-            memset(draw_buffer, SAVE_COLOR, 2*SCREEN_W);
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
     else if (vga_line/2 == (SCREEN_H - 20)/2)
     {
-        memset(draw_buffer, SAVE_COLOR, 2*SCREEN_W);
+        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        draw_parade(vga_line - (22 + NUMBER_LINES*10), SAVE_COLOR);
+        draw_parade(vga_line - (22 + NUMBER_LINES*10), BG_COLOR);
         return;
     }
     int line = (vga_line-22) / 10;
     int internal_line = (vga_line-22) % 10;
     if (internal_line == 0 || internal_line == 9)
     {
-        memset(draw_buffer, SAVE_COLOR, 2*SCREEN_W);
+        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
     }
     else
     {
@@ -52,51 +52,51 @@ void save_line()
             switch (save_only)
             {
             case 0:
-                font_render_line_doubled((const uint8_t *)"everything", 16, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"everything", 16, internal_line, 65535, BG_COLOR*257);
                 save_text_offset += 11*9;
                 break;
             case 1:
-                font_render_line_doubled((const uint8_t *)"tiles in", 16, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"tiles in", 16, internal_line, 65535, BG_COLOR*257);
                 save_text_offset += 9*9;
                 break;
             case 2:
-                font_render_line_doubled((const uint8_t *)"sprites in", 16, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"sprites in", 16, internal_line, 65535, BG_COLOR*257);
                 save_text_offset += 11*9;
                 break;
             case 3:
-                font_render_line_doubled((const uint8_t *)"map in", 16, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"map in", 16, internal_line, 65535, BG_COLOR*257);
                 save_text_offset += 7*9;
                 break;
             case 4:
-                font_render_line_doubled((const uint8_t *)"palette in", 16, internal_line, 65535, SAVE_COLOR*257);
+                font_render_line_doubled((const uint8_t *)"palette in", 16, internal_line, 65535, BG_COLOR*257);
                 save_text_offset += 11*9;
                 break;        
             case 5:
-                font_render_line_doubled((const uint8_t *)"music in", 16, internal_line, 65535, SAVE_COLOR*257);
-                save_text_offset += 11*9;
+                font_render_line_doubled((const uint8_t *)"music in", 16, internal_line, 65535, BG_COLOR*257);
+                save_text_offset += 9*9;
                 break;        
             }
-            font_render_line_doubled((uint8_t *)base_filename, save_text_offset, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((uint8_t *)base_filename, save_text_offset, internal_line, 65535, BG_COLOR*257);
             break;
         }
         case 2:
-            font_render_line_doubled((const uint8_t *)"L/R:selective save/load", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"L/R:selective save/load", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 3:
-            font_render_line_doubled((const uint8_t *)"  A:save to file", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"  A:save to file", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 4:
-            font_render_line_doubled((const uint8_t *)"  X:load from file", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"  X:load from file", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 5:
-            font_render_line_doubled((const uint8_t *)"  Y:choose filename", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"  Y:choose filename", 16, internal_line, 65535, BG_COLOR*257);
             break;
-            //font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, SAVE_COLOR*257);
+            //font_render_line_doubled((const uint8_t *)"X:delete  Y:overwrite", 16, internal_line, 65535, BG_COLOR*257);
         case 7:
-            font_render_line_doubled((const uint8_t *)"start:edit palette", 16, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"start:edit palette", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 9:
-            font_render_line_doubled(game_message, 32, internal_line, 65535, SAVE_COLOR*257);
+            font_render_line_doubled(game_message, 32, internal_line, 65535, BG_COLOR*257);
             break;
         }
     }

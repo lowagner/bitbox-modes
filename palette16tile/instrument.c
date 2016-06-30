@@ -24,8 +24,8 @@ const uint8_t note_name[12][2] = {
     { 'B', ' ' }
 };
 
-#define BG_COLOR 192
-#define BOX_COLOR RGB(255, 100, 200)
+#define BG_COLOR 5
+#define BOX_COLOR RGB(30, 20, 0)
 #define NUMBER_LINES 20
 
 uint8_t instrument_note CCM_MEMORY;
