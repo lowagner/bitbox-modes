@@ -62,9 +62,9 @@ void anthem_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        if (line == 0) 
+        if (anthem_menu_not_edit)
         {
-            if (anthem_menu_not_edit)
+            if (line == 0) 
             {
                 uint32_t *dst = (uint32_t *)draw_buffer + 57 + anthem_cursor*41;
                 const uint32_t color = BOX_COLOR;

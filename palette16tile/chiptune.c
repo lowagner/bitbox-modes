@@ -276,7 +276,7 @@ void chip_play_init(int pos)
     song_wait = 0;
     track_pos = 0;
     chip_play = 1;
-    song_pos = pos%MAX_SONG_LENGTH;
+    song_pos = pos % song_length;
     
     for (int i=0; i<4; ++i)
     {
@@ -285,6 +285,11 @@ void chip_play_init(int pos)
     }
 
     uint16_t tracks = chip_song[song_pos];
+    instrument[0].track_num = tracks & 15;
+    instrument[1].track_num = (tracks >> 4) & 15;
+    instrument[2].track_num = (tracks >> 8) & 15;
+    instrument[3].track_num = tracks >> 12;
+    tracks = chip_song[(song_pos+1)%song_length];
     instrument[0].next_track_num = tracks & 15;
     instrument[1].next_track_num = (tracks >> 4) & 15;
     instrument[2].next_track_num = (tracks >> 8) & 15;
