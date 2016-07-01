@@ -86,48 +86,47 @@ or with 32 track positions, you can sneakily get in up to 14 commands:
             randomize, jump,
         5 bits - 32 track positions
 
-  parser:
-    uint8_t cmd_param;
-    if (cmd_param&1) // "odd commands" are high commands
-    {
-        if (cmd_param&2) // 5 length parameter command
-        {
-            uint8_t param = cmd_param>>3;
-            if (cmd_param&4)
-            {
+OR for a 32 track, you can fit in 15 commands with a "long" command for RANDOMIZE.  
+we can restrict JUMPing back only to the first 16 track positions.  squish vibrato in.
 
-            }
-            else
-            {
-
-            }
-        }
-        else switch (cmd_param&12)
-        {
-            case 0:
-
-                break;
-            case 4:
-                
-                break;
-            case 8:
-                
-                break;
-
-            case 12:
-
-                break;
-        }
-    }
-    else // even commands are low commands
-    switch (cmd_param/2)
-    {
-        case 0:
-            break;
-        ...
-        case 7:
-            break;
-    }
+    0 break 
+    1 octave (0-7 are absolute, 8-11 are positive relative changes, 12-15 are negative relative changes)
+    2 volume:  set to zero for a rest
+    3 note 
+    4 wait:
+        in units of sixteenth notes.
+        0 = no wait 
+        2 = eighth note
+        4 = quarter note
+        8 = half note
+        15 = almost a whole note
+      one sixteenth note is song_speed frames.
+    5 fill: wait relative to measure, in quarter notes
+        0: do nothing
+        X: wait until the measure is X beats through, or skip waiting if that has passed
+        e.g. to wait til the third beat, use F6
+      this means that time signatures up to 16/4 can be represented with fills. 
+    6 fade in 
+    7 fade out 
+    8 inertia 
+    9 vibrato combined:  first two bits for depth, second two for rate
+    10 transpose 
+    11 song speed 
+    12 measure length - measured in units of quarter-notes per measure
+        0 -> 16/4 -> 16*4 -> 64 smallest units (sixteenth notes) long
+        1 -> 1/4
+        2 -> 2/4
+        3 -> 3/4
+        4 -> 4/4
+        5 -> 5/4
+        6 -> 6/4
+        7 -> 7/4
+        8 -> 8/4
+        9 -> etc.
+        15 -> 15/4
+      also use one quarter note equals 4*song_speed frames.
+    13, 14 randomize 
+    15 jump:  only can jump to first 16 track spots (though the jump can be anywhere)
 
 old idea:
     track editor
