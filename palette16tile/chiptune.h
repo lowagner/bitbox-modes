@@ -106,16 +106,16 @@ enum
 #define WAVEFORM 2
 #define VOLUME 3
 #define NOTE 4
-#define RANDOMIZE 5
-#define WAIT 6
-#define FADE_IN 7
-#define FADE_OUT 8
+#define WAIT 5
+#define FADE_IN 6
+#define FADE_OUT 7
+#define INERTIA 8
 #define VIBRATO 9
 #define VIBRATO_RATE 10
-#define INERTIA 11
-#define BITCRUSH 12
-#define DUTY 13
-#define DUTY_DELTA 14
+#define BITCRUSH 11
+#define DUTY 12
+#define DUTY_DELTA 13
+#define RANDOMIZE 14
 #define JUMP 15
 
 #endif

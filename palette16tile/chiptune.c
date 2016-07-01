@@ -115,6 +115,33 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
         case NOTE: // + = set relative note
             instrument[i].note = param + instrument[i].track_note + instrument[i].track_octave*12 + song_transpose;
             break;
+        case WAIT: // t = timing 
+            instrument[i].wait = param;
+            break;
+        case FADE_IN: // < = fade in, or crescendo
+            instrument[i].volumed = param + param*param/15;
+            break;
+        case FADE_OUT: // > = fade out, or decrescendo
+            instrument[i].volumed = -param - param*param/15;
+            break;
+        case INERTIA: // i = inertia (auto note slides)
+            instrument[i].inertia = param << 5;
+            break;
+        case VIBRATO: // ~ = vibrato depth
+            instrument[i].vibrato_depth = param;
+            break;
+        case VIBRATO_RATE: // x = vibrato rate
+            instrument[i].vibrato_rate = param;
+            break;
+        case BITCRUSH: // b = bitcrush
+            instrument[i].bitcrush = param;
+            break;
+        case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PULSE
+            instrument[i].duty = 16384 + (param << 11);
+            break;
+        case DUTY_DELTA: // m = duty variation
+            instrument[i].dutyd = param << 10;
+            break;
         case RANDOMIZE:
             switch (instrument[i].cmd[param]&15)
             {
@@ -132,9 +159,6 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                 case NOTE:
                     instrument[i].cmd[param] = NOTE | ((rand()%16)<<4);
                     break;
-                case RANDOMIZE:
-                    instrument[i].cmd[param] = RANDOMIZE | ((rand()%16)<<4);
-                    break;
                 case WAIT:
                     instrument[i].cmd[param] = WAIT | ((1+rand()%15)<<4);
                     break;
@@ -144,14 +168,14 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                 case FADE_OUT:
                     instrument[i].cmd[param] = FADE_OUT | ((1 + rand()%15)<<4);
                     break;
+                case INERTIA:
+                    instrument[i].cmd[param] = INERTIA | ((rand()%16)<<4);
+                    break;
                 case VIBRATO:
                     instrument[i].cmd[param] = VIBRATO | ((rand()%16)<<4);
                     break;
                 case VIBRATO_RATE:
                     instrument[i].cmd[param] = VIBRATO_RATE | ((1+rand()%15)<<4);
-                    break;
-                case INERTIA:
-                    instrument[i].cmd[param] = INERTIA | ((rand()%16)<<4);
                     break;
                 case BITCRUSH:
                     instrument[i].cmd[param] = BITCRUSH | ((rand()%16)<<4);
@@ -161,6 +185,9 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                     break;
                 case DUTY_DELTA:
                     instrument[i].cmd[param] = DUTY_DELTA | ((rand()%16)<<4);
+                    break;
+                case RANDOMIZE:
+                    instrument[i].cmd[param] = RANDOMIZE | ((rand()%16)<<4);
                     break;
                 case JUMP:
                 {
@@ -213,33 +240,6 @@ static void instrument_run_cmd(uint8_t i, uint8_t cmd)
                     break;
                 }
             }
-            break;
-        case WAIT: // t = timing 
-            instrument[i].wait = param;
-            break;
-        case FADE_IN: // < = fade in, or crescendo
-            instrument[i].volumed = param + param*param/15;
-            break;
-        case FADE_OUT: // > = fade out, or decrescendo
-            instrument[i].volumed = -param - param*param/15;
-            break;
-        case VIBRATO: // ~ = vibrato depth
-            instrument[i].vibrato_depth = param;
-            break;
-        case VIBRATO_RATE: // x = vibrato rate
-            instrument[i].vibrato_rate = param;
-            break;
-        case INERTIA: // i = inertia (auto note slides)
-            instrument[i].inertia = param << 5;
-            break;
-        case BITCRUSH: // b = bitcrush
-            instrument[i].bitcrush = param;
-            break;
-        case DUTY: // d = duty cycle.  param==8 makes for a square wave if waveform is WF_PULSE
-            instrument[i].duty = 16384 + (param << 11);
-            break;
-        case DUTY_DELTA: // m = duty variation
-            instrument[i].dutyd = param << 10;
             break;
         case JUMP: // j = instrument jump
             instrument[i].cmd_index = param;
@@ -568,7 +568,7 @@ static void chip_update()
             --instrument[i].wait;
         
         // calculate instrument frequency
-        inertia = instrument[i].inertia + instrument[i].inertia;
+        inertia = instrument[i].inertia + instrument[i].track_inertia;
         if (inertia) // if sliding around
         {
             slur = instrument[i].slur;

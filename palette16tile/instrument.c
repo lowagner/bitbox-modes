@@ -142,9 +142,6 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
         case NOTE:
             strcpy((char *)buffer, "note");
             break;
-        case RANDOMIZE:
-            strcpy((char *)buffer, "randomize");
-            break;
         case WAIT:
             strcpy((char *)buffer, "wait");
             break;
@@ -154,14 +151,14 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
         case FADE_OUT:
             strcpy((char *)buffer, "fade out");
             break;
+        case INERTIA:
+            strcpy((char *)buffer, "inertia");
+            break;
         case VIBRATO:
             strcpy((char *)buffer, "vibrato");
             break;
         case VIBRATO_RATE:
             strcpy((char *)buffer, "vibrato rate");
-            break;
-        case INERTIA:
-            strcpy((char *)buffer, "inertia");
             break;
         case BITCRUSH:
             strcpy((char *)buffer, "bitcrush");
@@ -171,6 +168,9 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
             break;
         case DUTY_DELTA:
             strcpy((char *)buffer, "change duty");
+            break;
+        case RANDOMIZE:
+            strcpy((char *)buffer, "randomize");
             break;
         case JUMP:
             strcpy((char *)buffer, "jump");
@@ -331,10 +331,6 @@ void instrument_render_command(int i, int j, int y)
             cmd = note_name[param][0];
             param = note_name[param][1];
             break;
-        case RANDOMIZE:
-            cmd = 'R';
-            param = hex[param];
-            break;
         case WAIT:
             cmd = 'W';
             param = hex[param];
@@ -347,16 +343,16 @@ void instrument_render_command(int i, int j, int y)
             cmd = '>';
             param = hex[param];
             break;
+        case INERTIA:
+            cmd = 'i';
+            param = hex[param];
+            break;
         case VIBRATO:
             cmd = '~';
             param = hex[param];
             break;
         case VIBRATO_RATE:
             cmd = 157; // nu
-            param = hex[param];
-            break;
-        case INERTIA:
-            cmd = 'i';
             param = hex[param];
             break;
         case BITCRUSH:
@@ -369,6 +365,10 @@ void instrument_render_command(int i, int j, int y)
             break;
         case DUTY_DELTA:
             cmd = 130; // Delta
+            param = hex[param];
+            break;
+        case RANDOMIZE:
+            cmd = 'R';
             param = hex[param];
             break;
         case JUMP:
@@ -472,16 +472,16 @@ void instrument_adjust_parameter(int direction)
             break;
         case VOLUME:
         case NOTE:
-        case RANDOMIZE:
         case WAIT:
         case FADE_IN:
         case FADE_OUT:
+        case INERTIA:
         case VIBRATO:
         case VIBRATO_RATE:
-        case INERTIA:
         case BITCRUSH:
         case DUTY:
         case DUTY_DELTA:
+        case RANDOMIZE:
         case JUMP:
             param = (param+direction)&15;
             break;
@@ -665,9 +665,6 @@ void instrument_line()
             case NOTE:
                 strcpy((char *)buffer, "relative note from C");
                 break;
-            case RANDOMIZE:
-                strcpy((char *)buffer, "randomize command");
-                break;
             case WAIT:
                 strcpy((char *)buffer, "wait");
                 break;
@@ -677,14 +674,14 @@ void instrument_line()
             case FADE_OUT:
                 strcpy((char *)buffer, "fade out");
                 break;
+            case INERTIA:
+                strcpy((char *)buffer, "note inertia");
+                break;
             case VIBRATO:
                 strcpy((char *)buffer, "vibrato depth");
                 break;
             case VIBRATO_RATE:
                 strcpy((char *)buffer, "vibrato rate");
-                break;
-            case INERTIA:
-                strcpy((char *)buffer, "note inertia");
                 break;
             case BITCRUSH:
                 strcpy((char *)buffer, "bitcrush");
@@ -694,6 +691,9 @@ void instrument_line()
                 break;
             case DUTY_DELTA:
                 strcpy((char *)buffer, "change in duty");
+                break;
+            case RANDOMIZE:
+                strcpy((char *)buffer, "randomize command");
                 break;
             case JUMP:
                 strcpy((char *)buffer, "jump to command");

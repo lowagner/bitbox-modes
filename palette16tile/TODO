@@ -17,15 +17,119 @@ map-edit menu:
       allow start from property to jump back
 
 
-music editing
-    song editor
-        song speed, song length (anywhere from four to 32)
-        4 instruments, each given one instrument line (a la chiptracker)
-            but drum instrument given something special:  4 different instrument lines.
-            you can specify which notes hit which drum instrument.
+music editing:
+    need track position (or song position) when playing the song or track
 
-        4 lines, put in the tracks
+possible replacement idea for track editor:
 
+16 track positions with 16x16 command*parameters:
+    | name | values | description |
+    |---|---|---|
+    | break |  `00`  | ends the track commands early |
+    | absolute octave | `OX`, with `X=0-f` | |
+    | relative octave | `+X`, with `X=0-f` | `0-7` are positive changes, and `8-15` being negative |
+    | volume | `VX`, with `X=0-f` | sets track volume |
+    | note | `C, C#, ..., Bb, B, C, ... Eb` | plays a note, second partial octave is shaded funny |
+    | wait | `WX`, with `X=0-f` | pauses command evaluation for `X`*song_speed frames (still plays notes if applicable) |
+    | fade in | `<X`, with `X=0-f` | sets change-in-volume-over-time to `+X` units (1 unit of volume per beat, i.e. song_speed frames) |
+    | fade out | `>X`, with `X=0-f` | sets change-in-volume-over-time to `-X` units |
+    | vibrato depth | `~X`, with `X=0-f` | the bigger `X` is, the wider the frequency swing in vibrato |
+    | vibrato rate | `𝜈X`, with `X=0-f` | the bigger `X` is, the faster the vibrato frequency |
+    | inertia | `iX`, with `X=0-f` | note slides |
+    | transpose | `TX`, with `X=0-f` | GLOBAL transpose song, with possible major/minor flips.  `T0` flips major/minor |
+    | ??bend | `BX`, with `X=0-f` | pitch bend.  hit a note and go up (`X=0-7`) or down (`X=8-15`) |
+    | song speed | `SX`, with `X=0-f` | change song_speed to `16-X`. |
+    | randomize | `RX`, with `X=0-f` | randomizes the parameter of the command at location `X` |
+    | jump | `JX`, with `X=0-f` | jump to track command `X`.  make sure there's a wait (e.g. `W4`) between `X` and the jump point (if `X` is earlier) |
+
+
+if we allow track sizes up to 64:
+
+    1 bit - high or low command
+    high:
+        1 bit - randomize or jump command
+        6 bits - 64 track positions
+    low:
+        3 bits - 8 command types
+        4 bits parameter
+
+            0 break
+            1 absolute octave
+            2 volume
+            3 note
+            4 wait
+            5 fade in
+            6 fade out
+            7 vibrato or inertia???
+            .. song_speed, transpose left out
+
+
+or with 32 track positions, you can sneakily get in up to 14 commands:
+
+    1 bit - high or low command
+    low:
+        3 bits - 8 command types
+        4 bits parameter
+
+            0 break
+            1 volume
+            2 absolute octave
+            3 note
+            4 wait
+            5 fade in
+            6 fade out
+            7 inertia
+    high:
+        2 bits:
+            vibrato depth/rate  (2 commands in one due to parameter)
+            song_transpose/song_speed,  (2 commands in one due to parameter)
+            randomize, jump,
+        5 bits - 32 track positions
+
+  parser:
+    uint8_t cmd_param;
+    if (cmd_param&1) // "odd commands" are high commands
+    {
+        if (cmd_param&2) // 5 length parameter command
+        {
+            uint8_t param = cmd_param>>3;
+            if (cmd_param&4)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+        else switch (cmd_param&12)
+        {
+            case 0:
+
+                break;
+            case 4:
+                
+                break;
+            case 8:
+                
+                break;
+
+            case 12:
+
+                break;
+        }
+    }
+    else // even commands are low commands
+    switch (cmd_param/2)
+    {
+        case 0:
+            break;
+        ...
+        case 7:
+            break;
+    }
+
+old idea:
     track editor
         16 possible tracks, with 4 instrument lines each
         each track length:  anywhere from 4 to 32 (fixed globally).
