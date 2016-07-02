@@ -40,6 +40,26 @@ void anthem_reset()
     track_length = 32;
 }
 
+void anthem_render(uint8_t value, int x, int y)
+{
+    value &= 15;
+    uint32_t *dst = (uint32_t *)draw_buffer + x/2;
+    uint8_t row = (font[hex[value]] >> (((y/2)*4))) & 15;
+    const uint32_t color_choice[2] = { 
+        palette[value] | (palette[value]<<16),
+        ~(palette[value] | (palette[value]<<16))
+    };
+    *(++dst) = color_choice[0];
+    *(++dst) = color_choice[0];
+    for (int k=0; k<4; ++k)
+    {
+        *(++dst) = color_choice[row&1];
+        row >>= 1;
+    }
+    *(++dst) = color_choice[0];
+    *(++dst) = color_choice[0];
+}
+
 void anthem_line()
 {
     if (vga_line < 16)
@@ -241,13 +261,13 @@ void anthem_line()
             else
             {
                 font_render_line_doubled((uint8_t *)"B:put", 16+3*9, internal_line, 65535, BG_COLOR*257);
-                render_command(anthem_color[1], 16+3*9+6*9, internal_line);
+                anthem_render(anthem_color[1], 16+3*9+6*9, internal_line);
                 if (anthem_last_painted)
                 {
                     font_render_line_doubled((uint8_t *)"L:", 150, internal_line, 65535, BG_COLOR*257);
-                    render_command(anthem_color[1]-1, 150+2*9, internal_line);
+                    anthem_render(anthem_color[1]-1, 150+2*9, internal_line);
                     font_render_line_doubled((uint8_t *)"R:", 200, internal_line, 65535, BG_COLOR*257);
-                    render_command(anthem_color[1]+1, 200+2*9, internal_line);
+                    anthem_render(anthem_color[1]+1, 200+2*9, internal_line);
                 }
             }
             break;
@@ -261,13 +281,13 @@ void anthem_line()
             else
             {
                 font_render_line_doubled((uint8_t *)"Y:put", 16+3*9, internal_line, 65535, BG_COLOR*257);
-                render_command(anthem_color[0], 16+3*9+6*9, internal_line);
+                anthem_render(anthem_color[0], 16+3*9+6*9, internal_line);
                 if (!anthem_last_painted)
                 {
                     font_render_line_doubled((uint8_t *)"L:", 150, internal_line, 65535, BG_COLOR*257);
-                    render_command(anthem_color[0]-1, 150+2*9, internal_line);
+                    anthem_render(anthem_color[0]-1, 150+2*9, internal_line);
                     font_render_line_doubled((uint8_t *)"R:", 200, internal_line, 65535, BG_COLOR*257);
-                    render_command(anthem_color[0]+1, 200+2*9, internal_line);
+                    anthem_render(anthem_color[0]+1, 200+2*9, internal_line);
                 }
             }
             break;
@@ -494,7 +514,7 @@ void anthem_controls()
             {
                 chip_play = 0;
                 for (int i=0; i<4; ++i)
-                    instrument[i].track_volume = 0;
+                    chip_player[i].track_volume = 0;
             }
             else
                 chip_play_init(anthem_song_pos);
@@ -512,7 +532,7 @@ void anthem_controls()
         game_message[0] = 0;
         anthem_menu_not_edit = 1 - anthem_menu_not_edit; 
         for (int i=0; i<4; ++i)
-            instrument[i].track_volume = 0;
+            chip_player[i].track_volume = 0;
         chip_play = 0;
         return;
     }

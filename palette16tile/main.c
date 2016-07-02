@@ -40,6 +40,7 @@ void game_init()
     palette_init();
     anthem_init();
     verse_init();
+    chip_init();
     instrument_init();
 
     // now load everything else
@@ -352,7 +353,7 @@ void game_switch(VisualMode new_visual_mode)
     chip_play = 0;
     chip_play_track = 0;
     for (int i=0; i<4; ++i)
-        instrument[i].track_volume = 0;
+        chip_player[i].track_volume = 0;
 
     switch (new_visual_mode)
     {

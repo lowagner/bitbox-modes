@@ -51,7 +51,7 @@ void instrument_reset()
 {
     int i=0; // isntrument
     int ci = 0; // command index
-    instrument[i].initial_octave = 2;
+    instrument[i].octave = 2;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SAW<<4); 
@@ -68,21 +68,21 @@ void instrument_reset()
     
     i = 1;
     ci = 0;
-    instrument[i].initial_octave = 3;
+    instrument[i].octave = 3;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = INERTIA | (15<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
     instrument[i].cmd[++ci] = NOTE | (0<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
-    instrument[i].cmd[++ci] = VIBRATO | (3<<4); 
+    instrument[i].cmd[++ci] = VIBRATO_DEPTH | (3<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
     instrument[i].cmd[++ci] = FADE_OUT | (1<<4); 
     
     i = 2;
     ci = 0;
-    instrument[i].initial_octave = 4;
+    instrument[i].octave = 4;
     instrument[i].cmd[ci] = SIDE | (3<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_NOISE<<4); 
@@ -102,7 +102,7 @@ void instrument_reset()
     
     i = 3;
     ci = 0; 
-    instrument[i].initial_octave = 3;
+    instrument[i].octave = 3;
     instrument[i].is_drum = 1; // drums get MAX_INSTRUMENT_LENGTH/4 commands for each sub-instrument
     instrument[i].cmd[ci] = WAIT | (5<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
@@ -154,8 +154,8 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
         case INERTIA:
             strcpy((char *)buffer, "inertia");
             break;
-        case VIBRATO:
-            strcpy((char *)buffer, "vibrato");
+        case VIBRATO_DEPTH:
+            strcpy((char *)buffer, "vibrato depth");
             break;
         case VIBRATO_RATE:
             strcpy((char *)buffer, "vibrato rate");
@@ -178,30 +178,25 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
     }
 }
 
-void instrument_render_command(int i, int j, int y)
+void instrument_render_command(int j, int y)
 {
     int x = 32;
     #ifdef EMULATOR
     if (y < 0 || y >= 8)
     {
-        message("got too big a line count for instrument %d, %d\n", (int)i, y);
-        return;
-    }
-    if (x < 0 || x + 10 >= SCREEN_W)
-    {
-        message("instrument %d goes off screen!\n", (int)i);
+        message("got too big a line count for instrument %d, %d\n", (int)instrument_i, y);
         return;
     }
     #endif
     
-    uint8_t cmd = instrument[i].cmd[j];
+    uint8_t cmd = instrument[instrument_i].cmd[j];
     uint8_t param = cmd>>4;
     cmd &= 15;
     int smash_together = 0;
 
     uint32_t *dst = (uint32_t *)draw_buffer + x/2;
     uint32_t color_choice[2];
-    if (!instrument[i].is_drum || j < 2*MAX_DRUM_LENGTH)
+    if (!instrument[instrument_i].is_drum || j < 2*MAX_DRUM_LENGTH)
     {
         if (j % 2)
             color_choice[0] = 16843009u*BG_COLOR;
@@ -251,7 +246,7 @@ void instrument_render_command(int i, int j, int y)
         }
     }
     
-    if (cmd == 0)
+    if (cmd == BREAK)
     {
         cmd = '0';
         param = '0'; 
@@ -281,10 +276,6 @@ void instrument_render_command(int i, int j, int y)
                     param = 'R';
                     break;
             }
-            break;
-        case VOLUME:
-            cmd = 'V';
-            param = hex[param];
             break;
         case WAVEFORM:
             switch (param)
@@ -324,6 +315,10 @@ void instrument_render_command(int i, int j, int y)
             }
             smash_together = 1;
             break;
+        case VOLUME:
+            cmd = 'V';
+            param = hex[param];
+            break;
         case NOTE:
             if (param >= 12)
                 color_choice[1] = RGB(150,150,255)|(65535<<16);
@@ -347,7 +342,7 @@ void instrument_render_command(int i, int j, int y)
             cmd = 'i';
             param = hex[param];
             break;
-        case VIBRATO:
+        case VIBRATO_DEPTH:
             cmd = '~';
             param = hex[param];
             break;
@@ -437,7 +432,6 @@ void check_instrument(int i)
     if (_check_instrument(i))
     {
         instrument_bad = 1; 
-        instrument[i].track_volume = 0; // shut it down now!
         strcpy((char *)game_message, "bad jump, need wait in loop.");
     }
     else
@@ -445,7 +439,7 @@ void check_instrument(int i)
         instrument_bad = 0; 
         game_message[0] = 0;
     }
-    instrument[instrument_i].track_volume = 0;
+    chip_player[i].track_volume = 0;
 }
 
 void instrument_adjust_parameter(int direction)
@@ -476,7 +470,7 @@ void instrument_adjust_parameter(int direction)
         case FADE_IN:
         case FADE_OUT:
         case INERTIA:
-        case VIBRATO:
+        case VIBRATO_DEPTH:
         case VIBRATO_RATE:
         case BITCRUSH:
         case DUTY:
@@ -614,186 +608,187 @@ void instrument_line()
     uint8_t buffer[24];
     switch (line)
     {
-    case 0:
-    {
-        // edit instrument
-        uint8_t msg[] = { 'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
-            ' ', hex[instrument_i],
-            ' ',  'o', 'c', 't', 'a', 'v', 'e',
-            ' ',  hex[instrument[instrument_i].initial_octave],
-            ' ', 'd', 'r', 'u', 'm', ' ', (instrument[instrument_i].is_drum ? 'Y' : 'N'),
-        0 };
-        font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-        break;
-    }
-    case 1:
-        break;
-    case 2:
-    {
-        show_instrument = 1; 
-        instrument_render_command(instrument_i, line-2, internal_line);
-        // command
-        uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[instrument_j], ':', 0 };
-        font_render_line_doubled(msg, 96, internal_line, 65535, BG_COLOR*257);
-    }
-    case 10:
-    case 14:
-        if (instrument[instrument_i].is_drum || show_instrument)
+        case 0:
+        {
+            // edit instrument
+            uint8_t msg[] = { 'i', 'n', 's', 't', 'r', 'u', 'm', 'e', 'n', 't', 
+                ' ', hex[instrument_i],
+                ' ',  'o', 'c', 't', 'a', 'v', 'e',
+                ' ',  hex[instrument[instrument_i].octave],
+                ' ', 'd', 'r', 'u', 'm', ' ', (instrument[instrument_i].is_drum ? 'Y' : 'N'),
+            0 };
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            break;
+        }
+        case 1:
+            break;
+        case 2:
         {
             show_instrument = 1; 
-            instrument_render_command(instrument_i, line-2, internal_line);
+            instrument_render_command(line-2, internal_line);
+            // command
+            uint8_t msg[] = { 'c', 'o', 'm', 'm', 'a', 'n', 'd', ' ', hex[instrument_j], ':', 0 };
+            font_render_line_doubled(msg, 96, internal_line, 65535, BG_COLOR*257);
+            break;
         }
-        break;
-    case 19:
-        font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
-        break;
-    case 3:
-        switch (instrument[instrument_i].cmd[instrument_j]&15)
-        {
-            case BREAK:
-                strcpy((char *)buffer, "end of instrument");
-                break;
-            case SIDE:
-                strcpy((char *)buffer, "stereo left/right");
-                break;
-            case WAVEFORM:
-                strcpy((char *)buffer, "waveform");
-                break;
-            case VOLUME:
-                strcpy((char *)buffer, "volume");
-                break;
-            case NOTE:
-                strcpy((char *)buffer, "relative note from C");
-                break;
-            case WAIT:
-                strcpy((char *)buffer, "wait");
-                break;
-            case FADE_IN:
-                strcpy((char *)buffer, "fade in");
-                break;
-            case FADE_OUT:
-                strcpy((char *)buffer, "fade out");
-                break;
-            case INERTIA:
-                strcpy((char *)buffer, "note inertia");
-                break;
-            case VIBRATO:
-                strcpy((char *)buffer, "vibrato depth");
-                break;
-            case VIBRATO_RATE:
-                strcpy((char *)buffer, "vibrato rate");
-                break;
-            case BITCRUSH:
-                strcpy((char *)buffer, "bitcrush");
-                break;
-            case DUTY:
-                strcpy((char *)buffer, "duty");
-                break;
-            case DUTY_DELTA:
-                strcpy((char *)buffer, "change in duty");
-                break;
-            case RANDOMIZE:
-                strcpy((char *)buffer, "randomize command");
-                break;
-            case JUMP:
-                strcpy((char *)buffer, "jump to command");
-                break;
-        }
-        font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 5:
-        font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
-        goto maybe_show_instrument;
-    case 6:
-        if (instrument_menu_not_edit)
-        {
-            font_render_line_doubled((uint8_t *)"L:prev instrument", 112, internal_line, 65535, BG_COLOR*257);
-        }
-        else
-        {
-            buffer[0] = 'L'; buffer[1] = ':';
-            instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]-1);
-            font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
-        }
-        goto maybe_show_instrument;
-    case 7:
-        if (instrument_menu_not_edit)
-        {
-            font_render_line_doubled((uint8_t *)"R:next instrument", 112, internal_line, 65535, BG_COLOR*257);
-        }
-        else
-        {
-            buffer[0] = 'R'; buffer[1] = ':';
-            instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]+1);
-            font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
-        }
-        goto maybe_show_instrument;
-    case 8:
-        font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 9:
-        font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 11:
-        if (instrument_menu_not_edit)
-        {
-            if (instrument_copying < 4)
-                font_render_line_doubled((uint8_t *)"A:cancel copy", 96, internal_line, 65535, BG_COLOR*257);
-            else if (!instrument_bad)
-                font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
-        }
-        else
-            font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 12:
-        if (instrument_menu_not_edit)
-        {
-            if (instrument_copying < 4)
-                font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
-
+        case 10:
+        case 14:
+            if (instrument[instrument_i].is_drum || show_instrument)
+            {
+                show_instrument = 1; 
+                instrument_render_command(line-2, internal_line);
+            }
+            break;
+        case 3:
+            switch (instrument[instrument_i].cmd[instrument_j]&15)
+            {
+                case BREAK:
+                    strcpy((char *)buffer, "end of instrument");
+                    break;
+                case SIDE:
+                    strcpy((char *)buffer, "stereo left/right");
+                    break;
+                case WAVEFORM:
+                    strcpy((char *)buffer, "waveform");
+                    break;
+                case VOLUME:
+                    strcpy((char *)buffer, "volume");
+                    break;
+                case NOTE:
+                    strcpy((char *)buffer, "relative note from C");
+                    break;
+                case WAIT:
+                    strcpy((char *)buffer, "wait");
+                    break;
+                case FADE_IN:
+                    strcpy((char *)buffer, "fade in");
+                    break;
+                case FADE_OUT:
+                    strcpy((char *)buffer, "fade out");
+                    break;
+                case INERTIA:
+                    strcpy((char *)buffer, "note inertia");
+                    break;
+                case VIBRATO_DEPTH:
+                    strcpy((char *)buffer, "vibrato depth");
+                    break;
+                case VIBRATO_RATE:
+                    strcpy((char *)buffer, "vibrato rate");
+                    break;
+                case BITCRUSH:
+                    strcpy((char *)buffer, "bitcrush");
+                    break;
+                case DUTY:
+                    strcpy((char *)buffer, "duty");
+                    break;
+                case DUTY_DELTA:
+                    strcpy((char *)buffer, "change in duty");
+                    break;
+                case RANDOMIZE:
+                    strcpy((char *)buffer, "randomize command");
+                    break;
+                case JUMP:
+                    strcpy((char *)buffer, "jump to command");
+                    break;
+            }
+            font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 5:
+            font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
+            goto maybe_show_instrument;
+        case 6:
+            if (instrument_menu_not_edit)
+            {
+                font_render_line_doubled((uint8_t *)"L:prev instrument", 112, internal_line, 65535, BG_COLOR*257);
+            }
             else
-                font_render_line_doubled((uint8_t *)"X:load from file", 96, internal_line, 65535, BG_COLOR*257);
-        }
-        else
-            font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 13:
-        if (instrument_menu_not_edit)
-        {
-            if (instrument_copying < 4)
-                font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
+            {
+                buffer[0] = 'L'; buffer[1] = ':';
+                instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]-1);
+                font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
+            }
+            goto maybe_show_instrument;
+        case 7:
+            if (instrument_menu_not_edit)
+            {
+                font_render_line_doubled((uint8_t *)"R:next instrument", 112, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+            {
+                buffer[0] = 'R'; buffer[1] = ':';
+                instrument_short_command_message(buffer+2, instrument[instrument_i].cmd[instrument_j]+1);
+                font_render_line_doubled(buffer, 112, internal_line, 65535, BG_COLOR*257);
+            }
+            goto maybe_show_instrument;
+        case 8:
+            font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 9:
+            font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 11:
+            if (instrument_menu_not_edit)
+            {
+                if (instrument_copying < 4)
+                    font_render_line_doubled((uint8_t *)"A:cancel copy", 96, internal_line, 65535, BG_COLOR*257);
+                else if (!instrument_bad)
+                    font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+                font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 12:
+            if (instrument_menu_not_edit)
+            {
+                if (instrument_copying < 4)
+                    font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
 
-            else if (!instrument_bad)
-                font_render_line_doubled((uint8_t *)"B:copy", 96, internal_line, 65535, BG_COLOR*257);
-        }
-        else
-        {
-            if (!instrument_bad)
-                font_render_line_doubled((uint8_t *)"B/Y:play note", 96, internal_line, 65535, BG_COLOR*257);
-        }
-        goto maybe_show_instrument;
-    case 15:
-        if (instrument_menu_not_edit && !instrument_bad)
-        {
-            strcpy((char *)buffer, "Y:file ");
-            strcpy((char *)(buffer+7), base_filename);
-            font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
-        }
-        goto maybe_show_instrument;
-    case 17:
-        if (instrument_menu_not_edit)
-            font_render_line_doubled((uint8_t *)"start:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
-        else
-            font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
-        goto maybe_show_instrument;
-    case 18:
-        font_render_line_doubled((uint8_t *)"select:back to track", 96, internal_line, 65535, BG_COLOR*257);
-        break;
-    default:
-      maybe_show_instrument:
-        if (show_instrument)
-            instrument_render_command(instrument_i, line-2, internal_line);
-        break; 
+                else
+                    font_render_line_doubled((uint8_t *)"X:load from file", 96, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+                font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 13:
+            if (instrument_menu_not_edit)
+            {
+                if (instrument_copying < 4)
+                    font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
+
+                else if (!instrument_bad)
+                    font_render_line_doubled((uint8_t *)"B:copy", 96, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+            {
+                if (!instrument_bad)
+                    font_render_line_doubled((uint8_t *)"B/Y:play note", 96, internal_line, 65535, BG_COLOR*257);
+            }
+            goto maybe_show_instrument;
+        case 15:
+            if (instrument_menu_not_edit && !instrument_bad)
+            {
+                strcpy((char *)buffer, "Y:file ");
+                strcpy((char *)(buffer+7), base_filename);
+                font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
+            }
+            goto maybe_show_instrument;
+        case 17:
+            if (instrument_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"start:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 18:
+            font_render_line_doubled((uint8_t *)"select:back to track", 96, internal_line, 65535, BG_COLOR*257);
+            break;
+        case 19:
+            font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
+            break;
+        default:
+          maybe_show_instrument:
+            if (show_instrument)
+                instrument_render_command(line-2, internal_line);
+            break; 
     }
 }
 
@@ -805,7 +800,8 @@ void instrument_controls()
             game_message[0] = 0;
         instrument_menu_not_edit = 1 - instrument_menu_not_edit; 
         instrument_copying = 4;
-        instrument[instrument_i].track_volume = 0;
+        for (int i=0; i<4; ++i)
+            chip_player[i].track_volume = 0;
         return;
     }
 
@@ -835,11 +831,11 @@ void instrument_controls()
             }
             else
             {
-                instrument[instrument_i].initial_octave += moved;
-                if (instrument[instrument_i].initial_octave > 255)
-                    instrument[instrument_i].initial_octave = 6;
-                else if (instrument[instrument_i].initial_octave > 6)
-                    instrument[instrument_i].initial_octave = 0;
+                instrument[instrument_i].octave += moved;
+                if (instrument[instrument_i].octave > 255)
+                    instrument[instrument_i].octave = 6;
+                else if (instrument[instrument_i].octave > 6)
+                    instrument[instrument_i].octave = 0;
             }
         }
 
@@ -904,7 +900,7 @@ void instrument_controls()
                 uint8_t *src, *dst;
                 src = &instrument[instrument_copying].cmd[0];
                 dst = &instrument[instrument_i].cmd[0];
-                instrument[instrument_i].initial_octave = instrument[instrument_copying].initial_octave;
+                instrument[instrument_i].octave = instrument[instrument_copying].octave;
                 instrument[instrument_i].is_drum = instrument[instrument_copying].is_drum;
                 memcpy(dst, src, MAX_INSTRUMENT_LENGTH);
                 strcpy((char *)game_message, "pasted."); 
@@ -1111,8 +1107,9 @@ void instrument_controls()
             // play a note
             game_message[0] = 0;
             instrument_note = (instrument_note + 1)%24;
-            instrument[instrument_i].track_octave = instrument[instrument_i].initial_octave;
-            chip_note(instrument_i, instrument_note, 240); 
+            reset_player(instrument_i);
+            chip_player[instrument_i].octave = instrument[instrument_i].octave;
+            chip_note(instrument_i, instrument_note); 
         }
         if (GAMEPAD_PRESS(0, B))
         {
@@ -1120,8 +1117,9 @@ void instrument_controls()
             game_message[0] = 0;
             if (--instrument_note > 23)
                 instrument_note = 23;
-            instrument[instrument_i].track_octave = instrument[instrument_i].initial_octave;
-            chip_note(instrument_i, instrument_note, 240); 
+            reset_player(instrument_i);
+            chip_player[instrument_i].octave = instrument[instrument_i].octave;
+            chip_note(instrument_i, instrument_note); 
         }
     }
 

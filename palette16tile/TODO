@@ -90,7 +90,7 @@ OR for a 32 track, you can fit in 15 commands with a "long" command for RANDOMIZ
 we can restrict JUMPing back only to the first 16 track positions.  squish vibrato in.
 
     0 break 
-    1 octave (0-7 are absolute, 8-11 are positive relative changes, 12-15 are negative relative changes)
+    1 octave (0-7 are absolute, 8-9 are positive relative changes, 10-11 are negative relative changes), instrument changes in last 4.
     2 volume:  set to zero for a rest
     3 note 
     4 wait:
@@ -104,13 +104,13 @@ we can restrict JUMPing back only to the first 16 track positions.  squish vibra
     5 fill: wait relative to measure, in quarter notes
         0: do nothing
         X: wait until the measure is X beats through, or skip waiting if that has passed
-        e.g. to wait til the third beat, use F6
+        e.g. to wait til the third beat, use F3
       this means that time signatures up to 16/4 can be represented with fills. 
     6 fade in 
     7 fade out 
     8 inertia 
     9 vibrato combined:  first two bits for depth, second two for rate
-    10 transpose 
+    10 transpose/instrument
     11 song speed 
     12 measure length - measured in units of quarter-notes per measure
         0 -> 16/4 -> 16*4 -> 64 smallest units (sixteenth notes) long
