@@ -279,7 +279,8 @@ void reset_player(int i)
 {
     chip_player[i].instrument = i;
     chip_player[i].track_cmd_index = 0;
-    chip_player[i].track_volume = 240;
+    chip_player[i].volume = 0;
+    chip_player[i].track_volume = 0;
     chip_player[i].track_volumed = 0;
     chip_player[i].track_inertia = 0;
     chip_player[i].track_vibrato_rate = 0;
@@ -327,8 +328,9 @@ void chip_play_track_init(int track)
     }
 }
 
-void chip_note(uint8_t i, uint8_t note)
+void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
 {
+    message("hitting note %d on player %d\n", note, i);
     // now set some defaults and startup the command index
     if (instrument[chip_player[i].instrument].is_drum)
     {
@@ -370,6 +372,7 @@ void chip_note(uint8_t i, uint8_t note)
     chip_player[i].vibrato_rate = 5;
     oscillator[i].side = 3; // default to output both L/R
     oscillator[i].duty = 0x8000; // default to square wave
+    chip_player[i].track_volume = track_volume;
     oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
 }
 
@@ -405,9 +408,9 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].track_volume = param<<4;
             break;
         case TRACK_NOTE: // 
-            chip_player[i].track_note = param + song_transpose;
+            chip_note(i, param+song_transpose, chip_player[i].track_volume);
             break;
-        case TRACK_WAIT: // t = timing 
+        case TRACK_WAIT: // w = wait 
             chip_player[i].track_wait = param;
             break;
         case TRACK_FILL: // f = wait til a given quarter note

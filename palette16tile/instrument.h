@@ -5,6 +5,7 @@
 
 extern const uint8_t note_name[12][2];
 extern uint8_t instrument_i;
+extern uint8_t instrument_menu_not_edit;
 
 void instrument_init();
 void instrument_reset();

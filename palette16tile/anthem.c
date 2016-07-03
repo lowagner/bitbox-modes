@@ -100,7 +100,7 @@ void anthem_line()
         }
         else if (line > 2 && line < 7)
         {
-            if (line - 3 == instrument_i)
+            if (line - 3 == verse_player)
             {
                 uint32_t *dst = (uint32_t *)draw_buffer + 23 + 8*anthem_song_pos - 8*anthem_song_offset;
                 (*dst) = BOX_COLOR;
@@ -144,7 +144,7 @@ void anthem_line()
             break;
         }
         case 2:
-            font_render_line_doubled((uint8_t *)"I:song", 16, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"P:song", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 3:
         case 4:
@@ -152,7 +152,7 @@ void anthem_line()
         case 6:
         {
             int i = line - 3;
-            if (i == instrument_i)
+            if (i == verse_player)
             {
                 uint32_t *dst = (uint32_t *)draw_buffer + 3;
                 if ((internal_line+1)/2 == 1)
@@ -207,7 +207,7 @@ void anthem_line()
                     *(++dst) = color_choice[0];
                 }
             }
-            if (i == instrument_i)
+            if (i == verse_player)
             {
                 const uint16_t color = (anthem_song_offset + 15 == anthem_song_pos) ? 
                     BOX_COLOR :
@@ -235,20 +235,20 @@ void anthem_line()
         case 9:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"A:save song and instruments", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"A:save songkit", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
                 if (chip_play_track)
-                    font_render_line_doubled((uint8_t *)"A:stop", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"A:stop song", 16+3*9, internal_line, 65535, BG_COLOR*257);
                 else
-                    font_render_line_doubled((uint8_t *)"A:play", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"A:play song", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             break;
         case 10:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"X:load anthem only from file", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"B:load songkit", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
                 font_render_line_doubled((uint8_t *)"X:edit track under cursor", 16+3*9, internal_line, 65535, BG_COLOR*257);
@@ -256,7 +256,7 @@ void anthem_line()
         case 11:
             if (anthem_menu_not_edit)
             {
-                font_render_line_doubled((uint8_t *)"B:save anthem only", 16+3*9, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:load anthem only", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
@@ -291,6 +291,12 @@ void anthem_line()
                 }
             }
             break;
+        case 14:
+            if (anthem_menu_not_edit)
+            {
+                font_render_line_doubled((uint8_t *)"A:save song and instruments", 16+3*9, internal_line, 65535, BG_COLOR*257);
+            }
+            break;
         case 15:
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -300,7 +306,7 @@ void anthem_line()
 
 uint8_t anthem_song_color()
 {
-    return (chip_song[anthem_song_pos] >> (instrument_i*4))&15;
+    return (chip_song[anthem_song_pos] >> (verse_player*4))&15;
 }
 
 void anthem_song_paint(uint8_t p)
@@ -308,8 +314,8 @@ void anthem_song_paint(uint8_t p)
     anthem_last_painted = p;
 
     uint16_t *memory = &chip_song[anthem_song_pos];
-    *memory &= ~(15 << (instrument_i*4)); // clear out current value there
-    *memory |= (anthem_color[p] << (instrument_i*4)); // add this value
+    *memory &= ~(15 << (verse_player*4)); // clear out current value there
+    *memory |= (anthem_color[p] << (verse_player*4)); // add this value
 }
 
 void anthem_controls()
@@ -378,7 +384,7 @@ void anthem_controls()
         int save_or_load = 0;
         if (GAMEPAD_PRESS(0, A))
             save_or_load = 1; // save
-        if (GAMEPAD_PRESS(0, X))
+        if (GAMEPAD_PRESS(0, B))
             save_or_load = 2; // load
         if (save_or_load)
         {
@@ -386,60 +392,84 @@ void anthem_controls()
             if (save_or_load == 1)
             {
                 error = io_save_anthem();
-                if (!error)
-                {
-                    error = io_save_verse(16);
-                    if (!error)
-                    {
-                        error = io_save_instrument(4);
-                        if (!error)
-                        {
-                            io_message_from_error(game_message, NoError, 1);
-                        }
-                        else
-                        {
-                            strcpy((char *)game_message, "instr. ");
-                            io_message_from_error(game_message+7, error, 1);
-                        }
-                    }
-                    else
-                    {
-                        strcpy((char *)game_message, "track ");
-                        io_message_from_error(game_message+6, error, 1);
-                    }
-                }
-                else
+                if (error)
                 {
                     strcpy((char *)game_message, "anthem ");
                     io_message_from_error(game_message+7, error, 1);
+                    return;
+                }
+                error = io_save_verse(16);
+
+                if (error)
+                {
+                    strcpy((char *)game_message, "track ");
+                    io_message_from_error(game_message+6, error, 1);
+                    return;
+                }
+
+                error = io_save_instrument(4);
+                if (error)
+                {
+                    strcpy((char *)game_message, "instr. ");
+                    io_message_from_error(game_message+7, error, 1);
+                }
+                else
+                {
+                    io_message_from_error(game_message, NoError, 1);
                 }
             }
             else
             {
                 error = io_load_anthem();
-                io_message_from_error(game_message, error, 2);
+                if (error)
+                {
+                    strcpy((char *)game_message, "anthem ");
+                    io_message_from_error(game_message+7, error, 1);
+                    return;
+                }
+                error = io_load_verse(16);
+
+                if (error)
+                {
+                    strcpy((char *)game_message, "track ");
+                    io_message_from_error(game_message+6, error, 1);
+                    return;
+                }
+
+                error = io_load_instrument(4);
+                if (error)
+                {
+                    strcpy((char *)game_message, "instr. ");
+                    io_message_from_error(game_message+7, error, 1);
+                }
+                else
+                {
+                    io_message_from_error(game_message, NoError, 1);
+                }
             }
             return;
         }
+
         if (GAMEPAD_PRESS(0, L))
         {
         }
         if (GAMEPAD_PRESS(0, R))
         {
         } 
+
+        if (GAMEPAD_PRESS(0, X))
+        {
+            // load just anthem
+            io_message_from_error(game_message, io_load_anthem(), 2);
+            return;
+        }
+
         if (GAMEPAD_PRESS(0, Y))
         {
             // switch to choose name and hope to come back
             game_message[0] = 0;
             game_switch(ChooseFilename);
             previous_visual_mode = EditAnthem;
-            return;
-        }
-        if (GAMEPAD_PRESS(0, B))
-        {
-            // save just anthem
-            FileError error = io_save_anthem();
-            io_message_from_error(game_message, error, 1);
             return;
         }
     }
@@ -468,12 +498,12 @@ void anthem_controls()
         int moved = 0;
         if (GAMEPAD_PRESSING(0, down))
         {
-            instrument_i = (instrument_i+1)&3;
+            verse_player = (verse_player+1)&3;
             moved = 1;
         }
         if (GAMEPAD_PRESSING(0, up))
         {
-            instrument_i = (instrument_i-1)&3;
+            verse_player = (verse_player-1)&3;
             moved = 1;
         }
         if (GAMEPAD_PRESSING(0, left))
@@ -519,6 +549,7 @@ void anthem_controls()
             else
                 chip_play_init(anthem_song_pos);
         } 
+        
         if (GAMEPAD_PRESS(0, X))
         {
             verse_track = anthem_song_color();

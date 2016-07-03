@@ -82,15 +82,15 @@ void edit2_line()
             break;
         case 4:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"X:load from file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"B:load from file", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 5:
             if (edit2_copying)
-                font_render_line_doubled((const uint8_t *)"B:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"X:  \"     \"", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             else
-                font_render_line_doubled((const uint8_t *)"B:copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
+                font_render_line_doubled((const uint8_t *)"X:copy", 16+2*9, internal_line, 65535, 257*BG_COLOR);
             break;
         case 6:
             if (edit2_copying)
@@ -208,7 +208,7 @@ void edit2_controls()
     if (make_wait)
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
 
-    if (GAMEPAD_PRESS(0, B))
+    if (GAMEPAD_PRESS(0, X))
     {
         // copy or uncopy
         if (edit2_copying)
@@ -228,16 +228,10 @@ void edit2_controls()
         return;
     }
     int save_or_load = 0;
-    if (GAMEPAD_PRESS(0, A))
-    {
-        // save
+    if (GAMEPAD_PRESS(0, A)) // save
         save_or_load = 1;
-    }
-    else if (GAMEPAD_PRESS(0, X))
-    {
-        // load
+    else if (GAMEPAD_PRESS(0, B)) // load
         save_or_load = 2;
-    }
     if (save_or_load)
     {
         if (edit2_copying)

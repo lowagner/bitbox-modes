@@ -23,12 +23,14 @@ uint8_t verse_copying CCM_MEMORY;
 uint8_t verse_last_painted CCM_MEMORY;
 uint8_t verse_show_track CCM_MEMORY;
 uint8_t verse_player CCM_MEMORY;
+uint8_t verse_command_copy CCM_MEMORY;
 
 void verse_init()
 {
     verse_track = 0;
-    verse_track_pos = 1;
-    verse_track_offset = 1;
+    verse_track_pos = 0;
+    verse_track_offset = 0;
+    verse_command_copy = rand()%16;
 }
 
 void verse_reset()
@@ -105,12 +107,13 @@ void verse_render_command(int j, int y)
 
     uint32_t *dst = (uint32_t *)draw_buffer + x/2;
     uint32_t color_choice[2];
-    color_choice[0] = 16843009u*BG_COLOR;
+    if (j%2)
+        color_choice[0] = 16843009u*BG_COLOR;
+    else
+        color_choice[0] = 16843009u*149;
     
     if (j != verse_track_pos)
-    {
         color_choice[1] = 65535u*65537u;
-    }
     else
     {
         color_choice[1] = RGB(190, 245, 255)|(RGB(190, 245, 255)<<16);
@@ -324,14 +327,14 @@ void verse_line()
         return;
     }
     --internal_line;
-    uint8_t buffer[32];
+    uint8_t buffer[24];
     switch (line)
     {
         case 0:
         {
             // edit track
-            uint8_t msg[] = {  't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
-                '.', hex[instrument_i], ':', hex[verse_track_pos],
+            uint8_t msg[] = { (chip_play_track && ((vga_frame/30) % 2)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
+                ' ', 'P', hex[verse_player], ' ', 'J', hex[verse_track_pos],
                 ' ', 'M', '0' + track_length/10, '0' + track_length%10,
             0 };
             font_render_line_doubled(msg, 12, internal_line, 65535, BG_COLOR*257);
@@ -382,7 +385,7 @@ void verse_line()
                     strcpy((char *)buffer, "note inertia");
                     break;
                 case TRACK_VIBRATO:
-                    strcpy((char *)buffer, "vibrato rate(0-3)+depth(4,8,c)");
+                    strcpy((char *)buffer, "vibrato");
                     break;
                 case TRACK_TRANSPOSE:
                     strcpy((char *)buffer, "global song transpose");
@@ -391,7 +394,7 @@ void verse_line()
                     strcpy((char *)buffer, "track speed");
                     break;
                 case TRACK_LENGTH:
-                    strcpy((char *)buffer, "measure length (quarter notes)");
+                    strcpy((char *)buffer, "measure quarter notes");
                     break;
                 case TRACK_RANDOMIZE0:
                 case TRACK_RANDOMIZE1:
@@ -399,6 +402,10 @@ void verse_line()
                     break;
             }
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_track;
+        case 4:
+            if ((chip_track[verse_track][verse_player][verse_track_pos]&15) == TRACK_VIBRATO)
+                font_render_line_doubled((uint8_t *)"rate 0-3 + depth 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 5:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*verse_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
@@ -431,7 +438,10 @@ void verse_line()
             font_render_line_doubled((uint8_t *)"dpad:", 102 - 6*verse_menu_not_edit, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 9:
-            font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
+            if (verse_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"switch player", 112, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"adjust parameters", 112, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 11:
             if (verse_menu_not_edit)
@@ -442,7 +452,7 @@ void verse_line()
                     font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
-                font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"A:play track", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 12:
             if (verse_menu_not_edit)
@@ -451,10 +461,10 @@ void verse_line()
                     font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
 
                 else
-                    font_render_line_doubled((uint8_t *)"X:load from file", 96, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"B:load from file", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
-                font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"B:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 13:
             if (verse_menu_not_edit)
@@ -463,29 +473,36 @@ void verse_line()
                     font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
 
                 else
-                    font_render_line_doubled((uint8_t *)"B:copy", 96, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"X:copy", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
-                font_render_line_doubled((uint8_t *)"B/Y:play note", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:cut cmd", 96, internal_line, 65535, BG_COLOR*257);
             }
             goto maybe_show_track;
-        case 15:
+        case 14:
             if (verse_menu_not_edit)
             {
                 strcpy((char *)buffer, "Y:file ");
                 strcpy((char *)(buffer+7), base_filename);
                 font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
             }
+            else
+                font_render_line_doubled((uint8_t *)"Y:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_track;
+        case 16:
+            if (verse_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"start:edit track", 96, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"start:track menu", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 17:
             if (verse_menu_not_edit)
-                font_render_line_doubled((uint8_t *)"start:edit instrument", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"select:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
             else
-                font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"select:edit anthem", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 18:
-            font_render_line_doubled((uint8_t *)"select:back to anthem", 12, internal_line, 65535, BG_COLOR*257);
             break;
         case 19:
             font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
@@ -502,39 +519,79 @@ void verse_controls()
 {
     if (verse_menu_not_edit)
     {
-        int movement = 0;
+        int switched = 0;
         if (GAMEPAD_PRESSING(0, down))
-        {
-            instrument_i = (instrument_i+1)&3;
-            movement = 1;
-        }
+            ++switched;
         if (GAMEPAD_PRESSING(0, up))
-        {
-            instrument_i = (instrument_i-1)&3;
-            movement = 1;
-        }
+            --switched;
         if (GAMEPAD_PRESSING(0, left))
-        {
-            if (--chip_track[verse_track][instrument_i][0] == 255)
-                chip_track[verse_track][instrument_i][0] = 24;
-            movement = 1;
-        }
+            --switched;
         if (GAMEPAD_PRESSING(0, right))
+            ++switched;
+        if (switched)
         {
-            if (++chip_track[verse_track][instrument_i][0] > 24)
-                chip_track[verse_track][instrument_i][0] = 0;
-            movement = 1;
-        }
-        if (movement)
-        {
+            verse_player = (verse_player+switched)&3;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            return;
+        }
+        
+        if (GAMEPAD_PRESSING(0, L))
+            --switched;
+        if (GAMEPAD_PRESSING(0, R))
+            ++switched;
+        if (switched)
+        {
+            verse_track = (verse_track+switched)&15;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            return;
+        }
+
+        if (GAMEPAD_PRESS(0, X)) // copy
+        {
+            if (verse_copying < 64)
+            {
+                verse_copying = 64;
+                game_message[0] = 0;
+            }
+            else
+            {
+                verse_copying = 4*verse_track + verse_player;
+                strcpy((char *)game_message, "copied.");
+            }
+        }
+
+        if (GAMEPAD_PRESS(0, Y)) // paste
+        {
+            if (verse_copying < 64)
+            {
+                // paste
+                uint8_t *src, *dst;
+                src = &chip_track[verse_copying/4][verse_copying%4][0];
+                dst = &chip_track[verse_track][verse_player][0];
+                if (src == dst)
+                {
+                    verse_copying = 64;
+                    strcpy((char *)game_message, "pasting to same thing"); 
+                    return;
+                }
+                memcpy(dst, src, sizeof(chip_track[0][0]));
+                strcpy((char *)game_message, "pasted."); 
+                verse_copying = 64;
+            }
+            else
+            {
+                // switch to choose name and hope to come back
+                game_message[0] = 0;
+                game_switch(ChooseFilename);
+                previous_visual_mode = EditVerse;
+            }
             return;
         }
         
         int save_or_load = 0;
         if (GAMEPAD_PRESS(0, A))
             save_or_load = 1; // save
-        if (GAMEPAD_PRESS(0, X))
+        if (GAMEPAD_PRESS(0, B))
             save_or_load = 2; // load
         if (save_or_load)
         {
@@ -554,75 +611,20 @@ void verse_controls()
             io_message_from_error(game_message, error, save_or_load);
             return;
         }
-        int switched = 0;
-        if (GAMEPAD_PRESSING(0, L))
-            --switched;
-        if (GAMEPAD_PRESSING(0, R))
-            ++switched;
-        if (switched)
-        {
-            verse_track = (verse_track+switched)&15;
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
-            return;
-        }
-        if (GAMEPAD_PRESS(0, Y))
-        {
-            if (verse_copying < 64)
-            {
-                // paste
-                if (verse_copying%4 == verse_player && verse_copying/4 == verse_track)
-                {
-                    verse_copying = 64;
-                    strcpy((char *)game_message, "pasting to same thing"); 
-                    return;
-                }
-                uint8_t *src, *dst;
-                src = &chip_track[verse_copying/4][verse_copying%4][0];
-                dst = &chip_track[verse_track][verse_player][0];
-                memcpy(dst, src, sizeof(chip_track[0][0]));
-                strcpy((char *)game_message, "pasted."); 
-                verse_copying = 64;
-            }
-            else
-            {
-                // switch to choose name and hope to come back
-                game_message[0] = 0;
-                game_switch(ChooseFilename);
-                previous_visual_mode = EditVerse;
-            }
-            return;
-        }
-        if (GAMEPAD_PRESS(0, B))
-        {
-            if (verse_copying < 64)
-            {
-                verse_copying = 64;
-                game_message[0] = 0;
-            }
-            else
-            {
-                verse_copying = verse_track;
-                strcpy((char *)game_message, "copied.");
-            }
-        }
+
     }
     else // editing, not menu
     {
-        if (GAMEPAD_PRESSING(0, Y))
-        {
-        }
-        if (GAMEPAD_PRESSING(0, B))
-        {
-        }
-
-        if (GAMEPAD_PRESSING(0, L))
-        {
-        }
-        if (GAMEPAD_PRESSING(0, R))
-        {
-        }
-
         int movement = 0;
+        if (GAMEPAD_PRESSING(0, L))
+            --movement;
+        if (GAMEPAD_PRESSING(0, R))
+            ++movement;
+        if (movement)
+        {
+            uint8_t *memory = &chip_track[verse_track][verse_player][verse_track_pos];
+            *memory = ((*memory+movement)&15)|((*memory)&240);
+        }
         if (GAMEPAD_PRESSING(0, down))
         {
             if (verse_track_pos < MAX_TRACK_LENGTH-1 &&
@@ -649,6 +651,7 @@ void verse_controls()
             }
             else
             {
+                verse_track_pos = 0;
                 while (verse_track_pos < MAX_TRACK_LENGTH-1 && 
                     (chip_track[verse_track][verse_player][verse_track_pos]&15) != TRACK_BREAK)
                 {
@@ -675,11 +678,42 @@ void verse_controls()
             return;
         }
 
+        if (GAMEPAD_PRESS(0, X))
+        { 
+            // delete / cut
+            verse_command_copy = chip_track[verse_track][verse_player][verse_track_pos];
+            for (int j=verse_track_pos; j<MAX_TRACK_LENGTH-1; ++j)
+            {
+                if ((chip_track[verse_track][verse_player][j] = chip_track[verse_track][verse_player][j+1]) == 0)
+                    break;
+            }
+            chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] = BREAK;
+            return;
+        }
+
+        if (GAMEPAD_PRESS(0, Y))
+        {
+            // insert
+            if ((chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1]&15) != BREAK)
+            {
+                strcpy((char *)game_message, "list full, can't insert.");
+                return;
+            }
+            for (int j=MAX_TRACK_LENGTH-1; j>verse_track_pos; --j)
+            {
+                chip_track[verse_track][verse_player][j] = chip_track[verse_track][verse_player][j-1];
+            }
+            chip_track[verse_track][verse_player][verse_track_pos] = verse_command_copy;
+            return;
+        }
+        
         if (GAMEPAD_PRESS(0, A))
         {
+            // play all instruments (or stop them all)
             track_pos = 0;
             if (chip_play_track)
             {
+                message("stop play\n");
                 chip_play_track = 0;
                 for (int i=0; i<4; ++i)
                     chip_player[i].track_volume = 0;
@@ -695,9 +729,12 @@ void verse_controls()
                 for (int i=verse_player+1; i<4; ++i)
                     chip_player[i].track_cmd_index = MAX_TRACK_LENGTH;
             }
-        } 
-        if (GAMEPAD_PRESS(0, X))
-        { 
+            return;
+        }
+        
+        if (GAMEPAD_PRESSING(0, B))
+        {
+            instrument_i = chip_player[verse_player].instrument;
             game_switch(EditInstrument);
             return;
         }
@@ -707,11 +744,6 @@ void verse_controls()
     {
         game_message[0] = 0;
         verse_menu_not_edit = 1 - verse_menu_not_edit; 
-        if (verse_menu_not_edit)
-            verse_track_pos = 0;
-        else
-            verse_track_pos = 1;
-        verse_track_offset = 1;
         verse_copying = 64;
         for (int i=0; i<4; ++i)
             chip_player[i].track_volume = 0;
@@ -724,7 +756,15 @@ void verse_controls()
         verse_copying = 64;
         game_message[0] = 0;
         previous_visual_mode = None;
-        game_switch(EditAnthem);
+        if (verse_menu_not_edit)
+        {
+            instrument_menu_not_edit = verse_menu_not_edit;
+            game_switch(EditInstrument);
+        }
+        else
+        {
+            game_switch(EditAnthem);
+        }
         return;
     } 
 }

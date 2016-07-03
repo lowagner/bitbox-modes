@@ -2,6 +2,7 @@
 #include "common.h"
 #include "common.h"
 #include "chiptune.h"
+#include "verse.h"
 #include "font.h"
 #include "name.h"
 #include "io.h"
@@ -36,6 +37,7 @@ uint8_t show_instrument CCM_MEMORY;
 uint8_t instrument_bad CCM_MEMORY;
 uint8_t instrument_copying CCM_MEMORY;
 uint8_t instrument_cursor CCM_MEMORY;
+uint8_t instrument_command_copy CCM_MEMORY;
 
 void instrument_init()
 {
@@ -45,6 +47,7 @@ void instrument_init()
     instrument_menu_not_edit = 0;
     instrument_copying = 4;
     instrument_cursor = 0;
+    instrument_command_copy = rand()%16;
 }
 
 void instrument_reset()
@@ -201,7 +204,7 @@ void instrument_render_command(int j, int y)
         if (j % 2)
             color_choice[0] = 16843009u*BG_COLOR;
         else
-            color_choice[0] = 16843009u*149;
+            color_choice[0] = 16843009u*14;
     }
     else if (j < 3*MAX_DRUM_LENGTH)
     {
@@ -735,7 +738,7 @@ void instrument_line()
                     font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
-                font_render_line_doubled((uint8_t *)"A:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"X:cut cmd", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_instrument;
         case 12:
             if (instrument_menu_not_edit)
@@ -744,10 +747,10 @@ void instrument_line()
                     font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
 
                 else
-                    font_render_line_doubled((uint8_t *)"X:load from file", 96, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"B:load from file", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
-                font_render_line_doubled((uint8_t *)"X:delete cmd", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"Y:insert cmd", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_instrument;
         case 13:
             if (instrument_menu_not_edit)
@@ -756,12 +759,12 @@ void instrument_line()
                     font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
 
                 else if (!instrument_bad)
-                    font_render_line_doubled((uint8_t *)"B:copy", 96, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"X:copy", 96, internal_line, 65535, BG_COLOR*257);
             }
             else
             {
                 if (!instrument_bad)
-                    font_render_line_doubled((uint8_t *)"B/Y:play note", 96, internal_line, 65535, BG_COLOR*257);
+                    font_render_line_doubled((uint8_t *)"A/B:play note", 96, internal_line, 65535, BG_COLOR*257);
             }
             goto maybe_show_instrument;
         case 15:
@@ -779,7 +782,10 @@ void instrument_line()
                 font_render_line_doubled((uint8_t *)"start:instrument menu", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_instrument;
         case 18:
-            font_render_line_doubled((uint8_t *)"select:back to track", 96, internal_line, 65535, BG_COLOR*257);
+            if (previous_visual_mode)
+                font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"select:track", 96, internal_line, 65535, BG_COLOR*257);
             break;
         case 19:
             font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
@@ -843,14 +849,14 @@ void instrument_controls()
         if (GAMEPAD_PRESS(0, A))
         {
             // save
-            save_or_load = 1;
             if (instrument_bad)
             {
                 strcpy((char *)game_message, "can't save bad jump.");
                 return;
             }
+            save_or_load = 1;
         }
-        if (GAMEPAD_PRESS(0, X))
+        if (GAMEPAD_PRESS(0, B))
             save_or_load = 2; // load
         if (save_or_load)
         {
@@ -876,7 +882,7 @@ void instrument_controls()
         if (instrument_bad)
             return;
 
-        if (GAMEPAD_PRESS(0, B))
+        if (GAMEPAD_PRESS(0, X))
         {
             // copy or uncopy
             if (instrument_copying < 4)
@@ -1039,6 +1045,7 @@ void instrument_controls()
         if (GAMEPAD_PRESS(0, X))
         {
             // delete
+            instrument_command_copy = instrument[instrument_i].cmd[instrument_j]; // cut
             if (!instrument[instrument_i].is_drum)
             {
                 for (int j=instrument_j; j<MAX_INSTRUMENT_LENGTH-1; ++j)
@@ -1069,7 +1076,7 @@ void instrument_controls()
             return;
         }
 
-        if (GAMEPAD_PRESS(0, A))
+        if (GAMEPAD_PRESS(0, Y))
         {
             // insert
             if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
@@ -1082,10 +1089,11 @@ void instrument_controls()
                 // TODO: could do fancier things here, like check for JUMP indices to correct
                 instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
             }
-            instrument[instrument_i].cmd[instrument_j] = WAIT | ((rand()%16)<<4);
+            instrument[instrument_i].cmd[instrument_j] = instrument_command_copy;
             check_instrument(instrument_i);
+            return;
         }
-        
+
         if (GAMEPAD_PRESS(0, L))
         {
             uint8_t *cmd = &instrument[instrument_i].cmd[instrument_j];
@@ -1102,15 +1110,16 @@ void instrument_controls()
         if (instrument_bad) // can't do anything else until you fix this
             return;
 
-        if (GAMEPAD_PRESS(0, Y))
+        if (GAMEPAD_PRESS(0, A))
         {
             // play a note
             game_message[0] = 0;
             instrument_note = (instrument_note + 1)%24;
             reset_player(instrument_i);
             chip_player[instrument_i].octave = instrument[instrument_i].octave;
-            chip_note(instrument_i, instrument_note); 
+            chip_note(instrument_i, instrument_note, 240); 
         }
+        
         if (GAMEPAD_PRESS(0, B))
         {
             // play a note
@@ -1119,7 +1128,7 @@ void instrument_controls()
                 instrument_note = 23;
             reset_player(instrument_i);
             chip_player[instrument_i].octave = instrument[instrument_i].octave;
-            chip_note(instrument_i, instrument_note); 
+            chip_note(instrument_i, instrument_note, 240); 
         }
     }
 
@@ -1131,10 +1140,11 @@ void instrument_controls()
         if (previous_visual_mode)
         {
             game_switch(previous_visual_mode);
+            previous_visual_mode = None;
         }
         else
         {
-            previous_visual_mode = None;
+            verse_menu_not_edit = instrument_menu_not_edit;
             game_switch(EditVerse);
         }
         return;
