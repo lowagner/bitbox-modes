@@ -130,7 +130,9 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             oscillator[i].waveform = param;
             break;
         case NOTE: // + = set relative note
-            chip_player[i].note = param + chip_player[i].track_note + chip_player[i].octave*12;
+            chip_player[i].note = (param + chip_player[i].track_note)%MAX_NOTE;
+            if (chip_player[i].note >= MAX_NOTE)
+                chip_player[i].note -= 12;
             break;
         case WAIT: // t = timing 
             chip_player[i].wait = param;
@@ -328,15 +330,14 @@ void chip_play_track_init(int track)
     }
 }
 
-void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
+void _chip_note(uint8_t i, uint8_t note)
 {
-    message("hitting note %d on player %d\n", note, i);
+    message("note %d on player %d\n", (note+12*chip_player[i].octave), i);
     // now set some defaults and startup the command index
     if (instrument[chip_player[i].instrument].is_drum)
     {
         // a drum instrument has 3 sub instruments.
         note %= 12;
-        chip_player[i].track_note = note;
         // is_drum also holds which command we want to stop at for this sub-instrument.
         // first subinstrument is 2*MAX_DRUM_LENGTH commands long, and takes up first 10 notes.
         if (note < 10)
@@ -359,11 +360,11 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
     }
     else
     {
-        chip_player[i].track_note = note;
         chip_player[i].cmd_index = 0;
         oscillator[i].waveform = WF_TRIANGLE; // by default
         chip_player[i].volume = 10<<4; 
     }
+    chip_player[i].track_note = note + chip_player[i].octave*12 + song_transpose;
     chip_player[i].volumed = 0;
     chip_player[i].inertia = 0;
     chip_player[i].wait = 0;
@@ -372,8 +373,15 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
     chip_player[i].vibrato_rate = 5;
     oscillator[i].side = 3; // default to output both L/R
     oscillator[i].duty = 0x8000; // default to square wave
+    //oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
+}
+
+void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
+{
+    _chip_note(i, note);
     chip_player[i].track_volume = track_volume;
-    oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
+    chip_player[i].track_volumed = 0;
+    //oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
 }
 
 static void track_run_command(uint8_t i, uint8_t cmd) 
@@ -385,30 +393,46 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].track_cmd_index = MAX_TRACK_LENGTH; // end track commmands
             break;
         case TRACK_OCTAVE: // O = octave, or + or - for relative octave
-            if (param < 8)
+            if (param < 7)
                 chip_player[i].octave = param;
+            else if (param == 7)
+                chip_player[i].octave = instrument[chip_player[i].instrument].octave;
             else if (param < 12)
             {
-                chip_player[i].octave += param-7;
-                if (chip_player[i].octave > 7)
-                    chip_player[i].octave = 7;
+                chip_player[i].octave += (param-6)/2;
+                if (chip_player[i].octave > 6)
+                {
+                    if (param%2) // additive, no wrap around
+                        chip_player[i].octave = 6;
+                    else // wrap around
+                        chip_player[i].octave %= 7;
+                }
             }
             else
             {
-                chip_player[i].octave -= 16-param;
-                if (chip_player[i].octave > 7)
-                    chip_player[i].octave = 0;
+                uint8_t delta = (17-param)/2;
+                if (delta > chip_player[i].octave)
+                {
+                    if (param%2) // wrap around
+                    {
+                        chip_player[i].octave = 7 - delta + chip_player[i].octave;
+                    }
+                    else // subtractive only, no wrap around
+                        chip_player[i].octave = 0;
+                }
+                else
+                    chip_player[i].octave -= delta;
             }
             break;
         case TRACK_INSTRUMENT:
             chip_player[i].instrument = param % 4;
-            chip_player[i].octave = instrument[param % 4].octave;
+            //chip_player[i].octave = instrument[param % 4].octave;
             break;
         case TRACK_VOLUME: // v = volume
             chip_player[i].track_volume = param<<4;
             break;
         case TRACK_NOTE: // 
-            chip_note(i, param+song_transpose, chip_player[i].track_volume);
+            _chip_note(i, param);
             break;
         case TRACK_WAIT: // w = wait 
             chip_player[i].track_wait = param;
@@ -436,7 +460,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             if (param == 0) // reset song transpose
                 song_transpose = 0;
             else
-                song_transpose += param;
+                song_transpose = (song_transpose+param)%12;
             break;
         case TRACK_SPEED: // 
             song_speed = 16 - param;
@@ -588,7 +612,7 @@ static void chip_update()
 {
     for (int i=0; i<4; ++i) 
     {
-        if (!chip_player[i].track_volume)
+        if (!chip_player[i].track_volume && chip_player[i].track_volumed <= 0)
         {
             oscillator[i].volume = 0;
             continue;

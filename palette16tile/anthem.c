@@ -138,7 +138,7 @@ void anthem_line()
                 ' ', 'X', '0' + anthem_song_pos/10, '0' + anthem_song_pos%10, '/',
                 '0' + song_length/10, '0' + song_length%10,
                 ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+song_speed/10, '0'+song_speed%10,
-                ' ', 't', 'k', 'l', 'e', 'n', ' ', '0'+track_length/10, '0'+track_length%10,
+                ' ', 'm', 'e', 'a', 'z', 'r',' ', '0'+(track_length/4)/10, '0'+(track_length/4)%10,
             0 };
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -337,8 +337,8 @@ void anthem_controls()
                         song_speed = 100;
                     break;
                 case 2:
-                    if (++track_length > MAX_TRACK_LENGTH)
-                        track_length = MAX_TRACK_LENGTH;
+                    if (track_length < 64)
+                        track_length += 4;
                     break;
             }
             movement = 1;
@@ -357,8 +357,8 @@ void anthem_controls()
                         song_speed = 2;
                     break;
                 case 2:
-                    if (--track_length < 16)
-                        track_length = 16;
+                    if (track_length > 4)
+                        track_length -= 4;
                     break;
             }
             movement = 1;

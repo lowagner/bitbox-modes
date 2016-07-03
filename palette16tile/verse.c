@@ -149,20 +149,25 @@ void verse_render_command(int j, int y)
     switch (cmd)
     {
         case TRACK_OCTAVE:
-            if (param < 8)
+            if (param < 7)
             {
                 cmd = 'O';
                 param += '0';
             }
+            else if (param == 7)
+            {
+                cmd = '=';
+                param = '=';
+            }
             else if (param < 12)
             {
-                cmd = '+';
-                param = '0' + (param - 7);
+                cmd = (param%2) ? '+' : '/';
+                param = '0' + (param - 6)/2;
             }
             else
             {
-                cmd = '-';
-                param = '0' + (16-param);
+                cmd = (param%2) ? '\\' : '-';
+                param = '0' + (17-param)/2;
             }
             break;
         case TRACK_INSTRUMENT:
