@@ -138,7 +138,7 @@ void anthem_line()
                 ' ', 'X', '0' + anthem_song_pos/10, '0' + anthem_song_pos%10, '/',
                 '0' + song_length/10, '0' + song_length%10,
                 ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+song_speed/10, '0'+song_speed%10,
-                ' ', 'm', 'e', 'a', 'z', 'r',' ', '0'+(track_length/4)/10, '0'+(track_length/4)%10,
+                ' ', 't', 'k', 'l', 'e', 'n',' ', '0'+track_length/10, '0'+track_length%10,
             0 };
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -291,12 +291,6 @@ void anthem_line()
                 }
             }
             break;
-        case 14:
-            if (anthem_menu_not_edit)
-            {
-                font_render_line_doubled((uint8_t *)"A:save song and instruments", 16+3*9, internal_line, 65535, BG_COLOR*257);
-            }
-            break;
         case 15:
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -424,7 +418,7 @@ void anthem_controls()
                 if (error)
                 {
                     strcpy((char *)game_message, "anthem ");
-                    io_message_from_error(game_message+7, error, 1);
+                    io_message_from_error(game_message+7, error, 2);
                     return;
                 }
                 error = io_load_verse(16);
@@ -432,7 +426,7 @@ void anthem_controls()
                 if (error)
                 {
                     strcpy((char *)game_message, "track ");
-                    io_message_from_error(game_message+6, error, 1);
+                    io_message_from_error(game_message+6, error, 2);
                     return;
                 }
 
@@ -440,11 +434,11 @@ void anthem_controls()
                 if (error)
                 {
                     strcpy((char *)game_message, "instr. ");
-                    io_message_from_error(game_message+7, error, 1);
+                    io_message_from_error(game_message+7, error, 2);
                 }
                 else
                 {
-                    io_message_from_error(game_message, NoError, 1);
+                    io_message_from_error(game_message, NoError, 2);
                 }
             }
             return;

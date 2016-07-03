@@ -375,10 +375,10 @@ void verse_line()
                     strcpy((char *)buffer, "relative note from C");
                     break;
                 case TRACK_WAIT:
-                    strcpy((char *)buffer, "wait (in sixteenths)");
+                    strcpy((char *)buffer, "wait");
                     break;
                 case TRACK_FILL:
-                    strcpy((char *)buffer, "fill to quarter note");
+                    strcpy((char *)buffer, "fill (4x wait unit)");
                     break;
                 case TRACK_FADE_IN:
                     strcpy((char *)buffer, "fade in");

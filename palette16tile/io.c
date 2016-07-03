@@ -981,9 +981,10 @@ FileError io_load_anthem()
     track_length = stuff[2];
 
     if (song_length < 16 || song_length > MAX_SONG_LENGTH || 
-        song_speed < 2 || song_speed > 100 ||
-        track_length < 16 || track_length > MAX_TRACK_LENGTH)
+        song_speed == 0 || song_speed > 100 ||
+        track_length < 4 || track_length > 64)
     {
+        message("got song length %d, song speed %d, and track length %d\n", song_length, song_speed, track_length);
         song_length = 16;
         track_length = 16;
         song_speed = 4;
