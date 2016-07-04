@@ -717,10 +717,10 @@ static inline uint16_t gen_sample()
     if (noiseseed & 0x00000040L) newbit ^= 1;
     if (noiseseed & 0x00000200L) newbit ^= 1;
     noiseseed = (noiseseed << 1) | newbit;
-    rednoise = 3*rednoise/4 + (noiseseed&63)/4;
+    rednoise = 3*rednoise/4 + (noiseseed&255)/4;
     // violet should be the derivative of white noise, but that wasn't nice:
     // this gives some higher freqs, and a metallic ring too:
-    violetnoise = violetnoise/6 + ((noiseseed&31)-32); 
+    violetnoise = violetnoise/6 + ((noiseseed&255)-128); 
 
     int16_t acc[2] = { 0, 0 }; // accumulators for each channel
     // Now compute the value of each oscillator and mix them
@@ -729,40 +729,41 @@ static inline uint16_t gen_sample()
         if (!oscillator[i].side || !oscillator[i].volume)
             continue;
         
-        int8_t value; // [-32,31]
+        int8_t value; // [-128, 127]
 
-        switch(oscillator[i].waveform) 
+        switch (oscillator[i].waveform) 
         {
             case WF_SINE:
-                value = sine_table[oscillator[i].phase>>10]>>2;
+                //value = sine_table[oscillator[i].phase>>10]>>2;
+                value = sine_table[oscillator[i].phase>>10];
                 break;
             case WF_TRIANGLE:
                 // Triangle: the part before 0x8000 raises, then it goes back
                 // down.
                 if (oscillator[i].phase < 0x8000) 
-                    value = -32 + (oscillator[i].phase >> 9);
+                    value = -128 + (oscillator[i].phase >> 7);
                 else
-                    value = 31 - ((oscillator[i].phase - 0x8000) >> 9);
+                    value = 127 - ((oscillator[i].phase - 0x8000) >> 7);
                 break;
             case WF_SAW:
                 // Sawtooth: always raising.
-                value = -32 + (oscillator[i].phase >> 10);
+                value = -128 + (oscillator[i].phase >> 8);
                 break;
             case WF_PULSE:
                 // Pulse: max value until we reach "duty", then min value.
-                value = (oscillator[i].phase > oscillator[i].duty)? -32 : 31;
+                value = (oscillator[i].phase > oscillator[i].duty)? -128 : 127;
                 break;
             case WF_NOISE:
                 // Noise: from the generator. Only the low order bits are used.
-                value = (noiseseed & 63) - 32;
+                value = (noiseseed & 255) - 128;
                 break;
             case WF_RED:
                 // Red Noise, integrated from white noise..
-                value = (rednoise & 63) - 32;
+                value = (rednoise & 255) - 128;
                 break;
             case WF_VIOLET:
                 // Violet Noise, derivative of white noise, at least supposedly.
-                value = (violetnoise & 63) - 32;
+                value = (violetnoise & 255) - 128;
                 break;
             default:
                 value = 0;
@@ -775,7 +776,7 @@ static inline uint16_t gen_sample()
         value |= ((1<<oscillator[i].bitcrush) - 1); // if bitcrush == 0, does nothing
 
         // addition has range [-8160,7905], roughly +- 2**13
-        int16_t add = oscillator[i].volume * chip_volume / 256 * value;
+        int16_t add = (oscillator[i].volume * value) >> 2;
         
         // Mix it in the appropriate output channel
         if (oscillator[i].side & 1)
