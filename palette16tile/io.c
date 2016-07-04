@@ -963,31 +963,27 @@ FileError io_load_anthem()
     if (fat_result)
         return OpenError;
 
-    uint8_t stuff[3];
+    // set some defaults
+    track_length = 16;
+    song_speed = 4;
+
     UINT bytes_get; 
-    fat_result = f_read(&fat_file, &stuff[0], 3, &bytes_get);
+    fat_result = f_read(&fat_file, &song_length, 1, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
         return ReadError;
     }
-    if (bytes_get != 3)
+    if (bytes_get != 1)
     {
         f_close(&fat_file);
         return MissingDataError;
     }
-    song_length = stuff[0];
-    song_speed = stuff[1];
-    track_length = stuff[2];
 
-    if (song_length < 16 || song_length > MAX_SONG_LENGTH || 
-        song_speed == 0 || song_speed > 100 ||
-        track_length < 4 || track_length > 64)
+    if (song_length < 16 || song_length > MAX_SONG_LENGTH)
     {
-        message("got song length %d, song speed %d, and track length %d\n", song_length, song_speed, track_length);
+        message("got song length %d\n", song_length);
         song_length = 16;
-        track_length = 16;
-        song_speed = 4;
         f_close(&fat_file);
         return ConstraintError;
     }
@@ -1018,15 +1014,14 @@ FileError io_save_anthem()
     if (fat_result)
         return OpenError;
 
-    uint8_t stuff[] = { song_length, song_speed, track_length };
     UINT bytes_get; 
-    fat_result = f_write(&fat_file, &stuff[0], 3, &bytes_get);
+    fat_result = f_write(&fat_file, &song_length, 1, &bytes_get);
     if (fat_result != FR_OK)
     {
         f_close(&fat_file);
         return WriteError;
     }
-    if (bytes_get != 3)
+    if (bytes_get != 1)
     {
         f_close(&fat_file);
         return MissingDataError;

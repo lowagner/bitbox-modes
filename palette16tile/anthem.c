@@ -16,7 +16,6 @@
 #define MATRIX_WING_COLOR (RGB(30, 90, 30) | (RGB(30, 90, 30)<<16))
 #define NUMBER_LINES 20
 
-uint8_t anthem_cursor CCM_MEMORY;
 uint8_t anthem_menu_not_edit CCM_MEMORY;
 uint8_t anthem_song_pos CCM_MEMORY;
 uint8_t anthem_song_offset CCM_MEMORY;
@@ -25,7 +24,6 @@ uint8_t anthem_last_painted CCM_MEMORY;
 
 void anthem_init()
 {
-    anthem_cursor = 0;
     song_speed = 4;
     track_length = 32;
     anthem_color[1] = 0;
@@ -34,7 +32,6 @@ void anthem_init()
 
 void anthem_reset()
 {
-    anthem_cursor = 0;
     song_length = 16;
     song_speed = 4;
     track_length = 32;
@@ -86,7 +83,7 @@ void anthem_line()
         {
             if (line == 0) 
             {
-                uint32_t *dst = (uint32_t *)draw_buffer + 57 + anthem_cursor*41;
+                uint32_t *dst = (uint32_t *)draw_buffer + 57;
                 const uint32_t color = BOX_COLOR;
                 *(++dst) = color;
                 *(++dst) = color;
@@ -228,7 +225,7 @@ void anthem_line()
         }
         case 8:
             if (anthem_menu_not_edit)
-                font_render_line_doubled((uint8_t *)"dpad:adjust song values", 16, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"dpad:adjust song length", 16, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"dpad:move cursor", 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -318,59 +315,21 @@ void anthem_controls()
     {
         int movement = 0;
         if (GAMEPAD_PRESSING(0, up))
-        {
-            game_message[0] = 0;
-            switch (anthem_cursor)
-            {
-                case 0:
-                    if (++song_length > MAX_SONG_LENGTH)
-                        song_length = MAX_SONG_LENGTH;
-                    break;
-                case 1:
-                    if (++song_speed > 100)
-                        song_speed = 100;
-                    break;
-                case 2:
-                    if (track_length < 64)
-                        track_length += 4;
-                    break;
-            }
-            movement = 1;
-        }
+            ++movement;
         if (GAMEPAD_PRESSING(0, down))
-        {
-            game_message[0] = 0;
-            switch (anthem_cursor)
-            {
-                case 0:
-                    if (--song_length < 16)
-                        song_length = 16;
-                    break;
-                case 1:
-                    if (--song_speed < 2)
-                        song_speed = 2;
-                    break;
-                case 2:
-                    if (track_length > 4)
-                        track_length -= 4;
-                    break;
-            }
-            movement = 1;
-        }
+            --movement;
         if (GAMEPAD_PRESSING(0, left))
-        {
-            if (--anthem_cursor == 255)
-                anthem_cursor = 2;
-            movement = 1;
-        }
+            --movement;
         if (GAMEPAD_PRESSING(0, right))
-        {
-            if (++anthem_cursor > 2)
-                anthem_cursor = 0;
-            movement = 1;
-        }
+            ++movement;
         if (movement)
         {
+            game_message[0] = 0;
+            song_length += movement;
+            if (song_length < 16)
+                song_length = 16;
+            else if (song_length > MAX_SONG_LENGTH)
+                song_length = MAX_SONG_LENGTH;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;
         }
