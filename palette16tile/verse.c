@@ -218,7 +218,7 @@ void verse_render_command(int j, int y)
             param = hex[param];
             break;
         case TRACK_LENGTH:
-            cmd = 'M';
+            cmd = 'L';
             if (param)
                 param = hex[param];
             else
@@ -340,7 +340,7 @@ void verse_line()
             // edit track
             uint8_t msg[] = { (chip_play_track && ((vga_frame/30) % 2)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
                 ' ', 'P', hex[verse_player], ' ', 'J', hex[verse_track_pos],
-                ' ', 'M', '0' + track_length/10, '0' + track_length%10,
+                ' ', 'L', '0' + track_length/10, '0' + track_length%10,
             0 };
             font_render_line_doubled(msg, 12, internal_line, 65535, BG_COLOR*257);
             break;
