@@ -290,6 +290,18 @@ void reset_player(int i)
     chip_player[i].octave = instrument[i].octave;
 }
 
+void chip_kill()
+{
+    chip_play = 0;
+    chip_play_track = 0;
+    for (int i=0; i<4; ++i)
+    {
+        oscillator[i].volume = 0;
+        chip_player[i].track_volume = 0;
+        chip_player[i].track_volumed = 0;
+    }
+}
+
 void chip_play_init(int pos) 
 {
     song_wait = 0;
@@ -414,9 +426,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
                 if (delta > chip_player[i].octave)
                 {
                     if (param%2) // wrap around
-                    {
                         chip_player[i].octave = 7 - delta + chip_player[i].octave;
-                    }
                     else // subtractive only, no wrap around
                         chip_player[i].octave = 0;
                 }
@@ -664,11 +674,14 @@ static void chip_update()
         if (vol < 0) vol = 0;
         else if (vol > 255) vol = 255;
         chip_player[i].volume = vol;
-        
-        vol = chip_player[i].track_volume + chip_player[i].track_volumed;
-        if (vol < 0) vol = 0;
-        else if (vol > 255) vol = 255;
-        chip_player[i].track_volume = vol;
+       
+        if (song_wait == song_speed)
+        {
+            vol = chip_player[i].track_volume + chip_player[i].track_volumed;
+            if (vol < 0) vol = 0;
+            else if (vol > 255) vol = 255;
+            chip_player[i].track_volume = vol;
+        }
 
         oscillator[i].volume = (chip_player[i].volume * chip_player[i].track_volume) >> 8;
 

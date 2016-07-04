@@ -443,6 +443,7 @@ void check_instrument(int i)
         game_message[0] = 0;
     }
     chip_player[i].track_volume = 0;
+    chip_player[i].track_volumed = 0;
 }
 
 void instrument_adjust_parameter(int direction)
@@ -806,8 +807,7 @@ void instrument_controls()
             game_message[0] = 0;
         instrument_menu_not_edit = 1 - instrument_menu_not_edit; 
         instrument_copying = 4;
-        for (int i=0; i<4; ++i)
-            chip_player[i].track_volume = 0;
+        chip_kill();
         return;
     }
 

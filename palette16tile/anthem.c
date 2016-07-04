@@ -535,11 +535,7 @@ void anthem_controls()
         {
             track_pos = 0;
             if (chip_play)
-            {
-                chip_play = 0;
-                for (int i=0; i<4; ++i)
-                    chip_player[i].track_volume = 0;
-            }
+                chip_kill();
             else
                 chip_play_init(anthem_song_pos);
         } 
@@ -556,8 +552,7 @@ void anthem_controls()
     {
         game_message[0] = 0;
         anthem_menu_not_edit = 1 - anthem_menu_not_edit; 
-        for (int i=0; i<4; ++i)
-            chip_player[i].track_volume = 0;
+        chip_kill();
         chip_play = 0;
         return;
     }

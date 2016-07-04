@@ -81,7 +81,7 @@ void verse_short_command_message(uint8_t *buffer, uint8_t cmd)
             strcpy((char *)buffer, "speed");
             break;
         case TRACK_LENGTH:
-            strcpy((char *)buffer, "measure");
+            strcpy((char *)buffer, "track length");
             break;
         case TRACK_RANDOMIZE0:
         case TRACK_RANDOMIZE1:
@@ -399,7 +399,7 @@ void verse_line()
                     strcpy((char *)buffer, "track speed");
                     break;
                 case TRACK_LENGTH:
-                    strcpy((char *)buffer, "measure quarter notes");
+                    strcpy((char *)buffer, "track length / 4");
                     break;
                 case TRACK_RANDOMIZE0:
                 case TRACK_RANDOMIZE1:
@@ -719,9 +719,7 @@ void verse_controls()
             if (chip_play_track)
             {
                 message("stop play\n");
-                chip_play_track = 0;
-                for (int i=0; i<4; ++i)
-                    chip_player[i].track_volume = 0;
+                chip_kill();
             }
             else
             {
@@ -750,9 +748,7 @@ void verse_controls()
         game_message[0] = 0;
         verse_menu_not_edit = 1 - verse_menu_not_edit; 
         verse_copying = 64;
-        for (int i=0; i<4; ++i)
-            chip_player[i].track_volume = 0;
-        chip_play_track = 0;
+        chip_kill();
         return;
     }
 

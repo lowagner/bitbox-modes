@@ -92,6 +92,7 @@ extern uint8_t song_pos;
 
 void chip_init(); // initialize all variables at start of game (stuff that only happens once)
 void chip_reset(); // put in a random tune.
+void chip_kill(); // kill all tones 
 void chip_play_init(); // re-initialize current tune to start over.
 void chip_play_track_init(int track); // 
 

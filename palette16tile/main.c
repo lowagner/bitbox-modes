@@ -46,6 +46,7 @@ void game_init()
     // now load everything else
     if (io_get_recent_filename())
     {
+        message("resetting everything\n");
         // had troubles loading a filename
         base_filename[0] = 'T';
         base_filename[1] = 'M';
@@ -350,10 +351,7 @@ void draw_parade(int line, uint8_t bg_color)
 
 void game_switch(VisualMode new_visual_mode)
 {
-    chip_play = 0;
-    chip_play_track = 0;
-    for (int i=0; i<4; ++i)
-        chip_player[i].track_volume = 0;
+    chip_kill();
 
     switch (new_visual_mode)
     {
