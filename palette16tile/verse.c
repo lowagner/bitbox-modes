@@ -339,7 +339,9 @@ void verse_line()
         {
             // edit track
             uint8_t msg[] = { (chip_play_track && ((vga_frame/30) % 2)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
-                ' ', 'P', hex[verse_player], ' ', 'J', hex[verse_track_pos],
+                ' ', 'P', hex[verse_player], 
+                ' ', 'I', hex[chip_player[verse_player].instrument],
+                ' ', 'J', hex[verse_track_pos],
                 ' ', 't', 'k', 'l', 'e', 'n', 
                 ' ', '0' + track_length/10, '0' + track_length%10,
             0 };
@@ -457,6 +459,8 @@ void verse_line()
                 else
                     font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
             }
+            else if (chip_play_track)
+                font_render_line_doubled((uint8_t *)"A:stop track", 96, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"A:play track", 96, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;

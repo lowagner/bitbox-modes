@@ -141,7 +141,7 @@ void anthem_line()
             break;
         }
         case 2:
-            font_render_line_doubled((uint8_t *)"P:song", 20, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"P:tracks", 20, internal_line, 65535, BG_COLOR*257);
             break;
         case 3:
         case 4:
@@ -234,13 +234,10 @@ void anthem_line()
             {
                 font_render_line_doubled((uint8_t *)"A:save songkit", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
+            else if (chip_play_track)
+                font_render_line_doubled((uint8_t *)"A:stop song", 16+3*9, internal_line, 65535, BG_COLOR*257);
             else
-            {
-                if (chip_play_track)
-                    font_render_line_doubled((uint8_t *)"A:stop song", 16+3*9, internal_line, 65535, BG_COLOR*257);
-                else
-                    font_render_line_doubled((uint8_t *)"A:play song", 16+3*9, internal_line, 65535, BG_COLOR*257);
-            }
+                font_render_line_doubled((uint8_t *)"A:play song", 16+3*9, internal_line, 65535, BG_COLOR*257);
             break;
         case 10:
             if (anthem_menu_not_edit)

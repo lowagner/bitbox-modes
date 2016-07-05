@@ -269,7 +269,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
 
 void chip_init()
 {
-    chip_volume = 5;
+    chip_volume = 128;
 }
 
 void chip_reset()
@@ -686,7 +686,7 @@ static void chip_update()
             chip_player[i].track_volume = vol;
         }
 
-        oscillator[i].volume = (chip_player[i].volume * chip_player[i].track_volume) >> 8;
+        oscillator[i].volume = (chip_player[i].volume * chip_player[i].track_volume * chip_volume) >> 16;
 
         // not sure if it's necessary to check duty, but we can put it back if necessary.
         //duty = oscillator[i].duty + chip_player[i].dutyd;
@@ -776,7 +776,7 @@ static inline uint16_t gen_sample()
         value |= ((1<<oscillator[i].bitcrush) - 1); // if bitcrush == 0, does nothing
 
         // addition has range [-8160,7905], roughly +- 2**13
-        int16_t add = (((oscillator[i].volume * value) >> 2)*chip_volume)>>8;
+        int16_t add = (oscillator[i].volume * value) >> 2;
         
         // Mix it in the appropriate output channel
         if (oscillator[i].side & 1)
