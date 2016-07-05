@@ -13,6 +13,7 @@ FATFS fat_fs;
 FIL fat_file;
 FRESULT fat_result;
 char old_base_filename[9] CCM_MEMORY;
+uint8_t old_chip_volume CCM_MEMORY;
        
 
 void io_message_from_error(uint8_t *msg, FileError error, int save_not_load)
@@ -140,7 +141,7 @@ FileError io_set_recent_filename()
             return MountError;
     }
     
-    if (strcmp(old_base_filename, base_filename) == 0)
+    if (strcmp(old_base_filename, base_filename) == 0 && chip_volume == old_chip_volume)
         return NoError; // don't rewrite  
 
     fat_result = f_open(&fat_file, "RECENT16.TXT", FA_WRITE | FA_CREATE_ALWAYS); 
@@ -148,12 +149,25 @@ FileError io_set_recent_filename()
         return OpenError;
     UINT bytes_get;
     fat_result = f_write(&fat_file, base_filename, filename_len, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != filename_len)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    strcpy(old_base_filename, base_filename);
+    uint8_t msg[2] = { '\n', chip_volume };
+    fat_result = f_write(&fat_file, msg, 2, &bytes_get);
     f_close(&fat_file);
     if (fat_result != FR_OK)
         return WriteError;
-    if (bytes_get != filename_len)
+    if (bytes_get != 2)
         return MissingDataError;
-    strcpy(old_base_filename, base_filename);
+    old_chip_volume = chip_volume;
     return NoError;
 }
 
@@ -170,14 +184,33 @@ FileError io_get_recent_filename()
         return OpenError;
 
     UINT bytes_get;
-    fat_result = f_read(&fat_file, base_filename, 8, &bytes_get); 
+    uint8_t buffer[10];
+    fat_result = f_read(&fat_file, &buffer[0], 10, &bytes_get); 
     f_close(&fat_file);
     if (fat_result != FR_OK)
         return ReadError;
-
-    base_filename[bytes_get] = 0;
     if (bytes_get == 0)
         return NoDataError;
+    int i=0;
+    while (i < bytes_get)
+    {
+        if (buffer[i] == '\n')
+        {
+            base_filename[i] = 0;
+            if (++i < bytes_get)
+                chip_volume = buffer[i];
+            return NoError;
+        }
+        if (i < 8)
+            base_filename[i] = buffer[i];
+        else
+        {
+            base_filename[8] = 0;
+            return ConstraintError;
+        }
+        ++i;
+    }
+    base_filename[i] = 0;
     return NoError;
 }
 
