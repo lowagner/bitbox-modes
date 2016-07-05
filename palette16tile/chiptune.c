@@ -776,7 +776,7 @@ static inline uint16_t gen_sample()
         value |= ((1<<oscillator[i].bitcrush) - 1); // if bitcrush == 0, does nothing
 
         // addition has range [-8160,7905], roughly +- 2**13
-        int16_t add = (oscillator[i].volume * value) >> 2;
+        int16_t add = (((oscillator[i].volume * value) >> 2)*chip_volume)>>8;
         
         // Mix it in the appropriate output channel
         if (oscillator[i].side & 1)
