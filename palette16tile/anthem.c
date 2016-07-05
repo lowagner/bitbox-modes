@@ -99,7 +99,7 @@ void anthem_line()
         {
             if (line - 3 == verse_player)
             {
-                uint32_t *dst = (uint32_t *)draw_buffer + 23 + 8*anthem_song_pos - 8*anthem_song_offset;
+                uint32_t *dst = (uint32_t *)draw_buffer + 21 + 8*anthem_song_pos - 8*anthem_song_offset;
                 (*dst) = BOX_COLOR;
                 (*(++dst)) = BOX_COLOR;
                 (*(++dst)) = BOX_COLOR;
@@ -111,7 +111,7 @@ void anthem_line()
             }
             else if (line == 6 && internal_line == 9)
             {
-                uint32_t *dst = (uint32_t *)draw_buffer + 23 + 8*anthem_song_pos - 8*anthem_song_offset;
+                uint32_t *dst = (uint32_t *)draw_buffer + 21 + 8*anthem_song_pos - 8*anthem_song_offset;
                 (*dst) = MATRIX_WING_COLOR;
                 (*(++dst)) = MATRIX_WING_COLOR;
                 (*(++dst)) = MATRIX_WING_COLOR;
@@ -141,7 +141,7 @@ void anthem_line()
             break;
         }
         case 2:
-            font_render_line_doubled((uint8_t *)"P:song", 16, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((uint8_t *)"P:song", 20, internal_line, 65535, BG_COLOR*257);
             break;
         case 3:
         case 4:
@@ -151,7 +151,7 @@ void anthem_line()
             int i = line - 3;
             if (i == verse_player)
             {
-                uint32_t *dst = (uint32_t *)draw_buffer + 3;
+                uint32_t *dst = (uint32_t *)draw_buffer + 6;
                 if ((internal_line+1)/2 == 1)
                 {
                     *dst = ~(*dst);
@@ -167,8 +167,8 @@ void anthem_line()
             }
             {
                 uint8_t msg[] = { hex[i], ':', 0 };
-                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-                uint32_t *dst = (uint32_t *)draw_buffer + 22;
+                font_render_line_doubled(msg, 20, internal_line, 65535, BG_COLOR*257);
+                uint32_t *dst = (uint32_t *)draw_buffer + 20;
                 uint8_t y = ((internal_line/2))*4; // how much to shift for font row
                 uint16_t *value = &chip_song[anthem_song_offset]-1;
                 for (int j=0; j<8; ++j)
@@ -209,7 +209,7 @@ void anthem_line()
                 const uint16_t color = (anthem_song_offset + 15 == anthem_song_pos) ? 
                     BOX_COLOR :
                     MATRIX_WING_COLOR;
-                uint16_t *dst = draw_buffer + 22*2 + 16*8*2;
+                uint16_t *dst = draw_buffer + 20*2 + 16*8*2;
                 *(++dst) = color;
                 ++dst;
                 *(++dst) = color;
@@ -287,6 +287,10 @@ void anthem_line()
                     anthem_render(anthem_color[0]+1, 200+2*9, internal_line);
                 }
             }
+            break;
+        case 13:
+            if (anthem_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"L/R:adjust global volume", 16+1*9, internal_line, 65535, BG_COLOR*257);
             break;
         case 15:
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
@@ -403,12 +407,31 @@ void anthem_controls()
             return;
         }
 
-        if (GAMEPAD_PRESS(0, L))
+        if (GAMEPAD_PRESSING(0, L))
         {
+            if (chip_volume > 4)
+                chip_volume -= 4;
+            else if (chip_volume)
+                --chip_volume;
+            --movement;
         }
-        if (GAMEPAD_PRESS(0, R))
+        if (GAMEPAD_PRESSING(0, R))
         {
+            if (chip_volume < 252)
+                chip_volume += 4;
+            else if (chip_volume < 255)
+                ++chip_volume;
+            ++movement;
         } 
+        if (movement) 
+        {
+            strcpy((char *)game_message, "global volume to ");
+            game_message[17] = hex[chip_volume/16];
+            game_message[18] = hex[chip_volume%16];
+            game_message[19] = 0;
+            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+            return;
+        }
 
         if (GAMEPAD_PRESS(0, X))
         {
