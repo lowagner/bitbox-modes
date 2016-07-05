@@ -16,6 +16,7 @@
 extern uint8_t chip_play;
 extern uint8_t chip_play_track;
 extern uint8_t chip_repeat;
+extern uint8_t chip_volume;
 
 struct oscillator {
     uint8_t side;

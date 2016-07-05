@@ -23,6 +23,7 @@
 uint8_t chip_play CCM_MEMORY;
 uint8_t chip_play_track CCM_MEMORY;
 uint8_t chip_repeat CCM_MEMORY;
+uint8_t chip_volume CCM_MEMORY;
 
 /*
     oscillator
@@ -268,6 +269,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
 
 void chip_init()
 {
+    chip_volume = 5;
 }
 
 void chip_reset()
@@ -344,13 +346,14 @@ void chip_play_track_init(int track)
 
 void _chip_note(uint8_t i, uint8_t note)
 {
+    #ifdef CHIPTUNE_DEBUG
     message("note %d on player %d\n", (note+12*chip_player[i].octave), i);
+    #endif
     // now set some defaults and startup the command index
     if (instrument[chip_player[i].instrument].is_drum)
     {
         // a drum instrument has 3 sub instruments.
         note %= 12;
-        // is_drum also holds which command we want to stop at for this sub-instrument.
         // first subinstrument is 2*MAX_DRUM_LENGTH commands long, and takes up first 10 notes.
         if (note < 10)
         {
@@ -772,7 +775,7 @@ static inline uint16_t gen_sample()
         value |= ((1<<oscillator[i].bitcrush) - 1); // if bitcrush == 0, does nothing
 
         // addition has range [-8160,7905], roughly +- 2**13
-        int16_t add = oscillator[i].volume * value;
+        int16_t add = oscillator[i].volume * chip_volume / 256 * value;
         
         // Mix it in the appropriate output channel
         if (oscillator[i].side & 1)
