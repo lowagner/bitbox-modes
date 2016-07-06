@@ -145,10 +145,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             chip_player[i].volumed = -param - param*param/15;
             break;
         case INERTIA: // i = inertia (auto note slides)
-            if (param)
-                chip_player[i].inertia = 240/(param + param*param/6);
-            else
-                chip_player[i].inertia = 0;
+            chip_player[i].inertia = param;
             break;
         case VIBRATO: // ~ = vibrato depth and rate
             chip_player[i].vibrato_depth = (param&3)*3 + (param>3)*2;
@@ -477,10 +474,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].track_volumed = -param - param*param/15;
             break;
         case TRACK_INERTIA: // i = inertia (auto note slides)
-            if (param)
-                chip_player[i].track_inertia = (16-param) << 4;
-            else
-                chip_player[i].track_inertia = 0;
+            chip_player[i].track_inertia = param;
             break;
         case TRACK_VIBRATO: // ~ = vibrato depth
             chip_player[i].track_vibrato_depth = (param&3)*3 + (param>3)*2;
@@ -669,9 +663,9 @@ static void chip_update()
             --chip_player[i].wait;
         
         // calculate instrument frequency
-        inertia = 2*(chip_player[i].inertia + chip_player[i].track_inertia);
-        if (inertia) // if sliding around
+        if (chip_player[i].inertia || chip_player[i].track_inertia) // if sliding around
         {
+            inertia = 256/(chip_player[i].inertia + chip_player[i].track_inertia);
             slur = chip_player[i].slur;
             int16_t diff = freq_table[chip_player[i].note] - slur;
             if (diff > inertia) 
