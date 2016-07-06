@@ -86,7 +86,7 @@ void save_line()
             font_render_line_doubled((const uint8_t *)"  A:save to file", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 4:
-            font_render_line_doubled((const uint8_t *)"  X:load from file", 16, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"  B:load from file", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case 5:
             font_render_line_doubled((const uint8_t *)"  Y:choose filename", 16, internal_line, 65535, BG_COLOR*257);
@@ -128,7 +128,7 @@ void save_controls()
     int save_or_load = 0;
     if (GAMEPAD_PRESS(0, A))
         save_or_load = 1;  // save
-    if (GAMEPAD_PRESS(0, X))
+    if (GAMEPAD_PRESS(0, B))
         save_or_load = 2; // load
     if (save_or_load)
     {
@@ -246,7 +246,7 @@ void save_controls()
         io_message_from_error(game_message+offset, error, save_or_load);
         return;
     }
-    if (GAMEPAD_PRESS(0, B))
+    if (GAMEPAD_PRESS(0, X))
     {
         game_message[0] = 0;
         // TODO:  add functionality?

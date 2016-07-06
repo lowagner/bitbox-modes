@@ -3,58 +3,58 @@
 starting_index = 0
 
 characters = [
-   ["*  *", # null
+   ["*  *", # 0 - null
     " ** ",
     " ** ",
     "*  *"],
-   [" ** ", # half sine wave
+   [" ** ", # 1 - half sine wave
     "*  *",
     "    ",
     "    "],
-   ["    ", # second half sine wave
+   ["    ", # 2 - second half sine wave
     "    ",
     "*  *",
     " ** "],
-   ["   *", # part of saw wave
+   ["   *", # 3 - part of saw wave
     "  **",
     " *  ",
     "*   "],
-   ["   *", # second part of saw wave
+   ["   *", # 4 - second part of saw wave
     "  * ",
     "**  ",
     "*   "],
-   [" *  ", # first part of square
+   [" *  ", # 5 - first part of square
     " *  ",
     " *  ",
     " ***"],
-   ["****", # second part of square wave
+   ["****", # 6 - second part of square wave
     "*  *",
     "*  *",
     "*  *"],
-   ["* * ",  # noise
+   ["* * ", # 7 - noise
     " * *",
     "* * ",
     " * *"],
-   ["    ",  # white noise spectrum
+   ["    ", # 8 - white noise spectrum
     "    ",
     "****",
     "****"],
-   ["*   ",  # red noise spectrum
+   ["*   ", # 9 - red noise spectrum
     "**  ",
     "*** ",
     "****"],
-   ["   *",  # violet noise spectrum
+   ["   *", # 10 - violet noise spectrum
     "  **",
     " ***",
     "****"],
-   ["", 
-    "",
-    "",
-    ""],
-   ["", 
-    "",
-    "",
-    ""],
+   ["   *", # 11 - bend up
+    "   *",
+    "  * ",
+    "**  "],
+   ["**  ", # 12 - bend down
+    "  * ",
+    "   *",
+    "   *"],
    ["", 
     "",
     "",

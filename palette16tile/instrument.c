@@ -79,7 +79,7 @@ void instrument_reset()
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
     instrument[i].cmd[++ci] = NOTE | (0<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
-    instrument[i].cmd[++ci] = VIBRATO_DEPTH | (3<<4); 
+    instrument[i].cmd[++ci] = VIBRATO | (0xc<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
     instrument[i].cmd[++ci] = FADE_OUT | (1<<4); 
@@ -158,11 +158,11 @@ void instrument_short_command_message(uint8_t *buffer, uint8_t cmd)
         case INERTIA:
             strcpy((char *)buffer, "inertia");
             break;
-        case VIBRATO_DEPTH:
-            strcpy((char *)buffer, "vibrato depth");
+        case VIBRATO:
+            strcpy((char *)buffer, "vibrato");
             break;
-        case VIBRATO_RATE:
-            strcpy((char *)buffer, "vibrato rate");
+        case BEND:
+            strcpy((char *)buffer, "bend");
             break;
         case BITCRUSH:
             strcpy((char *)buffer, "bitcrush");
@@ -346,13 +346,21 @@ void instrument_render_command(int j, int y)
             cmd = 'i';
             param = hex[param];
             break;
-        case VIBRATO_DEPTH:
+        case VIBRATO:
             cmd = '~';
             param = hex[param];
             break;
-        case VIBRATO_RATE:
-            cmd = 157; // nu
-            param = hex[param];
+        case BEND:
+            if (param < 8)
+            {
+                cmd = 11; // bend up
+                param = hex[param];
+            }
+            else
+            {
+                cmd = 12; // bend down
+                param = hex[16-param];
+            }
             break;
         case BITCRUSH:
             cmd = 9;
@@ -475,8 +483,8 @@ void instrument_adjust_parameter(int direction)
         case FADE_IN:
         case FADE_OUT:
         case INERTIA:
-        case VIBRATO_DEPTH:
-        case VIBRATO_RATE:
+        case VIBRATO:
+        case BEND:
         case BITCRUSH:
         case DUTY:
         case DUTY_DELTA:
@@ -674,11 +682,11 @@ void instrument_line()
                 case INERTIA:
                     strcpy((char *)buffer, "note inertia");
                     break;
-                case VIBRATO_DEPTH:
-                    strcpy((char *)buffer, "vibrato depth");
+                case VIBRATO:
+                    strcpy((char *)buffer, "vibrato");
                     break;
-                case VIBRATO_RATE:
-                    strcpy((char *)buffer, "vibrato rate");
+                case BEND:
+                    strcpy((char *)buffer, "bend");
                     break;
                 case BITCRUSH:
                     strcpy((char *)buffer, "bitcrush");
@@ -697,6 +705,10 @@ void instrument_line()
                     break;
             }
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
+            goto maybe_show_instrument;
+        case 4:
+            if ((instrument[instrument_i].cmd[instrument_j]&15) == VIBRATO)
+                font_render_line_doubled((uint8_t *)"depth 0-3 + rate 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_instrument;
         case 5:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*instrument_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
@@ -1138,7 +1150,6 @@ void instrument_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        instrument_j = 0;
         instrument_copying = 4;
         if (previous_visual_mode)
         {

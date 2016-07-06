@@ -54,6 +54,7 @@ struct chip_player
     uint8_t note; // actual note being played    
     uint8_t track_note; // includes song_transpose
     uint8_t octave;
+    uint8_t dutyd;
 
     uint8_t volume;
     int8_t volumed; 
@@ -63,14 +64,15 @@ struct chip_player
     uint16_t slur; // internally how we keep track of note with inertia 
     uint8_t inertia;
     uint8_t track_inertia;
-
+    
     uint8_t vibrato_depth;
     uint8_t track_vibrato_depth;
     uint8_t vibrato_rate;
     uint8_t track_vibrato_rate; 
     
     uint8_t vibrato_phase; 
-    uint8_t dutyd;
+    int8_t bendd;
+    int16_t bend;
 
     uint8_t track_wait;
     uint8_t track_cmd_index;
@@ -121,8 +123,8 @@ enum
 #define FADE_IN 6
 #define FADE_OUT 7
 #define INERTIA 8
-#define VIBRATO_DEPTH 9
-#define VIBRATO_RATE 10
+#define VIBRATO 9
+#define BEND 10
 #define BITCRUSH 11
 #define DUTY 12
 #define DUTY_DELTA 13

@@ -145,13 +145,20 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             chip_player[i].volumed = -param - param*param/15;
             break;
         case INERTIA: // i = inertia (auto note slides)
-            chip_player[i].inertia = param << 4;
+            if (param)
+                chip_player[i].inertia = 240/(param + param*param/6);
+            else
+                chip_player[i].inertia = 0;
             break;
-        case VIBRATO_DEPTH: // ~ = vibrato depth
-            chip_player[i].vibrato_depth = param;
+        case VIBRATO: // ~ = vibrato depth and rate
+            chip_player[i].vibrato_depth = (param&3)*3 + (param>3)*2;
+            chip_player[i].vibrato_rate = 2 + (param & 12)/2;
             break;
-        case VIBRATO_RATE: // x = vibrato rate
-            chip_player[i].vibrato_rate = param;
+        case BEND: // / or \ = bendiness
+            if (param < 8)
+                chip_player[i].bendd = param + param*param/4;
+            else
+                chip_player[i].bendd = -(16-param) - (16-param)*(16-param)/4;
             break;
         case BITCRUSH: // b = bitcrush
             oscillator[i].bitcrush = param;
@@ -191,11 +198,11 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                 case INERTIA:
                     instrument[inst].cmd[param] = INERTIA | ((rand()%16)<<4);
                     break;
-                case VIBRATO_DEPTH:
-                    instrument[inst].cmd[param] = VIBRATO_DEPTH | ((rand()%16)<<4);
+                case VIBRATO:
+                    instrument[inst].cmd[param] = VIBRATO | ((rand()%16)<<4);
                     break;
-                case VIBRATO_RATE:
-                    instrument[inst].cmd[param] = VIBRATO_RATE | ((1+rand()%15)<<4);
+                case BEND:
+                    instrument[inst].cmd[param] = BEND | ((rand()%16)<<4);
                     break;
                 case BITCRUSH:
                     instrument[inst].cmd[param] = BITCRUSH | ((rand()%16)<<4);
@@ -393,10 +400,10 @@ void _chip_note(uint8_t i, uint8_t note)
     chip_player[i].wait = 0;
     chip_player[i].dutyd = 0;
     chip_player[i].vibrato_depth = 0;
-    chip_player[i].vibrato_rate = 5;
+    chip_player[i].vibrato_rate = 1;
+    chip_player[i].bend = 0;
     oscillator[i].side = 3; // default to output both L/R
     oscillator[i].duty = 0x8000; // default to square wave
-    //oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
 }
 
 void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
@@ -404,7 +411,6 @@ void chip_note(uint8_t i, uint8_t note, uint8_t track_volume)
     _chip_note(i, note);
     chip_player[i].track_volume = track_volume;
     chip_player[i].track_volumed = 0;
-    //oscillator[i].volume = chip_player[i].track_volume * chip_player[i].volume / 255;
 }
 
 static void track_run_command(uint8_t i, uint8_t cmd) 
@@ -471,11 +477,14 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].track_volumed = -param - param*param/15;
             break;
         case TRACK_INERTIA: // i = inertia (auto note slides)
-            chip_player[i].track_inertia = param << 4;
+            if (param)
+                chip_player[i].track_inertia = (16-param) << 4;
+            else
+                chip_player[i].track_inertia = 0;
             break;
         case TRACK_VIBRATO: // ~ = vibrato depth
-            chip_player[i].track_vibrato_rate = (param&3)<<2;
-            chip_player[i].track_vibrato_depth = param & 12;
+            chip_player[i].track_vibrato_depth = (param&3)*3 + (param>3)*2;
+            chip_player[i].track_vibrato_rate = 1 + (param & 12)/2;
             break;
         case TRACK_TRANSPOSE: // T = global transpose
             if (param == 0) // reset song transpose
@@ -676,10 +685,11 @@ static void chip_update()
         {
             slur = freq_table[chip_player[i].note];
         }
-        oscillator[i].freq = slur +
+        oscillator[i].freq = slur + chip_player[i].bend + 
             (((chip_player[i].vibrato_depth + chip_player[i].track_vibrato_depth) * 
                 sine_table[chip_player[i].vibrato_phase & 63]) >> 2);
         chip_player[i].vibrato_phase += chip_player[i].vibrato_rate + chip_player[i].track_vibrato_rate;
+        chip_player[i].bend += chip_player[i].bendd;
 
         vol = chip_player[i].volume + chip_player[i].volumed;
         if (vol < 0) vol = 0;

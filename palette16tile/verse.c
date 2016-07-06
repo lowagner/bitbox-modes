@@ -413,7 +413,7 @@ void verse_line()
             goto maybe_show_track;
         case 4:
             if ((chip_track[verse_track][verse_player][verse_track_pos]&15) == TRACK_VIBRATO)
-                font_render_line_doubled((uint8_t *)"rate 0-3 + depth 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"depth 0-3 + rate 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 5:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*verse_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
@@ -744,7 +744,6 @@ void verse_controls()
         if (GAMEPAD_PRESSING(0, B))
         {
             instrument_i = chip_player[verse_player].instrument;
-            instrument_j = 0;
             game_switch(EditInstrument);
             return;
         }
@@ -767,7 +766,6 @@ void verse_controls()
         if (verse_menu_not_edit)
         {
             instrument_menu_not_edit = verse_menu_not_edit;
-            instrument_j = 0;
             game_switch(EditInstrument);
         }
         else
