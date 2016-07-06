@@ -2,6 +2,7 @@
 #include "common.h"
 #include "common.h"
 #include "chiptune.h"
+#include "anthem.h"
 #include "instrument.h"
 #include "name.h"
 #include "font.h"
@@ -341,7 +342,6 @@ void verse_line()
             uint8_t msg[] = { (chip_play_track && ((vga_frame/30) % 2)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
                 ' ', 'P', hex[verse_player], 
                 ' ', 'I', hex[chip_player[verse_player].instrument],
-                ' ', 'J', hex[verse_track_pos],
                 ' ', 't', 'k', 'l', 'e', 'n', 
                 ' ', '0' + track_length/10, '0' + track_length%10,
             0 };
@@ -744,6 +744,7 @@ void verse_controls()
         if (GAMEPAD_PRESSING(0, B))
         {
             instrument_i = chip_player[verse_player].instrument;
+            instrument_j = 0;
             game_switch(EditInstrument);
             return;
         }
@@ -766,10 +767,12 @@ void verse_controls()
         if (verse_menu_not_edit)
         {
             instrument_menu_not_edit = verse_menu_not_edit;
+            instrument_j = 0;
             game_switch(EditInstrument);
         }
         else
         {
+            anthem_menu_not_edit = 0;
             game_switch(EditAnthem);
         }
         return;

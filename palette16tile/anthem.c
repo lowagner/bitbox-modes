@@ -234,7 +234,7 @@ void anthem_line()
             {
                 font_render_line_doubled((uint8_t *)"A:save songkit", 16+3*9, internal_line, 65535, BG_COLOR*257);
             }
-            else if (chip_play_track)
+            else if (chip_play)
                 font_render_line_doubled((uint8_t *)"A:stop song", 16+3*9, internal_line, 65535, BG_COLOR*257);
             else
                 font_render_line_doubled((uint8_t *)"A:play song", 16+3*9, internal_line, 65535, BG_COLOR*257);
@@ -290,9 +290,18 @@ void anthem_line()
                 font_render_line_doubled((uint8_t *)"L/R:adjust global volume", 16+1*9, internal_line, 65535, BG_COLOR*257);
             break;
         case 15:
+            if (anthem_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"start:edit anthem", 16, internal_line, 65535, BG_COLOR*257);
+            else
+                font_render_line_doubled((uint8_t *)"start:anthem menu", 16, internal_line, 65535, BG_COLOR*257);
+            break;        
+        case 16:
+            if (anthem_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"select:verse menu", 16, internal_line, 65535, BG_COLOR*257);
+            break;        
+        case 18:
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
-            break;
-            
+            break;        
     }
 }
 
@@ -539,9 +548,16 @@ void anthem_controls()
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        anthem_menu_not_edit = 0;
         previous_visual_mode = None;
-        game_switch(SaveLoadScreen);
+        if (anthem_menu_not_edit)
+        {
+            verse_menu_not_edit = 1;
+            game_switch(EditVerse);
+        }
+        else
+        {
+            game_switch(SaveLoadScreen);
+        }
         return;
     } 
 }

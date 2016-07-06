@@ -2,6 +2,7 @@
 #include "common.h"
 #include "common.h"
 #include "chiptune.h"
+#include "anthem.h"
 #include "verse.h"
 #include "font.h"
 #include "name.h"
@@ -785,8 +786,10 @@ void instrument_line()
         case 18:
             if (previous_visual_mode)
                 font_render_line_doubled((uint8_t *)"select:return", 96, internal_line, 65535, BG_COLOR*257);
+            else if (instrument_menu_not_edit)
+                font_render_line_doubled((uint8_t *)"select:anthem menu", 96, internal_line, 65535, BG_COLOR*257);
             else
-                font_render_line_doubled((uint8_t *)"select:track", 96, internal_line, 65535, BG_COLOR*257);
+                font_render_line_doubled((uint8_t *)"select:edit track", 96, internal_line, 65535, BG_COLOR*257);
             break;
         case 19:
             font_render_line_doubled(game_message, 36, internal_line, 65535, BG_COLOR*257);
@@ -1142,9 +1145,14 @@ void instrument_controls()
             game_switch(previous_visual_mode);
             previous_visual_mode = None;
         }
+        else if (instrument_menu_not_edit)
+        {
+            anthem_menu_not_edit = 1;
+            game_switch(EditAnthem);
+        }
         else
         {
-            verse_menu_not_edit = instrument_menu_not_edit;
+            verse_menu_not_edit = 0;
             game_switch(EditVerse);
         }
         return;
