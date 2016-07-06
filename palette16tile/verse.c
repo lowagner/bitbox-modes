@@ -540,6 +540,7 @@ void verse_controls()
             ++switched;
         if (switched)
         {
+            game_message[0] = 0;
             verse_player = (verse_player+switched)&3;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;

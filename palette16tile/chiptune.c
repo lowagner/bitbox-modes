@@ -276,13 +276,15 @@ void chip_reset()
 {
     song_length = 16;
     track_length = 32;
-    song_speed = 8;
+    song_speed = 4;
 }
 
 void reset_player(int i)
 {
     chip_player[i].instrument = i;
+    chip_player[i].cmd_index = 0;
     chip_player[i].track_cmd_index = 0;
+    chip_player[i].track_wait = 0;
     chip_player[i].volume = 0;
     chip_player[i].track_volume = 0;
     chip_player[i].track_volumed = 0;
@@ -306,6 +308,12 @@ void chip_kill()
 
 void chip_play_init(int pos) 
 {
+    if (pos == 0)
+    {
+        track_length = 32;
+        song_speed = 4;
+    }
+
     song_wait = 0;
     track_pos = 0;
     chip_play = 1;
@@ -558,7 +566,7 @@ static void chip_track_update()
     for (int i=0; i<4; ++i) 
     {
         #ifdef DEBUG_CHIPTUNE
-        message(" | t: %d (%02d/%02d) ", i, chip_player[i].track_cmd_index, track_pos, track_length);
+        message(" | t: %02d/%02d) ", i, chip_player[i].track_cmd_index, track_pos);
         #endif
         while (!chip_player[i].track_wait && chip_player[i].track_cmd_index < MAX_TRACK_LENGTH) 
             track_run_command(i, chip_track[chip_player[i].track_index][i][chip_player[i].track_cmd_index++]);
