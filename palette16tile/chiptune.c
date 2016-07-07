@@ -316,6 +316,7 @@ void chip_play_init(int pos)
     {
         track_length = 32;
         song_speed = 4;
+        song_transpose = 0;
     }
 
     song_wait = 0;
