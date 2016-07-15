@@ -14,8 +14,7 @@ uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pix
 //   4 bits for initial health
 //   4 bits for speed of sprite
 //   4 bits for damage/passable property, x 4 sides 
-//      first bit indicates damaging (or not if it's zero)
-//      second three bits:  passable, breakable, hard, slippery, sticky, bouncey, 
+//      see tiles.c for information
 uint32_t sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;

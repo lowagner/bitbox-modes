@@ -18,7 +18,10 @@ uint8_t tile_translator[16] CCM_MEMORY;
 //   4 bits for translation timing (0000 -> 16 units of time), where one unit of time is 32 frames
 //   4 bits for damage/passable property, x 4 sides 
 //      first bit indicates damaging (or not if it's zero)
-//      second three bits:  passable, breakable, hard, slippery, sticky, bouncey, 
+//      second three bits:  passable, breakable, sticky, slippery, bouncey, warp location, level warp location, win location
+//          sticky, slippery, and bouncey are modified by the first 4 bits.
+//          if zero, then NOT sticky, slippery, or bouncey
+//          if 15, then VERY sticky, slippery, or bouncey
 uint32_t tile_info[16] CCM_MEMORY;
 int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
 uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
