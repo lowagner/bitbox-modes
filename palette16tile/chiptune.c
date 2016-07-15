@@ -36,12 +36,10 @@ struct oscillator oscillator[CHIP_PLAYERS] CCM_MEMORY;
 
 /* 
     instruments
-    you get one for each channel.
-    you have a max of MAX_INSTRUMENT_LENGTH commands with parameters 
+    you can have up to 16 instruments.
+    you have a max of MAX_INSTRUMENT_LENGTH commands with parameters.
 
     there's a command (&15) and a parameter (>>4) embedded in each uint8_t cmd[].
-
-    TODO:  multiply parameter by 16 to get full range for certain commands.
  */
 
 struct instrument instrument[16] CCM_MEMORY;
@@ -143,6 +141,8 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             chip_player[i].volumed = param + param*param/15;
             break;
         case FADE_OUT: // > = fade out, or decrescendo
+            if (!param)
+                param = 16;
             chip_player[i].volumed = -param - param*param/15;
             break;
         case INERTIA: // i = inertia (auto note slides)
@@ -191,7 +191,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                     instrument[inst].cmd[param] = FADE_IN | ((1 + rand()%15)<<4);
                     break;
                 case FADE_OUT:
-                    instrument[inst].cmd[param] = FADE_OUT | ((1 + rand()%15)<<4);
+                    instrument[inst].cmd[param] = FADE_OUT | ((rand()%16)<<4);
                     break;
                 case INERTIA:
                     instrument[inst].cmd[param] = INERTIA | ((rand()%16)<<4);
@@ -498,6 +498,8 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].track_volumed = param + param*param/15;
             break;
         case TRACK_FADE_OUT: // > = fade out, or decrescendo
+            if (!param)
+                param = 16;
             chip_player[i].track_volumed = -param - param*param/15;
             break;
         case TRACK_INERTIA: // i = inertia (auto note slides)
@@ -555,7 +557,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
                     *memory = TRACK_FADE_IN | ((1 + rand()%15)<<4);
                     break;
                 case TRACK_FADE_OUT:
-                    *memory = TRACK_FADE_OUT | ((1 + rand()%15)<<4);
+                    *memory = TRACK_FADE_OUT | ((rand()%16)<<4);
                     break;
                 case TRACK_INERTIA:
                     *memory = TRACK_INERTIA | ((rand()%16)<<4);

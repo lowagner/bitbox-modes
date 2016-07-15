@@ -335,7 +335,7 @@ void instrument_render_command(int j, int y)
             if (param)
                 param = hex[param];
             else
-                param = 'G';
+                param = 'g';
             break;
         case FADE_IN:
             cmd = '<';
@@ -343,7 +343,10 @@ void instrument_render_command(int j, int y)
             break;
         case FADE_OUT:
             cmd = '>';
-            param = hex[param];
+            if (param)
+                param = hex[param];
+            else
+                param = 'g';
             break;
         case INERTIA:
             cmd = 'i';

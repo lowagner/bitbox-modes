@@ -145,8 +145,8 @@ void verse_render_command(int j, int y)
         {
             if (y == 7)
                 verse_show_track = 0;
-            cmd = '6';
-            param = '4';
+            cmd = '0';
+            param = '0';
         }
         else
         {
@@ -199,7 +199,7 @@ void verse_render_command(int j, int y)
             if (param)
                 param = hex[param];
             else
-                param = 'G';
+                param = 'g';
             break;
         case TRACK_NOTE_WAIT:
             cmd = 'N';
@@ -211,7 +211,10 @@ void verse_render_command(int j, int y)
             break;
         case TRACK_FADE_OUT:
             cmd = '>';
-            param = hex[param];
+            if (param)
+                param = hex[param];
+            else
+                param = 'g';
             break;
         case TRACK_INERTIA:
             cmd = 'i';
@@ -234,7 +237,7 @@ void verse_render_command(int j, int y)
             if (param)
                 param = hex[param];
             else
-                param = 'G';
+                param = 'g';
             break;
         case TRACK_RANDOMIZE1:
             param += 16;
