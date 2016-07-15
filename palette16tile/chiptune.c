@@ -44,7 +44,7 @@ struct oscillator oscillator[CHIP_PLAYERS] CCM_MEMORY;
     TODO:  multiply parameter by 16 to get full range for certain commands.
  */
 
-struct instrument instrument[CHIP_PLAYERS] CCM_MEMORY;
+struct instrument instrument[16] CCM_MEMORY;
 
 /* 
     tracks
@@ -451,8 +451,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             }
             break;
         case TRACK_INSTRUMENT:
-            chip_player[i].instrument = param % 4;
-            //chip_player[i].octave = instrument[param % 4].octave;
+            chip_player[i].instrument = param;
             break;
         case TRACK_VOLUME: // v = volume
             chip_player[i].track_volume = param<<4;

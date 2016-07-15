@@ -181,7 +181,7 @@ void verse_render_command(int j, int y)
             break;
         case TRACK_INSTRUMENT:
             cmd = 'I';
-            param = '0' + param%4;
+            param = hex[param];
             break;
         case TRACK_VOLUME:
             cmd = 'V';

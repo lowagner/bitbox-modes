@@ -40,7 +40,7 @@ struct instrument
     uint8_t cmd[MAX_INSTRUMENT_LENGTH];
 };
 
-extern struct instrument instrument[CHIP_PLAYERS];
+extern struct instrument instrument[16];
 
 extern uint8_t chip_track[16][CHIP_PLAYERS][MAX_TRACK_LENGTH];
 

@@ -92,7 +92,7 @@ void game_init()
         {
             verse_reset();
         }
-        if (io_load_instrument(4))
+        if (io_load_instrument(16))
         {
             instrument_reset();
         }

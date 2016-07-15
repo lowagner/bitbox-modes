@@ -179,7 +179,7 @@ void save_controls()
                 offset = 6;
                 break;
             }
-            error = (save_or_load == 1) ? io_save_instrument(4) : io_load_instrument(4);
+            error = (save_or_load == 1) ? io_save_instrument(16) : io_load_instrument(16);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "instr. ");
@@ -234,7 +234,7 @@ void save_controls()
                 offset = 6;
                 break;
             }
-            error = (save_or_load == 1) ? io_save_instrument(4) : io_load_instrument(4);
+            error = (save_or_load == 1) ? io_save_instrument(16) : io_load_instrument(16);
             if (error != NoError)
             {
                 strcpy((char *)game_message, "instr. ");

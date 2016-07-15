@@ -46,7 +46,7 @@ void instrument_init()
     instrument_j = 0;
     instrument_bad = 0;
     instrument_menu_not_edit = 0;
-    instrument_copying = 4;
+    instrument_copying = 16;
     instrument_cursor = 0;
     instrument_command_copy = rand()%16;
 }
@@ -454,8 +454,8 @@ void check_instrument(int i)
         instrument_bad = 0; 
         game_message[0] = 0;
     }
-    chip_player[i].track_volume = 0;
-    chip_player[i].track_volumed = 0;
+    chip_player[verse_player].track_volume = 0;
+    chip_player[verse_player].track_volumed = 0;
 }
 
 void instrument_adjust_parameter(int direction)
@@ -748,7 +748,7 @@ void instrument_line()
         case 11:
             if (instrument_menu_not_edit)
             {
-                if (instrument_copying < 4)
+                if (instrument_copying < 16)
                     font_render_line_doubled((uint8_t *)"A:cancel copy", 96, internal_line, 65535, BG_COLOR*257);
                 else if (!instrument_bad)
                     font_render_line_doubled((uint8_t *)"A:save to file", 96, internal_line, 65535, BG_COLOR*257);
@@ -759,7 +759,7 @@ void instrument_line()
         case 12:
             if (instrument_menu_not_edit)
             {
-                if (instrument_copying < 4)
+                if (instrument_copying < 16)
                     font_render_line_doubled((uint8_t *)"B/X:\"     \"", 96, internal_line, 65535, BG_COLOR*257);
 
                 else
@@ -771,7 +771,7 @@ void instrument_line()
         case 13:
             if (instrument_menu_not_edit)
             {
-                if (instrument_copying < 4)
+                if (instrument_copying < 16)
                     font_render_line_doubled((uint8_t *)"Y:paste", 96, internal_line, 65535, BG_COLOR*257);
 
                 else if (!instrument_bad)
@@ -823,7 +823,7 @@ void instrument_controls()
         if (game_message[0] == 's' || game_message[0] == 'l')
             game_message[0] = 0;
         instrument_menu_not_edit = 1 - instrument_menu_not_edit; 
-        instrument_copying = 4;
+        instrument_copying = 16;
         chip_kill();
         return;
     }
@@ -877,10 +877,10 @@ void instrument_controls()
             save_or_load = 2; // load
         if (save_or_load)
         {
-            if (instrument_copying < 4)
+            if (instrument_copying < 16)
             {
                 // cancel a copy 
-                instrument_copying = 4;
+                instrument_copying = 16;
                 return;
             }
 
@@ -902,8 +902,8 @@ void instrument_controls()
         if (GAMEPAD_PRESS(0, X))
         {
             // copy or uncopy
-            if (instrument_copying < 4)
-                instrument_copying = 4;
+            if (instrument_copying < 16)
+                instrument_copying = 16;
             else if (!instrument_bad)
                 instrument_copying = instrument_i;
             return;
@@ -911,12 +911,12 @@ void instrument_controls()
         
         if (GAMEPAD_PRESS(0, Y))
         {
-            if (instrument_copying < 4)
+            if (instrument_copying < 16)
             {
                 // paste
                 if (instrument_i == instrument_copying)
                 {
-                    instrument_copying = 4;
+                    instrument_copying = 16;
                     strcpy((char *)game_message, "pasting to same thing"); 
                     return;
                 }
@@ -927,7 +927,7 @@ void instrument_controls()
                 instrument[instrument_i].is_drum = instrument[instrument_copying].is_drum;
                 memcpy(dst, src, MAX_INSTRUMENT_LENGTH);
                 strcpy((char *)game_message, "pasted."); 
-                instrument_copying = 4;
+                instrument_copying = 16;
             }
             else
             {
@@ -947,7 +947,7 @@ void instrument_controls()
         if (moved)
         {
             game_message[0] = 0;
-            instrument_i = (instrument_i + moved)&3;
+            instrument_i = (instrument_i + moved)&15;
             instrument_j = 0;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT*2;
             return;
@@ -1132,9 +1132,10 @@ void instrument_controls()
             // play a note
             game_message[0] = 0;
             instrument_note = (instrument_note + 1)%24;
-            reset_player(instrument_i);
-            chip_player[instrument_i].octave = instrument[instrument_i].octave;
-            chip_note(instrument_i, instrument_note, 240); 
+            reset_player(verse_player);
+            chip_player[verse_player].octave = instrument[instrument_i].octave;
+            chip_player[verse_player].instrument = instrument_i;
+            chip_note(verse_player, instrument_note, 240); 
         }
         
         if (GAMEPAD_PRESS(0, B))
@@ -1143,16 +1144,17 @@ void instrument_controls()
             game_message[0] = 0;
             if (--instrument_note > 23)
                 instrument_note = 23;
-            reset_player(instrument_i);
-            chip_player[instrument_i].octave = instrument[instrument_i].octave;
-            chip_note(instrument_i, instrument_note, 240); 
+            reset_player(verse_player);
+            chip_player[verse_player].octave = instrument[instrument_i].octave;
+            chip_player[verse_player].instrument = instrument_i;
+            chip_note(verse_player, instrument_note, 240); 
         }
     }
 
     if (GAMEPAD_PRESS(0, select))
     {
         game_message[0] = 0;
-        instrument_copying = 4;
+        instrument_copying = 16;
         if (previous_visual_mode)
         {
             game_switch(previous_visual_mode);

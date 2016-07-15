@@ -370,7 +370,7 @@ void anthem_controls()
                     return;
                 }
 
-                error = io_save_instrument(4);
+                error = io_save_instrument(16);
                 if (error)
                 {
                     strcpy((char *)game_message, "instr. ");
@@ -399,7 +399,7 @@ void anthem_controls()
                     return;
                 }
 
-                error = io_load_instrument(4);
+                error = io_load_instrument(16);
                 if (error)
                 {
                     strcpy((char *)game_message, "instr. ");

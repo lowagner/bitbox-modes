@@ -744,9 +744,9 @@ FileError io_load_instrument(unsigned int i)
         return OpenError;
 
     UINT bytes_get; 
-    if (i >= 4)
+    if (i >= 16)
     {
-        for (i=0; i<4; ++i)
+        for (i=0; i<16; ++i)
         {
             uint8_t read;
             fat_result = f_read(&fat_file, &read, 1, &bytes_get);
@@ -815,13 +815,13 @@ FileError io_save_instrument(unsigned int i)
     if (io_set_extension(filename, "I16"))
         return MountError; 
 
-    if (i >= 4)
+    if (i >= 16)
     {
         fat_result = f_open(&fat_file, filename, FA_WRITE | FA_OPEN_ALWAYS);
         if (fat_result != FR_OK)
             return OpenError;
 
-        for (i=0; i<4; ++i)
+        for (i=0; i<16; ++i)
         {
             UINT bytes_get; 
             uint8_t write = (instrument[i].is_drum ? 1 : 0) | (instrument[i].octave << 4);
@@ -852,7 +852,7 @@ FileError io_save_instrument(unsigned int i)
         return NoError;
     }
 
-    FileError ferr = io_open_or_zero_file(filename, 16*(sizeof(tile_draw[0])+4));
+    FileError ferr = io_open_or_zero_file(filename, 16*(MAX_INSTRUMENT_LENGTH+1));
     if (ferr)
         return ferr;
 
