@@ -134,7 +134,7 @@ void anthem_line()
             uint8_t msg[] = {  'a', 'n', 't', 'h', 'e', 'm',
                 ' ', 'X', '0' + anthem_song_pos/10, '0' + anthem_song_pos%10, '/',
                 '0' + song_length/10, '0' + song_length%10,
-                ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+song_speed/10, '0'+song_speed%10,
+                ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+(16-song_speed)/10, '0'+(16-song_speed)%10,
                 ' ', 't', 'k', 'l', 'e', 'n',' ', '0'+track_length/10, '0'+track_length%10,
             0 };
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
