@@ -130,13 +130,14 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
         case WAVEFORM: // w = select waveform
             oscillator[i].waveform = param;
             break;
-        case NOTE: // + = set relative note
-            chip_player[i].note = (param + chip_player[i].track_note)%MAX_NOTE;
-            if (chip_player[i].note >= MAX_NOTE)
-                chip_player[i].note -= 12;
+        case NOTE: // C-Eb = set relative note
+            chip_player[i].note = (param + chip_player[i].track_note + song_transpose)%MAX_NOTE;
             break;
         case WAIT: // t = timing 
-            chip_player[i].wait = param;
+            if (param)
+                chip_player[i].wait = param;
+            else
+                chip_player[i].wait = 16;
             break;
         case FADE_IN: // < = fade in, or crescendo
             chip_player[i].volumed = param + param*param/15;
@@ -184,7 +185,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                     instrument[inst].cmd[param] = NOTE | ((rand()%16)<<4);
                     break;
                 case WAIT:
-                    instrument[inst].cmd[param] = WAIT | ((1+rand()%15)<<4);
+                    instrument[inst].cmd[param] = WAIT | ((rand()%16)<<4);
                     break;
                 case FADE_IN:
                     instrument[inst].cmd[param] = FADE_IN | ((1 + rand()%15)<<4);
@@ -233,13 +234,10 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                         switch (instrument[inst].cmd[j]&15)
                         {
                         case WAIT:
-                            if (instrument[inst].cmd[j]>>4)
-                            {
-                                for (int k=probable_start_point; k<=j; ++k)
-                                    work[work_size++] = k;
-                                
-                                probable_start_point = j+1;
-                            }
+                            for (int k=probable_start_point; k<=j; ++k)
+                                work[work_size++] = k;
+                            
+                            probable_start_point = j+1;
                             break;
                         case JUMP:
                             probable_start_point = j+1;
@@ -392,7 +390,7 @@ void _chip_note(uint8_t i, uint8_t note)
         oscillator[i].waveform = WF_TRIANGLE; // by default
         chip_player[i].volume = 10<<4; 
     }
-    chip_player[i].track_note = note + chip_player[i].octave*12 + song_transpose;
+    chip_player[i].track_note = note + chip_player[i].octave*12;
     chip_player[i].volumed = 0;
     chip_player[i].inertia = 0;
     chip_player[i].wait = 0;
@@ -416,8 +414,11 @@ static void track_run_command(uint8_t i, uint8_t cmd)
     uint8_t param = cmd >> 4;
     switch(cmd&15) 
     {
-        case TRACK_BREAK:
-            chip_player[i].track_cmd_index = MAX_TRACK_LENGTH; // end track commmands
+        case TRACK_BREAK: // f = wait til a given quarter note, or break if passed that.
+            if (4*param > track_pos)
+                chip_player[i].track_wait = 4*param - track_pos;
+            else
+                chip_player[i].track_cmd_index = MAX_TRACK_LENGTH; // end track commmands
             break;
         case TRACK_OCTAVE: // O = octave, or + or - for relative octave
             if (param < 7)
@@ -460,14 +461,40 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             _chip_note(i, param);
             break;
         case TRACK_WAIT: // w = wait 
-            chip_player[i].track_wait = param;
-            break;
-        case TRACK_FILL: // f = wait til a given quarter note
-            if (4*param > track_pos)
-                chip_player[i].track_wait = 4*param - track_pos;
+            if (param)
+                chip_player[i].track_wait = param;
             else
-                chip_player[i].track_wait = 0;
+                chip_player[i].track_wait = 16;
             break;
+        case TRACK_NOTE_WAIT: // hit a note relative to previous, and wait based on parameter
+        {
+            chip_player[i].track_wait = (param&3)+1;
+            uint8_t old_note = chip_player[i].track_note;
+            _chip_note(i, old_note);
+            switch (param >> 2)
+            {
+                case 0:
+                    chip_player[i].track_note = old_note;
+                    break;
+                case 1:
+                    chip_player[i].track_note = old_note+1;
+                    if (chip_player[i].track_note >= MAX_NOTE)
+                        chip_player[i].track_note -= 12;
+                    break;
+                case 2:
+                    chip_player[i].track_note = old_note+2;
+                    if (chip_player[i].track_note >= MAX_NOTE)
+                        chip_player[i].track_note -= 12;
+                    break;
+                case 3:
+                    if (old_note)
+                        chip_player[i].track_note = old_note-1;
+                    else
+                        chip_player[i].track_note = old_note+11;
+                    break;
+            }
+            break;
+        }
         case TRACK_FADE_IN: // < = fade in, or crescendo
             chip_player[i].track_volumed = param + param*param/15;
             break;
@@ -505,6 +532,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             switch ((*memory)&15)
             {
                 case TRACK_BREAK:
+                    *memory = TRACK_BREAK | ((rand()%(track_length/4))<<4);
                     break;
                 case TRACK_OCTAVE:
                     *memory = TRACK_OCTAVE | ((rand()%16)<<4);
@@ -519,10 +547,10 @@ static void track_run_command(uint8_t i, uint8_t cmd)
                     *memory = TRACK_NOTE | ((rand()%16)<<4);
                     break;
                 case TRACK_WAIT:
-                    *memory = TRACK_WAIT | ((1+rand()%15)<<4);
+                    *memory = TRACK_WAIT | ((rand()%16)<<4);
                     break;
-                case TRACK_FILL:
-                    *memory = TRACK_FILL | ((1+rand()%15)<<4);
+                case TRACK_NOTE_WAIT:
+                    *memory = TRACK_NOTE_WAIT | ((rand()%16)<<4);
                     break;
                 case TRACK_FADE_IN:
                     *memory = TRACK_FADE_IN | ((1 + rand()%15)<<4);

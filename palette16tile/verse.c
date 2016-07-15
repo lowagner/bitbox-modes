@@ -60,8 +60,8 @@ void verse_short_command_message(uint8_t *buffer, uint8_t cmd)
         case TRACK_WAIT:
             strcpy((char *)buffer, "wait");
             break;
-        case TRACK_FILL:
-            strcpy((char *)buffer, "fill");
+        case TRACK_NOTE_WAIT:
+            strcpy((char *)buffer, "note+wait");
             break;
         case TRACK_FADE_IN:
             strcpy((char *)buffer, "fade in");
@@ -141,10 +141,18 @@ void verse_render_command(int j, int y)
     
     if (cmd == TRACK_BREAK)
     {
-        cmd = '0';
-        param = '0'; 
-        if (y == 7)
-            verse_show_track = 0;
+        if (param == 0)
+        {
+            if (y == 7)
+                verse_show_track = 0;
+            cmd = '6';
+            param = '4';
+        }
+        else
+        {
+            cmd = '0' + (4*param)/10;
+            param = '0' + (4*param)%10; 
+        }
     }
     else 
     switch (cmd)
@@ -188,10 +196,13 @@ void verse_render_command(int j, int y)
             break;
         case TRACK_WAIT:
             cmd = 'W';
-            param = hex[param];
+            if (param)
+                param = hex[param];
+            else
+                param = 'G';
             break;
-        case TRACK_FILL:
-            cmd = 'F';
+        case TRACK_NOTE_WAIT:
+            cmd = 'N';
             param = hex[param];
             break;
         case TRACK_FADE_IN:
@@ -223,7 +234,7 @@ void verse_render_command(int j, int y)
             if (param)
                 param = hex[param];
             else
-                param = 'g';
+                param = 'G';
             break;
         case TRACK_RANDOMIZE1:
             param += 16;
@@ -277,12 +288,13 @@ void verse_adjust_parameter(int direction)
     cmd &= 15;
     switch (cmd)
     {
+        case TRACK_BREAK:
         case TRACK_OCTAVE:
         case TRACK_INSTRUMENT:
         case TRACK_VOLUME:
         case TRACK_NOTE:
         case TRACK_WAIT:
-        case TRACK_FILL:
+        case TRACK_NOTE_WAIT:
         case TRACK_FADE_IN:
         case TRACK_FADE_OUT:
         case TRACK_INERTIA:
@@ -363,7 +375,7 @@ void verse_line()
             switch (chip_track[verse_track][verse_player][verse_track_pos]&15)
             {
                 case TRACK_BREAK:
-                    strcpy((char *)buffer, "end of track");
+                    strcpy((char *)buffer, "break until time");
                     break;
                 case TRACK_OCTAVE:
                     strcpy((char *)buffer, "octave");
@@ -380,8 +392,8 @@ void verse_line()
                 case TRACK_WAIT:
                     strcpy((char *)buffer, "wait");
                     break;
-                case TRACK_FILL:
-                    strcpy((char *)buffer, "fill (4x wait unit)");
+                case TRACK_NOTE_WAIT:
+                    strcpy((char *)buffer, "wait-1 + note 0,+,++,-");
                     break;
                 case TRACK_FADE_IN:
                     strcpy((char *)buffer, "fade in");
@@ -393,7 +405,7 @@ void verse_line()
                     strcpy((char *)buffer, "note inertia");
                     break;
                 case TRACK_VIBRATO:
-                    strcpy((char *)buffer, "vibrato");
+                    strcpy((char *)buffer, "vibrato depth + rate");
                     break;
                 case TRACK_TRANSPOSE:
                     strcpy((char *)buffer, "global song transpose");
@@ -412,8 +424,13 @@ void verse_line()
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
             goto maybe_show_track;
         case 4:
-            if ((chip_track[verse_track][verse_player][verse_track_pos]&15) == TRACK_VIBRATO)
-                font_render_line_doubled((uint8_t *)"depth 0-3 + rate 4,8,c", 108, internal_line, 65535, BG_COLOR*257);
+            switch (chip_track[verse_track][verse_player][verse_track_pos]&15)
+            {
+                case TRACK_VIBRATO:
+                case TRACK_NOTE_WAIT:
+                    font_render_line_doubled((uint8_t *)"0-3 + 0,4,8,c", 112, internal_line, 65535, BG_COLOR*257);
+                    break;
+            }
             goto maybe_show_track;
         case 5:
             font_render_line_doubled((uint8_t *)"switch to:", 102 - 6*verse_menu_not_edit, internal_line, 65535, BG_COLOR*257); 
@@ -664,7 +681,7 @@ void verse_controls()
             {
                 verse_track_pos = 0;
                 while (verse_track_pos < MAX_TRACK_LENGTH-1 && 
-                    (chip_track[verse_track][verse_player][verse_track_pos]&15) != TRACK_BREAK)
+                    chip_track[verse_track][verse_player][verse_track_pos] != TRACK_BREAK)
                 {
                     ++verse_track_pos;
                 }
@@ -705,7 +722,7 @@ void verse_controls()
         if (GAMEPAD_PRESS(0, Y))
         {
             // insert
-            if ((chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1]&15) != BREAK)
+            if (chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] != BREAK)
             {
                 strcpy((char *)game_message, "list full, can't insert.");
                 return;

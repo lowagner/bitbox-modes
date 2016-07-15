@@ -137,7 +137,7 @@ enum
 #define TRACK_VOLUME 3
 #define TRACK_NOTE 4
 #define TRACK_WAIT 5
-#define TRACK_FILL 6
+#define TRACK_NOTE_WAIT 6
 #define TRACK_FADE_IN 7
 #define TRACK_FADE_OUT 8
 #define TRACK_INERTIA 9

@@ -332,7 +332,10 @@ void instrument_render_command(int j, int y)
             break;
         case WAIT:
             cmd = 'W';
-            param = hex[param];
+            if (param)
+                param = hex[param];
+            else
+                param = 'G';
             break;
         case FADE_IN:
             cmd = '<';
@@ -545,8 +548,7 @@ int _check_instrument(int i)
                     break;
                 case WAIT:
                     message("saw wait at j=%d\n", j);
-                    if (instrument[i].cmd[j]>>4)
-                        found_wait = 1;
+                    found_wait = 1;
                     ++j;
                     break;
                 default:
