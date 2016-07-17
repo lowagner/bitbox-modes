@@ -261,7 +261,7 @@ void instrument_render_command(int j, int y)
     switch (cmd)
     {
         case SIDE:
-            switch (param)
+            switch (param%4)
             {
                 case 0:
                     cmd = 's';

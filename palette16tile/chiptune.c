@@ -120,7 +120,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             chip_player[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
             break;
         case SIDE: // s = switch side (L/R)
-            oscillator[i].side = param; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
+            oscillator[i].side = param&3; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
             break;
         case VOLUME: // v = volume
             chip_player[i].volume = param<<4;
@@ -293,6 +293,7 @@ void reset_player(int i)
     chip_player[i].track_inertia = 0;
     chip_player[i].track_vibrato_rate = 0;
     chip_player[i].track_vibrato_depth = 0;
+    chip_player[i].bendd = 0;
     chip_player[i].octave = instrument[i].octave;
 }
 
@@ -695,7 +696,7 @@ static void chip_update()
         // calculate instrument frequency
         if (chip_player[i].inertia || chip_player[i].track_inertia) // if sliding around
         {
-            inertia = 256/(chip_player[i].inertia + chip_player[i].track_inertia);
+            inertia = 1024/(chip_player[i].inertia + chip_player[i].track_inertia);
             slur = chip_player[i].slur;
             int16_t diff = freq_table[chip_player[i].note] - slur;
             if (diff > inertia) 
