@@ -123,7 +123,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             oscillator[i].side = param&3; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
             break;
         case VOLUME: // v = volume
-            chip_player[i].volume = param<<4;
+            chip_player[i].volume = param*17;
             break;
         case WAVEFORM: // w = select waveform
             oscillator[i].waveform = param;
@@ -383,13 +383,13 @@ void _chip_note(uint8_t i, uint8_t note)
             chip_player[i].max_drum_index = 4*MAX_DRUM_LENGTH;
         }
         oscillator[i].waveform = WF_NOISE; // by default
-        chip_player[i].volume = 240; 
+        chip_player[i].volume = 255; 
     }
     else
     {
         chip_player[i].cmd_index = 0;
         oscillator[i].waveform = WF_TRIANGLE; // by default
-        chip_player[i].volume = 10<<4; 
+        chip_player[i].volume = 14*17; 
     }
     chip_player[i].track_note = note + chip_player[i].octave*12;
     chip_player[i].volumed = 0;
@@ -455,7 +455,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             chip_player[i].instrument = param;
             break;
         case TRACK_VOLUME: // v = volume
-            chip_player[i].track_volume = param<<4;
+            chip_player[i].track_volume = param*17;
             break;
         case TRACK_NOTE: // 
             _chip_note(i, param);
