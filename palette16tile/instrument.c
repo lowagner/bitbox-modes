@@ -973,9 +973,7 @@ void instrument_controls()
             {
                 if (instrument_j < MAX_INSTRUMENT_LENGTH-1 &&
                     instrument[instrument_i].cmd[instrument_j])
-                {
                     ++instrument_j;
-                }
                 else
                     instrument_j = 0;
             }
@@ -992,13 +990,9 @@ void instrument_controls()
                 if (instrument_j < MAX_INSTRUMENT_LENGTH-1)
                 {
                     if (instrument[instrument_i].cmd[instrument_j] == BREAK)
-                    {
                         instrument_j = next_j;
-                    }
                     else
-                    {
                         ++instrument_j;
-                    }
                 }
                 else
                     instrument_j = 0;
@@ -1015,9 +1009,7 @@ void instrument_controls()
                 {
                     while (instrument_j < MAX_INSTRUMENT_LENGTH-1 && 
                         instrument[instrument_i].cmd[instrument_j] != BREAK)
-                    {
                         ++instrument_j;
-                    }
                 }
             }
             else 
@@ -1106,15 +1098,33 @@ void instrument_controls()
         if (GAMEPAD_PRESS(0, Y))
         {
             // insert
-            if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
+            if (!instrument[instrument_i].is_drum)
             {
-                strcpy((char *)game_message, "list full, can't insert.");
-                return;
+                if ((instrument[instrument_i].cmd[MAX_INSTRUMENT_LENGTH-1]&15) != BREAK)
+                {
+                    strcpy((char *)game_message, "list full, can't insert.");
+                    return;
+                }
+                for (int j=MAX_INSTRUMENT_LENGTH-1; j>instrument_j; --j)
+                    instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
             }
-            for (int j=MAX_INSTRUMENT_LENGTH-1; j>instrument_j; --j)
+            else
             {
-                // TODO: could do fancier things here, like check for JUMP indices to correct
-                instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
+                int next_j;
+                if (instrument_j < 2*MAX_DRUM_LENGTH)
+                    next_j = 2*MAX_DRUM_LENGTH;
+                else if (instrument_j < 3*MAX_DRUM_LENGTH)
+                    next_j = 3*MAX_DRUM_LENGTH;
+                else
+                    next_j = MAX_INSTRUMENT_LENGTH;
+                if ((instrument[instrument_i].cmd[next_j-1]&15) != BREAK)
+                {
+                    strcpy((char *)game_message, "list full, can't insert.");
+                    return;
+                }
+
+                for (int j=next_j-1; j>instrument_j; --j)
+                    instrument[instrument_i].cmd[j] = instrument[instrument_i].cmd[j-1];
             }
             instrument[instrument_i].cmd[instrument_j] = instrument_command_copy;
             check_instrument(instrument_i);
