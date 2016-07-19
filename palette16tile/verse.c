@@ -718,14 +718,14 @@ void verse_controls()
                 if ((chip_track[verse_track][verse_player][j] = chip_track[verse_track][verse_player][j+1]) == 0)
                     break;
             }
-            chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] = BREAK;
+            chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] = TRACK_BREAK;
             return;
         }
 
         if (GAMEPAD_PRESS(0, Y))
         {
             // insert
-            if (chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] != BREAK)
+            if ((chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1]&15) != TRACK_BREAK)
             {
                 strcpy((char *)game_message, "list full, can't insert.");
                 return;

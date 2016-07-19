@@ -252,10 +252,18 @@ void instrument_render_command(int j, int y)
     
     if (cmd == BREAK)
     {
-        cmd = '0';
-        param = '0'; 
-        if (y == 7)
-            show_instrument = 0;
+        if (param == 0)
+        {
+            if (y == 7)
+                show_instrument = 0;
+            cmd = '6';
+            param = '4';
+        }
+        else
+        {
+            cmd = '0' + (4*param)/10;
+            param = '0' + (4*param)%10; 
+        }
     }
     else 
     switch (cmd)
@@ -471,8 +479,6 @@ void instrument_adjust_parameter(int direction)
     
     switch (cmd)
     {
-        case BREAK:
-            break;
         case SIDE:
             param = (param+direction)&3;
             break;
@@ -483,6 +489,7 @@ void instrument_adjust_parameter(int direction)
             else if (param > WF_VIOLET)
                 param = WF_SINE;
             break;
+        case BREAK:
         case VOLUME:
         case NOTE:
         case WAIT:
@@ -661,7 +668,7 @@ void instrument_line()
             switch (instrument[instrument_i].cmd[instrument_j]&15)
             {
                 case BREAK:
-                    strcpy((char *)buffer, "end of instrument");
+                    strcpy((char *)buffer, "end if before tkpos");
                     break;
                 case SIDE:
                     strcpy((char *)buffer, "stereo left/right");
@@ -984,7 +991,7 @@ void instrument_controls()
 
                 if (instrument_j < MAX_INSTRUMENT_LENGTH-1)
                 {
-                    if ((instrument[instrument_i].cmd[instrument_j]&15) == BREAK)
+                    if (instrument[instrument_i].cmd[instrument_j] == BREAK)
                     {
                         instrument_j = next_j;
                     }
@@ -1007,7 +1014,7 @@ void instrument_controls()
                 else
                 {
                     while (instrument_j < MAX_INSTRUMENT_LENGTH-1 && 
-                        (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
+                        instrument[instrument_i].cmd[instrument_j] != BREAK)
                     {
                         ++instrument_j;
                     }
@@ -1038,7 +1045,7 @@ void instrument_controls()
                 {
                     instrument_j = move_here_then_up;
                     while (instrument_j < but_no_further_than-1 && 
-                        (instrument[instrument_i].cmd[instrument_j]&15) != BREAK)
+                        instrument[instrument_i].cmd[instrument_j] != BREAK)
                     {
                         ++instrument_j;
                     }

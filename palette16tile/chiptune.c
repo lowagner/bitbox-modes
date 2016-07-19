@@ -117,7 +117,8 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
     switch (cmd&15) 
     {
         case BREAK:
-            chip_player[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
+            if (!param || track_pos < param*4)
+                chip_player[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
             break;
         case SIDE: // s = switch side (L/R)
             oscillator[i].side = param&3; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
