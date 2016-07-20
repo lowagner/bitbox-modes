@@ -11,7 +11,7 @@
 #define SPRITE_COLOR 164
 #define BG_COLOR ((TILE_COLOR + (SPRITE_COLOR-TILE_COLOR)*edit_sprite_not_tile))
 
-#define NUMBER_LINES 12
+#define NUMBER_LINES 17
 
 uint8_t edit2_copying CCM_MEMORY; // 0 for not copying, 1 for sprite, 2 for tile
 uint8_t edit2_copy_location CCM_MEMORY;
@@ -29,14 +29,14 @@ void edit2_line()
             memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
         return;
     }
-    else if (vga_line/2 == (SCREEN_H - 20)/2)
-    {
-        memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
-        return;
-    }
     else if (vga_line >= 22 + NUMBER_LINES*10)
     {
-        draw_parade(vga_line - (22 + NUMBER_LINES*10), BG_COLOR);
+        if (vga_line == 22+NUMBER_LINES*10)
+        {
+            memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+            return;
+        }
+        draw_parade(vga_line - (23 + NUMBER_LINES*10), BG_COLOR);
         return;
     }
     int line = (vga_line-22) / 10;
@@ -113,9 +113,10 @@ void edit2_line()
             else
                 font_render_line_doubled((const uint8_t *)"select:sprite menu", 16, internal_line, 65535, TILE_COLOR*257);
             break;
-        case 10:
-            break;
         case 11:
+            font_render_line_doubled((const uint8_t *)"dpad:", 16, internal_line, 65535, TILE_COLOR*257);
+            break;
+        case (NUMBER_LINES-2):
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;
         }

@@ -6,15 +6,19 @@
 
 // break sprites up into 16x16 tiles:
 uint8_t sprite_draw[16][8][16][8] CCM_MEMORY; // 16 sprites, 8 frames, 16x16 pixels...
-// info about a sprite:
-//   5 bits for "what color is invisible in this sprite"
-//      a value < 16 for that color
-//      a value >= 16 for "no color is invisible".  (could use 4 bits for something there.)
-//   3 bits for pattern of sprite
-//   4 bits for initial health
-//   4 bits for speed of sprite
-//   4 bits for damage/passable property, x 4 sides 
-//      see tiles.c for information
+/*
+info about a sprite (first frame, frame 0):
+    1 bit for Block-like.
+    if Block-like:
+        4 bits ignored (what could we put here?)
+    else:
+        4 bits for "what color is invisible in this sprite"
+    3 bits for inverse weight
+    4 bits for vulnerability, must have (attack & vulnerability) > 0 to destroy it.
+    1 bit for impervious, x 4 sides.  some sides can be impervious to damage...
+    4 bits for surface property, x 4 sides 
+      see common.h for information
+*/
 uint32_t sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;

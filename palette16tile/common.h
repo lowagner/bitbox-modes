@@ -8,18 +8,22 @@
 
 typedef enum {
     Passable=0,
-    PassableDamage=1,
-    Breakable=2,
-    BreakableDamage=3,
-    Hard=4,
-    HardDamage=5,
-    Slippery=6,
-    SlipperyDamage=7,
-    Sticky=8,
-    StickyDamage=9,
-    Bouncy=10,
-    BouncyDamage=11
-} SideType; // no more than 16 total types, so from 0 to 15, with damage as odd.
+    Normal=1,
+    Slippery=2,
+    SuperSlippery=3,
+    Sticky=4,
+    SuperSticky=5,
+    Bouncy=6,
+    SuperBouncy=7,
+    Damaging=8,
+    SuperDamaging=9,
+    Unlock0=10,
+    Unlock1=11,
+    Unlock2=12,
+    Unlock3=13,
+    Checkpoint=14,
+    Win=15,
+} SideType; // no more than 8 total types
 
 #include "tiles.h"
 #include "sprites.h"

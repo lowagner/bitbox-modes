@@ -4,24 +4,43 @@
 uint8_t tile_draw[16][16][8] CCM_MEMORY;
 uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
 uint8_t tile_translator[16] CCM_MEMORY;
-// info about a tile:
-//   5 bits for "what is hiding inside this tile?", 
-//      a value < 16 is "nothing hides here", and also indicates if the tile is a water-based tile.
-//          [0 = not water, 1 = quick-sand, ..., 8 = water, ..., 15 = liquid mercury] 
-//      a value >= 16 means sprite (value-16) hides here.
-//   3 bits:
-//      if not water:  
-//          for tile strength (can only destroy a tile using an attack which &'s the strength).
-//      if water:
-//          current direction and strength
-//   4 bits for translation of tile (use tile number itself for no translation)
-//   4 bits for translation timing (0000 -> 16 units of time), where one unit of time is 32 frames
-//   4 bits for damage/passable property, x 4 sides 
-//      first bit indicates damaging (or not if it's zero)
-//      second three bits:  passable, breakable, sticky, slippery, bouncey, warp location, level warp location, win location
-//          sticky, slippery, and bouncey are modified by the first 4 bits.
-//          if zero, then NOT sticky, slippery, or bouncey
-//          if 15, then VERY sticky, slippery, or bouncey
+/*
+info about a tile:
+    1 bit for Block (though some sides can be passable, e.g. one-way pass-through blocks).
+        0 if air or water
+    if Block:
+        3 bits unused(?)
+    else:
+        3 bits for water/air thickness (0=air, 1=quicksand,..., 4=water,..., 7=liquid mercury)
+    4 bits for tile translation
+    4 bits for tile timing
+    if Block:
+        4 bits:
+            for tile vulnerability (can only destroy a tile using an attack which &'s this).
+        4 bits for surface property, x 4 sides 
+            see common.h
+            passable, normal, slippery, sticky/bouncy, insta-death, checkpoint, win location
+    elif 1 bit for warp:
+        4 bits for directions to press to warp (player_controls & direction to warp)
+        if 1 bit for load (a different map for the next/previous level location):
+            lookup map level-table based on 14 remaining bits:
+                change the number at the end of the filename, 
+                encode the number only, and how many chars to use for the number.
+            encode number length as reverse exp-like:
+                0001[10 bits] -> 3 digits, up to 999
+                ... (errors if other values of 0's and 1's)
+                0000001[7 bits] -> 2 digits, up to 99
+                ... (errors if other values of 0's and 1's)
+                0000000001[4 bits] -> 1 digit, up to 9
+                ...
+                00000000000000 -> no digits, take off numbers at end of filename
+        else:
+            warp to point on map given by 14 bits
+    else: # water/air tile
+        1 bit for damage
+        # 18 bits remain, add two vectors together to get wind/water current
+        [2 bits direction + 7 bits strength] x 2
+*/
 uint32_t tile_info[16] CCM_MEMORY;
 int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
 uint16_t tile_map_width CCM_MEMORY, tile_map_height CCM_MEMORY;
@@ -36,31 +55,49 @@ void tiles_init()
         tile_translator[j] = j; 
 }
 
-uint32_t pack_tile_info(uint8_t hiding, uint8_t strength, 
-    uint8_t translation, uint8_t timing, const SideType *sides)
+uint32_t pack_tile_info(uint8_t translation, uint8_t timing, uint8_t vulnerability, const SideType *sides)
 {
-    return (hiding&31)|((strength&7)<<5)|((translation&15)<<8)|((timing&15)<<12)|
+    return (1)|((translation&15)<<4)|((timing&15)<<8)|((vulnerability&15)<<12)|
         (sides[0]<<16)|(sides[1]<<20)|(sides[2]<<24)|(sides[3]<<28);
 }
 
-void unpack_tile_info(uint32_t value, uint8_t *hiding, uint8_t *strength, 
-    uint8_t *translation, uint8_t *timing, SideType *sides)
+uint32_t pack_fluid_info(uint8_t translation, uint8_t timing, uint8_t density, uint8_t damage,
+    uint8_t direction_1, uint8_t strength_1, uint8_t direction_2, uint8_t strength_2)
 {
-    *hiding = value&31;
-    value >>= 5;
-    *strength = value & 7;
-    value >>= 3;
-    *translation = value & 15;
-    value >>= 4;
-    *timing = value & 15;
-    value >>= 4;
-    sides[0] = value & 15;
-    value >>= 4;
-    sides[1] = value & 15;
-    value >>= 4;
-    sides[2] = value & 15;
-    value >>= 4;
-    sides[3] = value & 15;
+    // skip bit 12, that specifies WARP.
+    return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((damage&1)<<13)|
+        ((direction_1&3)<<14)|((strength_1&127)<<16)|((direction_2&3)<<23)|((strength_2&127)<<25);
+}
+
+uint32_t pack_warp_info(uint8_t translation, uint8_t timing, uint8_t density, 
+    uint8_t load_one_plus_digits, uint8_t warp_directions, uint16_t value)
+{
+    switch (load_one_plus_digits)
+    {
+        case 0:
+            // warp within the level, not load.  skip bit 17, that indicates LOAD
+            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1)<<12)|
+                (warp_directions<<13)|((value&16383)<<18);
+        case 1:
+            // load, with no numbers
+            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17))|
+                (warp_directions<<13);
+        case 2:
+            // load, with one number
+            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<27))|
+                (warp_directions<<13)|((value%10)<<28);
+        case 3:
+            // load, with two numbers
+            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<24))|
+                (warp_directions<<13)|((value%100)<<25);
+        case 4:
+            // load, with three numbers
+            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<21))|
+                (warp_directions<<13)|((value%1000)<<22);
+        default:
+            message("unexpected value for warp: %d\n", (int)(load_one_plus_digits));
+            return 0;
+    }
 }
 
 void tiles_line()
@@ -379,11 +416,9 @@ void tiles_reset()
         else
             *tc++ = BLUEGREEN|(BLUEGREEN<<4);
     }
-    {
-    SideType pass[4] = { Passable, Passable, Passable, Passable };
-    tile_info[0] = pack_tile_info(16, 1, 0, 0, pass);
-    }
-    SideType sides[4] = { Hard, Hard, Hard, Hard };
+    
+    tile_info[0] = 0; // pack_fluid_info(0, 0, 0, 0, 0, 0, 0, 0);
+    SideType sides[4] = { Normal, Normal, Normal, Normal };
     for (int i=1; i<16; ++i)
-        tile_info[i] = pack_tile_info(16, 1, i, 0, sides);
+        tile_info[i] = pack_tile_info(i, 0, 0, sides);
 }

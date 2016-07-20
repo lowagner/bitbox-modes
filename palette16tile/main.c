@@ -274,7 +274,7 @@ void draw_parade(int line, uint8_t bg_color)
     {
         internal_line %= 16;
         // draw sprites
-        if (line % 2)
+        if (1) //(line % 2)
         {
             // on odd lines, let them fly
             uint16_t *dst = draw_buffer + 31;
