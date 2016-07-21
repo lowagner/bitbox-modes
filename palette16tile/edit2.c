@@ -9,7 +9,7 @@
 
 #define TILE_COLOR 136 // a uint8_t, uint16_t color is (_COLOR)|(_COLOR<<8)
 #define SPRITE_COLOR 164
-#define BG_COLOR ((TILE_COLOR + (SPRITE_COLOR-TILE_COLOR)*edit_sprite_not_tile))
+#define BG_COLOR (edit_sprite_not_tile ? SPRITE_COLOR : TILE_COLOR)
 
 #define NUMBER_LINES 17
 
@@ -114,7 +114,7 @@ void edit2_line()
                 font_render_line_doubled((const uint8_t *)"select:sprite menu", 16, internal_line, 65535, TILE_COLOR*257);
             break;
         case 11:
-            font_render_line_doubled((const uint8_t *)"dpad:", 16, internal_line, 65535, TILE_COLOR*257);
+            font_render_line_doubled((const uint8_t *)"dpad:", 16, internal_line, 65535, BG_COLOR*257);
             break;
         case (NUMBER_LINES-2):
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);

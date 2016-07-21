@@ -596,7 +596,7 @@ FileError io_save_map()
 {
     // TODO:  need to save sprite locations in here, too.
     if (tile_map_height <= 0 || tile_map_width <= 0 || 
-        (tile_map_width*tile_map_height > TILE_MAP_MEMORY))
+        ((tile_map_width*tile_map_height+1)/2 > TILE_MAP_MEMORY))
         return ConstraintError;
 
     char filename[13];
@@ -702,7 +702,7 @@ FileError io_load_map()
         return ConstraintError;
     
     int size = tile_map_width * tile_map_height;
-    if (size > TILE_MAP_MEMORY)
+    if ((size+1)/2 > TILE_MAP_MEMORY)
         return ConstraintError;
     uint8_t *src = tile_map;
     while (size) 

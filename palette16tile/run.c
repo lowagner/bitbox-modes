@@ -23,15 +23,15 @@ void run_reset()
 
 void run_switch()
 {
-    if (tile_map_x < 0)
-        tile_map_x = 0;
-    else if (tile_map_x + SCREEN_W >= tile_map_width*16)
-        tile_map_x = tile_map_width*16 - SCREEN_W;
+    if (tile_map_x < 16)
+        tile_map_x = 16;
+    else if (tile_map_x + SCREEN_W + 16 >= tile_map_width*16)
+        tile_map_x = tile_map_width*16 - SCREEN_W - 16;
     
-    if (tile_map_y < 0)
-        tile_map_y = 0;
-    else if (tile_map_y + SCREEN_H >= tile_map_height*16)
-        tile_map_y = tile_map_height*16 - SCREEN_H;
+    if (tile_map_y < 16)
+        tile_map_y = 16;
+    else if (tile_map_y + SCREEN_H + 16 >= tile_map_height*16)
+        tile_map_y = tile_map_height*16 - SCREEN_H - 16;
     
     update_objects(); 
     chip_play_init(0);
@@ -74,7 +74,7 @@ void run_controls()
         int moved = 0;
         if (GAMEPAD_PRESSED(0, left))
         {
-            if (tile_map_x > 0)
+            if (tile_map_x > 16)
             {
                 --tile_map_x;
                 moved = 1;
@@ -82,7 +82,7 @@ void run_controls()
         }
         else if (GAMEPAD_PRESSED(0, right))
         {
-            if (tile_map_x + SCREEN_W < tile_map_width*16 - 1)
+            if (tile_map_x + SCREEN_W + 16 < tile_map_width*16 - 1)
             {
                 ++tile_map_x;
                 moved = 1;
@@ -90,7 +90,7 @@ void run_controls()
         }
         if (GAMEPAD_PRESSED(0, up))
         {
-            if (tile_map_y > 0)
+            if (tile_map_y > 16)
             {
                 --tile_map_y;
                 moved = 1;
@@ -98,7 +98,7 @@ void run_controls()
         }
         else if (GAMEPAD_PRESSED(0, down))
         {
-            if (tile_map_y + SCREEN_H < tile_map_height*16 - 1)
+            if (tile_map_y + SCREEN_H + 16 < tile_map_height*16 - 1)
             {
                 ++tile_map_y;
                 moved = 1;
