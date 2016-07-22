@@ -101,10 +101,20 @@ void map_line()
             memset(draw_buffer, 0, 2*SCREEN_W); 
         else if (vga_line >= SCREEN_H - MAP_HEADER + 20)
         {
-            if (vga_line/2 == (SCREEN_H - MAP_HEADER + 20)/2 || vga_line/2 == (SCREEN_H-1)/2)
+            if (vga_line/2 == (SCREEN_H - MAP_HEADER + 20)/2)
+            { 
                 memset(draw_buffer, 0, 2*SCREEN_W); 
+                if (map_menu_not_edit && vga_line == SCREEN_H - MAP_HEADER + 4 + 8+9)
+                    memset(&draw_buffer[158+7*9+map_Y_not_X*9*5], 229, 3*9*2);
+            }
+            else if (vga_line/2 == (SCREEN_H-1)/2)
+            {
+                memset(draw_buffer, 0, 2*SCREEN_W); 
+            }
             else if (map_menu_not_edit && vga_line >= SCREEN_H - MAP_HEADER + 4 + 8+10)
+            {
                 font_render_line_doubled((const uint8_t *)"B^", 82, vga_line - (SCREEN_H - MAP_HEADER + 4 + 8+10), 65535, 0);
+            }
         }
         else if (vga_line >= SCREEN_H-MAP_HEADER+4)
         {
