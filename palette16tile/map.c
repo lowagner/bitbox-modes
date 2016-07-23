@@ -6,6 +6,7 @@
 #include "save.h"
 #include "fill.h"
 #include "font.h"
+#include "io.h"
 #include <stdint.h>
 #include <stdlib.h> // abs
 #include <string.h> // memset
@@ -15,6 +16,7 @@ uint8_t map_color[2] CCM_MEMORY, map_last_painted CCM_MEMORY;
 uint8_t map_menu_not_edit CCM_MEMORY;
 uint8_t map_Y_not_X CCM_MEMORY;
 uint8_t map_sprite CCM_MEMORY;
+uint8_t map_sprite_under_cursor CCM_MEMORY;
 
 #define MAP_HEADER 32 // and footer.  make it a multiple of 16
 
@@ -27,6 +29,7 @@ void map_init()
     map_last_painted = 0;
     map_menu_not_edit = 0;
     map_sprite = 0;
+    map_sprite_under_cursor = 255;
 }
 
 void map_switch()
@@ -86,11 +89,14 @@ void map_line()
             if (game_message[0])
                 font_render_line_doubled(game_message,
                     16, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
-            else if (map_menu_not_edit)
+            else if (!map_menu_not_edit)
+                font_render_line_doubled((const uint8_t *)"start:menu A:fill X:edit tile",
+                    28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+            else if (map_sprite_under_cursor < 255)
                 font_render_line_doubled((const uint8_t *)"start:edit A:play X:cut sprite",
                     28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
             else
-                font_render_line_doubled((const uint8_t *)"start:menu A:fill X:edit tile",
+                font_render_line_doubled((const uint8_t *)"start:edit A:play X:save map",
                     28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
         }
         return;
@@ -307,10 +313,12 @@ void map_controls()
 {
     if (GAMEPAD_PRESS(0, start))
     {
+        game_message[0] = 0;
         // switch between editing and menu
         if (map_menu_not_edit)
         {
             map_menu_not_edit = 0;
+            map_sprite_under_cursor = 255;
         }
         else
         {
@@ -326,6 +334,19 @@ void map_controls()
                 map_tile_y = 1;
             else if (map_tile_y == tile_map_height-1)
                 map_tile_y = tile_map_height-2;
+        
+            // check for a sprite under the cursor:
+            map_sprite_under_cursor = 255;
+            for (int draw_index=0; draw_index<drawing_count; ++draw_index)
+            { 
+                uint8_t index = draw_order[draw_index];
+                if (object[index].y == map_tile_y*16 && 
+                    object[index].x == map_tile_x*16)
+                {
+                    map_sprite_under_cursor = index;
+                    break;
+                }
+            }
         }
         return;
     }
@@ -356,27 +377,19 @@ void map_controls()
         int modified = 0;
         if (GAMEPAD_PRESSING(0, X))
         {
-            game_message[0] = 0;
-            // cut sprite under cursor, if there is one
-            uint8_t index = 255;
-            for (int draw_index=0; draw_index<drawing_count; ++draw_index)
-            { 
-                index = draw_order[draw_index];
-                if (object[index].y == map_tile_y*16 && 
-                    object[index].x == map_tile_x*16)
-                {
-                    break;
-                }
-                index = 255;
-            }
-            if (index == 255)
+            // cut sprite under cursor, if there is one, otherwise save map
+            if (map_sprite_under_cursor == 255)
             {
+                // save
+                io_message_from_error(game_message, io_save_map(), 1);
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
+            game_message[0] = 0;
             // copy the sprite property into map_sprite:
-            map_sprite = 8*object[index].sprite_index + object[index].sprite_frame;
-            remove_object(index);
+            map_sprite = 8*object[map_sprite_under_cursor].sprite_index + object[map_sprite_under_cursor].sprite_frame;
+            remove_object(map_sprite_under_cursor);
+            map_sprite_under_cursor = 255;
             modified = 1;
         }
         if (GAMEPAD_PRESSING(0, Y))
@@ -384,34 +397,23 @@ void map_controls()
             game_message[0] = 0;
             // paste sprite in here
             // first check if we should delete something first.
-            uint8_t index = 255;
-            for (int draw_index=0; draw_index<drawing_count; ++draw_index)
-            { 
-                index = draw_order[draw_index];
-                if (object[index].y == map_tile_y*16 && 
-                    object[index].x == map_tile_x*16)
-                {
-                    break;
-                }
-                index = 255;
-            }
-            if (index < 255)
+            if (map_sprite_under_cursor < 255)
             {
                 // just reuse the sprite that was there
-                object[index].sprite_index = map_sprite/8;
-                object[index].sprite_frame = map_sprite%8;
+                object[map_sprite_under_cursor].sprite_index = map_sprite/8;
+                object[map_sprite_under_cursor].sprite_frame = map_sprite%8;
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
             // no object found under cursor, create one:
-            index = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
-            if (index == 255) // could not create one
+            map_sprite_under_cursor = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
+            if (map_sprite_under_cursor == 255) // could not create one
             {
                 strcpy((char *)game_message, "too many sprites");
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
-            object[index].sprite_frame = map_sprite%8;
+            object[map_sprite_under_cursor].sprite_frame = map_sprite%8;
             modified = 1;
         }
         if (modified)
@@ -423,6 +425,7 @@ void map_controls()
         
         if (GAMEPAD_PRESSING(0, up))
         {
+            game_message[0] = 0;
             if (map_Y_not_X)
             {
                 if (((tile_map_height+1)*(tile_map_width)+1)/2 <= TILE_MAP_MEMORY)
@@ -437,6 +440,7 @@ void map_controls()
         }
         if (GAMEPAD_PRESSING(0, down))
         {
+            game_message[0] = 0;
             if (map_Y_not_X)
             {
                 if (tile_map_height > 17) // 240/16 = 15, but we want above and below a tile
@@ -456,6 +460,7 @@ void map_controls()
         if (GAMEPAD_PRESS(0, left) || GAMEPAD_PRESS(0, right))
         {
             map_Y_not_X = 1 - map_Y_not_X;
+            game_message[0] = 0;
             return;
         }
         

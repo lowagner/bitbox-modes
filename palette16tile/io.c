@@ -594,7 +594,6 @@ FileError io_load_sprite(unsigned int i, unsigned int f)
 
 FileError io_save_map()
 {
-    // TODO:  need to save sprite locations in here, too.
     if (tile_map_height <= 0 || tile_map_width <= 0 || 
         ((tile_map_width*tile_map_height+1)/2 > TILE_MAP_MEMORY))
         return ConstraintError;
@@ -632,8 +631,8 @@ FileError io_save_map()
         return MissingDataError;
     }
 
-    // write the rest of stuff 
-    int size = tile_map_width * tile_map_height;
+    // write the tile map
+    int size = (tile_map_width*tile_map_height+1)/2;
     uint8_t *src = tile_map;
     while (size) 
     {
@@ -658,12 +657,58 @@ FileError io_save_map()
         src += write_size;
     } 
     
+    // write the sprites
+    uint8_t object_count=0;
+    uint8_t index = first_used_object_index;
+    while (index < 255)
+    {
+        // first pass to determine object count
+        ++object_count;
+        index = object[index].next_object_index;
+    }
+    fat_result = f_write(&fat_file, &object_count, 1, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return WriteError;
+    }
+    if (bytes_get != 1)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    index = first_used_object_index;
+    while (index < 255)
+    {
+        // now write sprite information
+        struct object *o = &object[index];
+        uint16_t szxy[3] = 
+        { 
+            o->sprite_index*8 + o->sprite_frame + (o->z << 8),
+            (uint16_t)o->x, (uint16_t)o->y 
+        };
+        fat_result = f_write(&fat_file, &szxy[0], 6, &bytes_get);
+        if (fat_result != FR_OK)
+        {
+            f_close(&fat_file);
+            return WriteError;
+        }
+        if (bytes_get != 6)
+        {
+            f_close(&fat_file);
+            return MissingDataError;
+        }
+        index = object[index].next_object_index;
+    } 
+    
     f_close(&fat_file);
     return NoError;
 }
 
 FileError io_load_map()
 {
+    sprites_init(); // destroy all sprites
+
     // TODO:  need to load sprite locations in here, too.
     char filename[13];
     if (io_set_extension(filename, "M16"))
@@ -701,8 +746,8 @@ FileError io_load_map()
     if (tile_map_height <= 0)
         return ConstraintError;
     
-    int size = tile_map_width * tile_map_height;
-    if ((size+1)/2 > TILE_MAP_MEMORY)
+    int size = (tile_map_width*tile_map_height+1)/2;
+    if (size > TILE_MAP_MEMORY)
         return ConstraintError;
     uint8_t *src = tile_map;
     while (size) 
@@ -727,7 +772,43 @@ FileError io_load_map()
         }
         src += read_size;
     } 
-    
+    uint8_t object_count;
+    fat_result = f_read(&fat_file, &object_count, 1, &bytes_get);
+    if (fat_result != FR_OK)
+    {
+        f_close(&fat_file);
+        return ReadError;
+    }
+    if (bytes_get != 1)
+    {
+        f_close(&fat_file);
+        return MissingDataError;
+    }
+    for (int i=0; i<object_count; ++i)
+    {
+        // sprite 
+        uint16_t szxy[3];
+        fat_result = f_read(&fat_file, &szxy[0], 6, &bytes_get);
+        if (fat_result != FR_OK)
+        {
+            f_close(&fat_file);
+            return ReadError;
+        }
+        if (bytes_get != 6)
+        {
+            f_close(&fat_file);
+            return MissingDataError;
+        }
+        uint8_t sprite = szxy[0]&255;
+        uint8_t z = szxy[0]>>8;
+        uint8_t index = create_object(sprite/8, (int16_t)szxy[1], (int16_t)szxy[2], z);
+        if (index == 255)
+        {
+            f_close(&fat_file);
+            return ConstraintError;
+        }
+        object[index].sprite_frame = sprite%8;
+    } 
     f_close(&fat_file);
     return NoError;
 }
