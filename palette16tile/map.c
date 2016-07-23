@@ -358,12 +358,45 @@ void map_controls()
         {
             game_message[0] = 0;
             // cut sprite under cursor, if there is one
+            uint8_t previous_index = -1;
+            uint8_t index = first_used_object; // sprite index
+            for (int bounding=0; (index<255) && (bounding<MAX_OBJECTS); ++bounding)
+            {
+                if (object[index].draw_index < 255 && 
+                    object[index].y == map_tile_y*16 && 
+                    object[index].x == map_tile_x*16)
+                {
+                    message("found the sprite\n");
+                    break;
+                }
+                else
+                {
+                    previous_index = index;
+                    index = object[index].next_used_object;
+                }
+            }
+            if (index == 255)
+            {
+                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+                return;
+            }
+            // copy the sprite property into map_sprite:
+            map_sprite = 8*object[index].sprite_index + object[index].sprite_frame;
+            remove_object(previous_index, index);
             modified = 1;
         }
         if (GAMEPAD_PRESSING(0, Y))
         {
-            game_message[0] = 0;
             // paste sprite in here
+            int i = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
+            if (i < 0)
+            {
+                strcpy((char *)game_message, "too many sprites");
+                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+                return;
+            }
+            game_message[0] = 0;
+            object[i].sprite_frame = map_sprite%8;
             modified = 1;
         }
         if (modified)
