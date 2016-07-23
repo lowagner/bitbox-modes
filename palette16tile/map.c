@@ -375,7 +375,7 @@ void map_controls()
         }
        
         int modified = 0;
-        if (GAMEPAD_PRESSING(0, X))
+        if (GAMEPAD_PRESS(0, X))
         {
             // cut sprite under cursor, if there is one, otherwise save map
             if (map_sprite_under_cursor == 255)
@@ -392,7 +392,7 @@ void map_controls()
             map_sprite_under_cursor = 255;
             modified = 1;
         }
-        if (GAMEPAD_PRESSING(0, Y))
+        if (GAMEPAD_PRESS(0, Y))
         {
             game_message[0] = 0;
             // paste sprite in here
@@ -418,7 +418,6 @@ void map_controls()
         }
         if (modified)
         {
-            gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             update_objects(); 
             return;
         }
