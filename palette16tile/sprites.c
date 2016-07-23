@@ -22,9 +22,8 @@ info about a sprite (first frame, frame 0):
 uint32_t sprite_info[16][8] CCM_MEMORY; 
 
 struct object object[MAX_OBJECTS] CCM_MEMORY;
-uint8_t first_free_object CCM_MEMORY;
-uint8_t first_used_object CCM_MEMORY;
-uint8_t object_count CCM_MEMORY; 
+uint8_t first_free_object_index CCM_MEMORY;
+uint8_t first_used_object_index CCM_MEMORY;
 
 uint8_t draw_order[MAX_OBJECTS] CCM_MEMORY;
 uint8_t drawing_count CCM_MEMORY; 
@@ -37,13 +36,13 @@ void sprites_init()
     for (int i=0; i<MAX_OBJECTS; ++i)
     {
         object[i] = (struct object) {
-            .next_free_object = i+1,
-            .next_used_object = 255,
+            .next_object_index = i+1,
+            .previous_object_index = i-1,
         };
     }
-    object[MAX_OBJECTS-1].next_free_object = 255;
-    first_free_object = 0;
-    first_used_object = 255;
+    object[MAX_OBJECTS-1].next_object_index = 255;
+    first_free_object_index = 0;
+    first_used_object_index = 255;
 }
 
 void make_unseen_object_viewable(uint8_t i)
@@ -51,7 +50,7 @@ void make_unseen_object_viewable(uint8_t i)
     // object is viewable, but hasn't gone on the drawing list:
     object[i].iy = object[i].y - tile_map_y;
     object[i].ix = object[i].x - tile_map_x;
-    object[i].draw_index = drawing_count;
+    object[i].draw_order_index = drawing_count;
     draw_order[drawing_count] = i;
 
     ++drawing_count;
@@ -65,16 +64,20 @@ int on_screen(int16_t x, int16_t y)
     return 0;
 }
 
-int create_object(uint8_t sprite_draw_index, int16_t x, int16_t y, uint8_t z)
+uint8_t create_object(uint8_t sprite_index, int16_t x, int16_t y, uint8_t z)
 {
-    if (object_count >= MAX_OBJECTS)
+    if (first_free_object_index == 255)
         return -1;
 
-    int i = first_free_object;
-    // setup head of list for both free and used: 
-    first_free_object = object[i].next_free_object;
-    object[i].next_used_object = first_used_object;
-    first_used_object = i;
+    // update free list:
+    uint8_t i = first_free_object_index;
+    first_free_object_index = object[i].next_object_index;
+    // update the old root's previous index:
+    object[first_used_object_index].previous_object_index = i;
+    // make object i the head of the used list:
+    object[i].next_object_index = first_used_object_index;
+    object[i].previous_object_index = 255; // object i is root
+    first_used_object_index = i;
 
     // add in object properties
     object[i].y = y;
@@ -83,16 +86,15 @@ int create_object(uint8_t sprite_draw_index, int16_t x, int16_t y, uint8_t z)
     if (on_screen(object[i].x, object[i].y))
         make_unseen_object_viewable(i);
     else
-        object[i].draw_index = -1;
+        object[i].draw_order_index = -1;
 
-    object[i].sprite_index = sprite_draw_index;
-    ++object_count;
+    object[i].sprite_index = sprite_index;
     return i;
 }
 
-void move_object(int i, int16_t x, int16_t y)
+void move_object(uint8_t i, int16_t x, int16_t y)
 {
-    if (object[i].draw_index < 255) // object was visible...
+    if (object[i].draw_order_index < 255) // object was visible...
     {
         if (on_screen(x, y))
         {
@@ -100,7 +102,7 @@ void move_object(int i, int16_t x, int16_t y)
             object[i].iy = y - tile_map_y;
             object[i].ix = x - tile_map_x;
         }
-        else // object is no longer visible
+        else // object is no longer visible, but still exists
         {
             remove_object_from_view(i);
         }
@@ -121,46 +123,52 @@ void move_object(int i, int16_t x, int16_t y)
     object[i].x = x;
 }
 
-void remove_object(uint8_t previous_index, uint8_t index)
+void remove_object(uint8_t index)
 {
-    // free the object
+    // free the object by linking previous indices to next indices and vice versa:
+    uint8_t previous_index = object[index].previous_object_index;
+    uint8_t next_index = object[index].next_object_index;
     if (previous_index == 255)
         // we were at the head of the list, update root:
-        first_used_object = object[index].next_used_object;
+        first_used_object_index = next_index;
     else
-        object[previous_index].next_used_object = object[index].next_used_object;
-    object[index].next_free_object = first_free_object;
-    first_free_object = index;
-    // and remove it from view
-    remove_object_from_view(index);
-
-    --object_count;
+        object[previous_index].next_object_index = next_index;
+    if (next_index < 255)
+        // update the next object's link backwards:
+        object[next_index].previous_object_index = previous_index;
+    // put index at the head of the free list:
+    object[index].previous_object_index = 255;
+    object[index].next_object_index = first_free_object_index;
+    first_free_object_index = index;
+    // and remove object from view
+    if (object[index].draw_order_index < 255)
+        remove_object_from_view(index);
 }
 
 void remove_object_from_view(uint8_t i)
 {
-    for (int k=object[i].draw_index+1; k<drawing_count; ++k)
+    for (int k=object[i].draw_order_index+1; k<drawing_count; ++k)
     {
-        // move the pointers around for the objects draw_index:
+        // move the pointers around for the objects draw_order_index:
         // object at draw_order k should go to spot k-1:
         int object_k = draw_order[k];
         // move down draw_order:
-        object[object_k].draw_index = k-1;
+        object[object_k].draw_order_index = k-1;
         draw_order[k-1] = object_k;
     }
     object[i].iy = SCREEN_H;
     object[i].ix = SCREEN_W;
-    object[i].draw_index = -1;
+    object[i].draw_order_index = -1;
     --drawing_count;
 }
 
 void update_objects()
 {
-    uint8_t ok = first_used_object; // object index
-    while (ok < 255)
+    uint8_t index = first_used_object_index;
+    while (index < 255)
     {
-        move_object(ok, object[ok].x, object[ok].y);
-        ok = object[ok].next_used_object;
+        move_object(index, object[index].x, object[index].y);
+        index = object[index].next_object_index;
     }
 }
 
@@ -325,8 +333,8 @@ static inline void swap_draw_order_k_kminus1(int k)
     int object_kminus1 = draw_order[k-1];
     int object_k = draw_order[k];
 
-    object[object_kminus1].draw_index = k;
-    object[object_k].draw_index = k-1;
+    object[object_kminus1].draw_order_index = k;
+    object[object_k].draw_order_index = k-1;
 
     draw_order[k-1] = object_k;
     draw_order[k] = object_kminus1;

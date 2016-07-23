@@ -13,23 +13,22 @@ struct object {
     // second
     int16_t iy, ix;
     // third 32 bits
-    uint8_t draw_index;
+    uint8_t draw_order_index;
     uint8_t z;
     uint8_t health;
     uint8_t properties;
     // fourth
     uint8_t sprite_index;
     uint8_t sprite_frame;
-    uint8_t next_free_object; // for creating new objects
-    uint8_t next_used_object; // for keeping track of objects
+    uint8_t next_object_index; 
+    uint8_t previous_object_index;
 };
 
 extern uint8_t draw_order[MAX_OBJECTS];
 
 extern struct object object[MAX_OBJECTS];
-extern uint8_t first_free_object;
-extern uint8_t first_used_object;
-extern uint8_t object_count; // keep track of how many objects you have
+extern uint8_t first_free_object_index;
+extern uint8_t first_used_object_index;
 // keep the object list sorted in increasing y, 
 // and break ties by bringing to the front lower z:
 extern uint8_t drawing_count; // keep track of how many objects you can see
@@ -38,10 +37,10 @@ extern uint8_t drawing_count; // keep track of how many objects you can see
 extern uint8_t first_drawing_index; 
 extern uint8_t last_drawing_index; 
 
-int create_object(uint8_t sprite_draw_index, int16_t x, int16_t y, uint8_t z);
-void move_object(int i, int16_t x, int16_t y);
+uint8_t create_object(uint8_t sprite_draw_order_index, int16_t x, int16_t y, uint8_t z);
+void move_object(uint8_t i, int16_t x, int16_t y);
 void make_unseen_object_viewable(uint8_t i);
-void remove_object(uint8_t previous_index, uint8_t index);
+void remove_object(uint8_t index);
 void remove_object_from_view(uint8_t i);
 int on_screen(int16_t x, int16_t y);
 void update_objects();
