@@ -64,7 +64,7 @@ void map_reset()
    
     for (int k=0; k<MAX_OBJECTS; ++k)
         //create_object(k%16, rand()%(tile_map_width*16+16)-16, rand()%(tile_map_height*16+16)-16, rand()%256);
-        create_object(k%16, 16*(rand()%tile_map_width), 16*(rand()%tile_map_height), rand()%256);
+        create_object(k%16, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), rand()%256);
 }
 
 void map_line()
@@ -307,7 +307,26 @@ void map_controls()
 {
     if (GAMEPAD_PRESS(0, start))
     {
-        map_menu_not_edit = 1 - map_menu_not_edit;
+        // switch between editing and menu
+        if (map_menu_not_edit)
+        {
+            map_menu_not_edit = 0;
+        }
+        else
+        {
+            map_menu_not_edit = 1;
+
+            // do not allow sprites to be placed at edges of map:
+            if (map_tile_x == 0)
+                map_tile_x = 1;
+            else if (map_tile_x == tile_map_width-1)
+                map_tile_x = tile_map_width-2;
+            
+            if (map_tile_y == 0)
+                map_tile_y = 1;
+            else if (map_tile_y == tile_map_height-1)
+                map_tile_y = tile_map_height-2;
+        }
         return;
     }
 
