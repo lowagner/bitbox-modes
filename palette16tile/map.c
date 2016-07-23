@@ -336,13 +336,13 @@ void map_controls()
         if (GAMEPAD_PRESSING(0, R))
         {
             game_message[0] = 0;
-            map_sprite = (map_sprite+8)&15;
+            map_sprite = (map_sprite+8)&127;
             make_wait = 1;
         }
         if (GAMEPAD_PRESSING(0, L))
         {
             game_message[0] = 0;
-            map_sprite = (map_sprite-8)&15;
+            map_sprite = (map_sprite-8)&127;
             make_wait = 1;
         }
         if (GAMEPAD_PRESSING(0, B))
@@ -358,18 +358,16 @@ void map_controls()
         {
             game_message[0] = 0;
             // cut sprite under cursor, if there is one
-            uint8_t index = first_used_object_index; // sprite index
-            while (index < 255)
-            {
-                if (object[index].draw_order_index < 255 && 
-                    object[index].y == map_tile_y*16 && 
+            uint8_t index = 255;
+            for (int draw_index=0; draw_index<drawing_count; ++draw_index)
+            { 
+                index = draw_order[draw_index];
+                if (object[index].y == map_tile_y*16 && 
                     object[index].x == map_tile_x*16)
                 {
-                    message("found the sprite\n");
                     break;
                 }
-                else
-                    index = object[index].next_object_index;
+                index = 255;
             }
             if (index == 255)
             {
@@ -383,16 +381,37 @@ void map_controls()
         }
         if (GAMEPAD_PRESSING(0, Y))
         {
+            game_message[0] = 0;
             // paste sprite in here
-            uint8_t i = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
-            if (i == 255)
+            // first check if we should delete something first.
+            uint8_t index = 255;
+            for (int draw_index=0; draw_index<drawing_count; ++draw_index)
+            { 
+                index = draw_order[draw_index];
+                if (object[index].y == map_tile_y*16 && 
+                    object[index].x == map_tile_x*16)
+                {
+                    break;
+                }
+                index = 255;
+            }
+            if (index < 255)
+            {
+                // just reuse the sprite that was there
+                object[index].sprite_index = map_sprite/8;
+                object[index].sprite_frame = map_sprite%8;
+                gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+                return;
+            }
+            // no object found under cursor, create one:
+            index = create_object(map_sprite/8, 16*map_tile_x, 16*map_tile_y, 0);
+            if (index == 255) // could not create one
             {
                 strcpy((char *)game_message, "too many sprites");
                 gamepad_press_wait = GAMEPAD_PRESS_WAIT;
                 return;
             }
-            game_message[0] = 0;
-            object[i].sprite_frame = map_sprite%8;
+            object[index].sprite_frame = map_sprite%8;
             modified = 1;
         }
         if (modified)
