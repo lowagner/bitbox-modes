@@ -193,3 +193,9 @@ Controls:
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-editing.png)
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-save.png)
 ![Screenshot](https://raw.githubusercontent.com/lowagner/bitbox-modes/master/palette16tile/palette16tile-instruments.png)
+
+## noisebox
+
+Just a simple program without much VGA output (or none at all, if `NO_VGA=1` is set in the Makefile).
+Program makes various colored noises (red, white, violet, -ish);
+type of noise can be changed using any key (including the bitbox user button).
