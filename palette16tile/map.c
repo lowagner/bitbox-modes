@@ -37,14 +37,14 @@ void map_switch()
     if (map_tile_x*16 < tile_map_x)
         tile_map_x = map_tile_x*16;
     else if (map_tile_x*16 >= tile_map_x + SCREEN_W)
-        tile_map_x = map_tile_x*16 - SCREEN_W;
+        tile_map_x = map_tile_x*16 - SCREEN_W + 16;
     else if (tile_map_x % 16)
         tile_map_x =16*(tile_map_x/16);
     
     if (map_tile_y*16 < tile_map_y + MAP_HEADER)
         tile_map_y = map_tile_y*16 - MAP_HEADER;
     else if (map_tile_y*16 >= tile_map_y + SCREEN_H - MAP_HEADER)
-        tile_map_y = map_tile_y*16 - SCREEN_H + MAP_HEADER;
+        tile_map_y = map_tile_y*16 - SCREEN_H + MAP_HEADER + 16;
     else if (tile_map_y % 16)
         tile_map_y =16*(tile_map_y/16);
    
@@ -542,6 +542,12 @@ void map_controls()
                     moved = 1;
                 }
             }
+            else
+            {
+                map_tile_x = tile_map_width-1;
+                tile_map_x = map_tile_x*16 - SCREEN_W + 16;
+                moved = 1;
+            }
         }
         else if (GAMEPAD_PRESSING(0, right))
         {
@@ -554,6 +560,12 @@ void map_controls()
                     tile_map_x += 16;
                     moved = 1;
                 }
+            }
+            else
+            {
+                map_tile_x = 0;
+                tile_map_x = 0;
+                moved = 1;
             }
         }
         if (GAMEPAD_PRESSING(0, up))
@@ -568,6 +580,12 @@ void map_controls()
                     moved = 1;
                 }
             }
+            else
+            {
+                map_tile_y = tile_map_height-1;
+                tile_map_y = map_tile_y*16 - SCREEN_H + MAP_HEADER + 16;
+                moved = 1;
+            }
         }
         else if (GAMEPAD_PRESSING(0, down))
         {
@@ -580,6 +598,12 @@ void map_controls()
                     tile_map_y += 16;
                     moved = 1;
                 }
+            }
+            else
+            {
+                map_tile_y = 0;
+                tile_map_y = -MAP_HEADER;
+                moved = 1;
             }
         }
         if (moved)
