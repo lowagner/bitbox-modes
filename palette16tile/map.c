@@ -74,12 +74,7 @@ void map_line()
 {
     if (vga_line < MAP_HEADER)
     {
-        if (vga_line < MAP_HEADER - 20)
-        {
-            if (vga_line/2 == 0)
-                memset(draw_buffer, 0, 2*SCREEN_W);
-        }
-        else if (vga_line >= MAP_HEADER - 4)
+        if (vga_line >= MAP_HEADER - 4)
         {
             if (vga_line/2 == (MAP_HEADER-4)/2)
                 memset(draw_buffer, 0, 2*SCREEN_W);
@@ -98,6 +93,20 @@ void map_line()
             else
                 font_render_line_doubled((const uint8_t *)"start:edit A:play X:save map",
                     28, vga_line - (MAP_HEADER - 4 - 8), 65535, 0);
+        }
+        else
+        {
+            if (vga_line/2 == 0 || vga_line/2 == (MAP_HEADER - 4 - 10)/2)
+                memset(draw_buffer, 0, 2*SCREEN_W);
+            else if (vga_line >= MAP_HEADER - 4 - 10 - 8) // 14+8 =  22
+            {
+                uint8_t msg[] = { 
+                    'X', hex[map_tile_x/100], '0' + (map_tile_x/10)%10, '0' + (map_tile_x%10), 
+                    ' ', ' ',
+                    'Y', hex[map_tile_y/100], '0' + (map_tile_y/10)%10, '0' + (map_tile_y%10), 
+                0 };
+                font_render_line_doubled(msg, 28, vga_line - (MAP_HEADER - 4 - 10 - 8), RGB(100,100,100), 0);
+            }
         }
         return;
     }
@@ -243,7 +252,8 @@ void map_line()
     }
 
     tiles_line();
-    sprites_line();
+    if (map_menu_not_edit || (vga_frame/32) % 4)
+        sprites_line();
    
     // draw the cursor, if on this line:
     int tile_j = tile_map_y + vga_line; 
