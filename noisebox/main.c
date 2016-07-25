@@ -93,10 +93,10 @@ static inline uint16_t gen_sample()
             break;
     }
     // Now put the two channels together in the output word
-    return (value[0])|(value[1] << 8);  // 2*[1,251]
+    return *((uint16_t *)value);
 }
 
-void game_snd_buffer(uint16_t* buffer, int len) 
+void game_snd_buffer(uint16_t *buffer, int len) 
 {
     for (int i=0; i<len; i++)
         buffer[i] = gen_sample();

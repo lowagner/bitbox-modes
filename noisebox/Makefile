@@ -1,6 +1,6 @@
 # DO NOT FORGET to define BITBOX environment variable 
 
-NO_VGA = 1
+NO_VGA = 1 # comment out to get graphics
 
 NAME = noisebox
 GAME_C_FILES = main.c
