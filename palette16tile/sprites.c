@@ -43,6 +43,8 @@ void sprites_init()
     object[MAX_OBJECTS-1].next_object_index = 255;
     first_free_object_index = 0;
     first_used_object_index = 255;
+    
+    drawing_count = 0;
 }
 
 void make_unseen_object_viewable(uint8_t i)

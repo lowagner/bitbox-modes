@@ -8,13 +8,5 @@ tile/sprite property editing
 
 defaults for tile translation (one sharp pokey one)
 
-
-map-edit menu:
-    map properties:
-        can edit tile_map_width/height
-    can also add a sprite - use L/R to choose
-      jump to tile property editor with some button
-      allow start from property to jump back
-
 game editor
     BG_COLOR 141
