@@ -131,7 +131,7 @@ void anthem_line()
         case 0:
         {
             // edit track
-            uint8_t msg[] = {  'a', 'n', 't', 'h', 'e', 'm',
+            uint8_t msg[] = { 'a', 'n', 't', 'h', 'e', 'm',
                 ' ', 'X', '0' + anthem_song_pos/10, '0' + anthem_song_pos%10, '/',
                 '0' + song_length/10, '0' + song_length%10,
                 ' ', 's', 'p', 'e', 'e', 'd', ' ', '0'+(16-song_speed)/10, '0'+(16-song_speed)%10,
@@ -141,7 +141,16 @@ void anthem_line()
             break;
         }
         case 2:
-            font_render_line_doubled((uint8_t *)"P:tracks", 20, internal_line, 65535, BG_COLOR*257);
+            if (chip_play)
+            {
+                font_render_line_doubled((const uint8_t *)"P:", 20, internal_line, 65535, BG_COLOR*257);
+                uint8_t song_current = song_pos ? song_pos-1 : song_length-1;
+                if ((track_pos/4%2 == 0) && song_current >= anthem_song_offset && song_current < anthem_song_offset+16)
+                    font_render_line_doubled((const uint8_t *)"*", 28+16+16*song_current - 16*anthem_song_offset, internal_line, BOX_COLOR, BG_COLOR*257);
+            }
+            else
+                font_render_line_doubled((const uint8_t *)"P:tracks", 20, internal_line, 65535, BG_COLOR*257);
+            
             break;
         case 3:
         case 4:

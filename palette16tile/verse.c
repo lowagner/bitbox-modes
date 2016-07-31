@@ -12,6 +12,7 @@
 #include <string.h> // memset
 
 #define BG_COLOR 132
+#define PLAY_COLOR (RGB(200, 100, 0)|(RGB(200, 100, 0)<<16))
 #define BOX_COLOR (RGB(200, 200, 230)|(RGB(200, 200, 230)<<16))
 #define MATRIX_WING_COLOR (RGB(30, 90, 90) | (RGB(30, 90, 90)<<16))
 #define NUMBER_LINES 20
@@ -248,8 +249,8 @@ void verse_render_command(int j, int y)
             break;
     }
     
-    y = ((y/2))*4; // make y now how much to shift for font row
-    uint8_t row = (font[hex[j]] >> y) & 15;
+    uint8_t shift = ((y/2))*4;
+    uint8_t row = (font[hex[j]] >> shift) & 15;
     *(++dst) = color_choice[0];
     for (int k=0; k<4; ++k)
     {
@@ -257,7 +258,7 @@ void verse_render_command(int j, int y)
         row >>= 1;
     }
     *(++dst) = color_choice[0];
-    row = (font[':'] >> y) & 15;
+    row = (font[':'] >> shift) & 15;
     for (int k=0; k<4; ++k)
     {
         *(++dst) = color_choice[row&1];
@@ -265,7 +266,7 @@ void verse_render_command(int j, int y)
     }
     *(++dst) = color_choice[0];
     *(++dst) = color_choice[0];
-    row = (font[cmd] >> y) & 15;
+    row = (font[cmd] >> shift) & 15;
     for (int k=0; k<4; ++k)
     {
         *(++dst) = color_choice[row&1];
@@ -273,13 +274,42 @@ void verse_render_command(int j, int y)
     }
     *(++dst) = color_choice[0];
     
-    row = (font[param] >> y) & 15;
+    row = (font[param] >> shift) & 15;
     for (int k=0; k<4; ++k)
     {
         *(++dst) = color_choice[row&1];
         row >>= 1;
     }
     *(++dst) = color_choice[0];
+  
+    if (!chip_play_track)
+        return;
+    int cmd_index = chip_player[verse_player].track_cmd_index;
+    if (cmd_index)
+    switch (chip_track[verse_track][verse_player][cmd_index-1]&15)
+    {
+        case TRACK_BREAK:
+        case TRACK_WAIT:
+        case TRACK_NOTE_WAIT:
+            --cmd_index;
+    }
+    if (j == cmd_index)
+    {
+        if ((y+1)/2 == 1)
+        {
+            dst += 4;
+            *dst = PLAY_COLOR;
+            ++dst;
+            *dst = PLAY_COLOR;
+        }
+        else if ((y+1)/2 == 3)
+        {
+            dst += 4;
+            *dst = 16843009u*BG_COLOR;
+            ++dst;
+            *dst = 16843009u*BG_COLOR;
+        }
+    }
 }
 
 void verse_adjust_parameter(int direction)
@@ -354,13 +384,13 @@ void verse_line()
         case 0:
         {
             // edit track
-            uint8_t msg[] = { (chip_play_track && ((vga_frame/30) % 2)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
+            uint8_t msg[] = { (chip_play_track && (track_pos/4 % 2==0)) ? '*':' ', 't', 'r', 'a', 'c', 'k', ' ', hex[verse_track], 
                 ' ', 'P', hex[verse_player], 
                 ' ', 'I', hex[chip_player[verse_player].instrument],
                 ' ', 't', 'k', 'l', 'e', 'n', 
                 ' ', '0' + track_length/10, '0' + track_length%10,
             0 };
-            font_render_line_doubled(msg, 12, internal_line, 65535, BG_COLOR*257);
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
             break;
         }
         case 1:

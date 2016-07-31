@@ -28,6 +28,7 @@ const uint8_t note_name[12][2] = {
 
 #define BG_COLOR 5
 #define BOX_COLOR RGB(30, 20, 0)
+#define PLAY_COLOR (RGB(220, 50, 0)|(RGB(220, 50, 0)<<16))
 #define NUMBER_LINES 20
 
 uint8_t instrument_note CCM_MEMORY;
@@ -398,8 +399,8 @@ void instrument_render_command(int j, int y)
             break;
     }
     
-    y = ((y/2))*4; // make y now how much to shift for font row
-    uint8_t row = (font[hex[j]] >> y) & 15;
+    uint8_t shift = ((y/2))*4;
+    uint8_t row = (font[hex[j]] >> shift) & 15;
     *(++dst) = color_choice[0];
     for (int k=0; k<4; ++k)
     {
@@ -407,7 +408,7 @@ void instrument_render_command(int j, int y)
         row >>= 1;
     }
     *(++dst) = color_choice[0];
-    row = (font[':'] >> y) & 15;
+    row = (font[':'] >> shift) & 15;
     for (int k=0; k<4; ++k)
     {
         *(++dst) = color_choice[row&1];
@@ -415,7 +416,7 @@ void instrument_render_command(int j, int y)
     }
     *(++dst) = color_choice[0];
     *(++dst) = color_choice[0];
-    row = (font[cmd] >> y) & 15;
+    row = (font[cmd] >> shift) & 15;
     if (smash_together)
     {
         *(++dst) = color_choice[0];
@@ -424,7 +425,7 @@ void instrument_render_command(int j, int y)
             *(++dst) = color_choice[row&1];
             row >>= 1;
         }
-        row = (font[param] >> y) & 15;
+        row = (font[param] >> shift) & 15;
         for (int k=0; k<4; ++k)
         {
             *(++dst) = color_choice[row&1];
@@ -440,7 +441,7 @@ void instrument_render_command(int j, int y)
         }
         *(++dst) = color_choice[0];
         
-        row = (font[param] >> y) & 15;
+        row = (font[param] >> shift) & 15;
         for (int k=0; k<4; ++k)
         {
             *(++dst) = color_choice[row&1];
@@ -448,6 +449,33 @@ void instrument_render_command(int j, int y)
         }
     }
     *(++dst) = color_choice[0];
+    
+    if (!chip_player[instrument_i].track_volume)
+        return;
+    int cmd_index = chip_player[instrument_i].cmd_index;
+    if (cmd_index)
+    switch (instrument[instrument_i].cmd[cmd_index-1]&15)
+    {
+        case WAIT:
+            --cmd_index;
+    }
+    if (j == cmd_index)
+    {
+        if ((y+1)/2 == 1)
+        {
+            dst += 4;
+            *dst = PLAY_COLOR;
+            ++dst;
+            *dst = PLAY_COLOR;
+        }
+        else if ((y+1)/2 == 3)
+        {
+            dst += 4;
+            *dst = 16843009u*BG_COLOR;
+            ++dst;
+            *dst = 16843009u*BG_COLOR;
+        }
+    }
 }
 
 int _check_instrument(int i);
