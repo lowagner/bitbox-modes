@@ -49,10 +49,10 @@ typedef enum {
 extern VisualMode visual_mode;
 extern VisualMode previous_visual_mode;
 
-#define DOWN 0
-#define RIGHT 1
+#define RIGHT 0
+#define UP 1
 #define LEFT 2
-#define UP 3
+#define DOWN 3
 
 #define GAMEPAD_PRESS(id, key) ((gamepad_buttons[id]) & (~old_gamepad[id]) & (gamepad_##key))
 #define GAMEPAD_PRESSING(id, key) ((gamepad_buttons[id]) & (gamepad_##key) & (~old_gamepad[id] | ((gamepad_press_wait == 0)*gamepad_##key)))

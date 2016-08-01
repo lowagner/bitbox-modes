@@ -15,6 +15,7 @@
 
 uint8_t edit2_copying CCM_MEMORY; // 0 for not copying, 1 for sprite, 2 for tile
 uint8_t edit2_copy_location CCM_MEMORY;
+uint8_t edit2_side CCM_MEMORY;
 
 void edit2_init()
 {
@@ -116,6 +117,105 @@ void edit2_line()
         case 11:
             font_render_line_doubled((const uint8_t *)"dpad:", 16, internal_line, 65535, BG_COLOR*257);
             break;
+        case 12:
+        if (edit_sprite_not_tile)
+        {
+        }
+        else
+        {
+            uint8_t msg[32];
+            uint8_t param = tile_info[edit_tile]&15;
+            if (tile_info[edit_tile]&8)
+                strcpy((char *)msg, "solid ");
+            else if (param)
+                strcpy((char *)msg, "water ");
+            else
+                strcpy((char *)msg, "  air ");
+            msg[6] = hex[param];
+            strcpy((char *)msg+7, " trans ");
+            msg[14] = hex[(tile_info[edit_tile]>>4)&15];
+            strcpy((char *)msg+15, " time. ");
+            param = (tile_info[edit_tile]>>8)&15;
+            if (param)
+                msg[22] = hex[param];
+            else
+                msg[22] = hex[16];
+            strcpy((char *)msg+23, " vulnr ");
+            msg[30] = hex[(tile_info[edit_tile]>>12)&15];
+            msg[31] = 0;
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            break;
+        }
+        case 13:
+        if (edit_sprite_not_tile)
+        {
+        }
+        else
+        {
+            uint8_t msg[32];
+            switch (edit2_side)
+            {
+                case RIGHT:
+                    strcpy((char *)msg, " right ");
+                    break;
+                case UP:
+                    strcpy((char *)msg, "   top ");
+                    break;
+                case LEFT:
+                    strcpy((char *)msg, "  left ");
+                    break;
+                case DOWN:
+                    strcpy((char *)msg, "bottom ");
+                    break;
+            }
+            switch ((tile_info[edit_tile]>>(16+4*edit2_side))&15)
+            {
+                case Passable:
+                    strcpy((char *)msg+7, "passable");
+                    break;
+                case Normal:
+                    strcpy((char *)msg+7, "normal");
+                    break;
+                case Slippery:
+                    strcpy((char *)msg+7, "slippery");
+                    break;
+                case SuperSlippery:
+                    strcpy((char *)msg+7, "super slippery");
+                    break;
+                case Sticky:
+                    strcpy((char *)msg+7, "sticky");
+                    break;
+                case SuperSticky:
+                    strcpy((char *)msg+7, "super sticky");
+                    break;
+                case Damaging:
+                    strcpy((char *)msg+7, "damage");
+                    break;
+                case SuperDamaging:
+                    strcpy((char *)msg+7, "super damage");
+                    break;
+                case Unlock0:
+                    strcpy((char *)msg+7, "unlock 0");
+                    break;
+                case Unlock1:
+                    strcpy((char *)msg+7, "unlock 1");
+                    break;
+                case Unlock2:
+                    strcpy((char *)msg+7, "unlock 2");
+                    break;
+                case Unlock3:
+                    strcpy((char *)msg+7, "unlock 3");
+                    break;
+                case Checkpoint:
+                    strcpy((char *)msg+7, "checkpoint");
+                    break;
+                case Win:
+                    strcpy((char *)msg+7, "win");
+                    break;
+            }
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            break;
+        }
         case (NUMBER_LINES-2):
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;

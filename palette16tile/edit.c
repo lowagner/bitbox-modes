@@ -22,10 +22,10 @@ const uint8_t hex[32] = {
     'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v' // up to 32
 };
 const uint8_t direction[4] = { 
-    [DOWN] = 'D',
     [RIGHT] = 'R',
+    [UP] = 'U',
     [LEFT] = 'L',
-    [UP] = 'U'
+    [DOWN] = 'D'
 };
 
 void edit_init() 

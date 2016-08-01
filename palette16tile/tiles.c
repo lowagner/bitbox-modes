@@ -6,12 +6,9 @@ uint8_t tile_map[TILE_MAP_MEMORY] CCM_MEMORY;
 uint8_t tile_translator[16] CCM_MEMORY;
 /*
 info about a tile:
-    1 bit for Block (though some sides can be passable, e.g. one-way pass-through blocks).
-        0 if air or water
-    if Block:
-        3 bits unused(?)
-    else:
-        3 bits for water/air thickness (0=air, 1=quicksand,..., 4=water,..., 7=liquid mercury)
+    4 bits for solid/water/air
+        solid has the fourth bit set, first three currently unused
+        air is zero, water with varying densities up to 7
     4 bits for tile translation
     4 bits for tile timing
     if Block:
@@ -57,7 +54,7 @@ void tiles_init()
 
 uint32_t pack_tile_info(uint8_t translation, uint8_t timing, uint8_t vulnerability, const SideType *sides)
 {
-    return (1)|((translation&15)<<4)|((timing&15)<<8)|((vulnerability&15)<<12)|
+    return (8)|((translation&15)<<4)|((timing&15)<<8)|((vulnerability&15)<<12)|
         (sides[0]<<16)|(sides[1]<<20)|(sides[2]<<24)|(sides[3]<<28);
 }
 
@@ -65,7 +62,7 @@ uint32_t pack_fluid_info(uint8_t translation, uint8_t timing, uint8_t density, u
     uint8_t direction_1, uint8_t strength_1, uint8_t direction_2, uint8_t strength_2)
 {
     // skip bit 12, that specifies WARP.
-    return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((damage&1)<<13)|
+    return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((damage&1)<<13)|
         ((direction_1&3)<<14)|((strength_1&127)<<16)|((direction_2&3)<<23)|((strength_2&127)<<25);
 }
 
@@ -76,23 +73,23 @@ uint32_t pack_warp_info(uint8_t translation, uint8_t timing, uint8_t density,
     {
         case 0:
             // warp within the level, not load.  skip bit 17, that indicates LOAD
-            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1)<<12)|
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1)<<12)|
                 (warp_directions<<13)|((value&16383)<<18);
         case 1:
             // load, with no numbers
-            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17))|
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17))|
                 (warp_directions<<13);
         case 2:
             // load, with one number
-            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<27))|
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<27))|
                 (warp_directions<<13)|((value%10)<<28);
         case 3:
             // load, with two numbers
-            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<24))|
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<24))|
                 (warp_directions<<13)|((value%100)<<25);
         case 4:
             // load, with three numbers
-            return ((density&7)<<1)|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<21))|
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<21))|
                 (warp_directions<<13)|((value%1000)<<22);
         default:
             message("unexpected value for warp: %d\n", (int)(load_one_plus_digits));
