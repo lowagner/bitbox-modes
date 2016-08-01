@@ -8,7 +8,7 @@ uint8_t tile_translator[16] CCM_MEMORY;
 info about a tile:
     4 bits for solid/water/air
         solid has the fourth bit set, first three currently unused
-        air is zero, water with varying densities up to 7
+        air is zero, water with varying densities up to 7 (liquid mercury)
     4 bits for tile translation
     4 bits for tile timing
     if Block:
@@ -17,8 +17,7 @@ info about a tile:
         4 bits for surface property, x 4 sides 
             see common.h
             passable, normal, slippery, sticky/bouncy, insta-death, checkpoint, win location
-    elif 1 bit for warp:
-        4 bits for directions to press to warp (player_controls & direction to warp)
+    elif 1 bit for warp (shifted over one, next bit comes before this):
         if 1 bit for load (a different map for the next/previous level location):
             lookup map level-table based on 14 remaining bits:
                 change the number at the end of the filename, 
@@ -33,10 +32,13 @@ info about a tile:
                 00000000000000 -> no digits, take off numbers at end of filename
         else:
             warp to point on map given by 14 bits
+        4 bits for directions to press to warp (player_controls & direction to warp)
     else: # water/air tile
         1 bit for damage
-        # 18 bits remain, add two vectors together to get wind/water current
-        [2 bits direction + 7 bits strength] x 2
+        # 18 bit remain
+        6 bits for direction (measured like math, 0 = Right, increasing angles CCW)
+        6 bits for strength
+        6 bits for randomness
 */
 uint32_t tile_info[16] CCM_MEMORY;
 int16_t tile_map_x CCM_MEMORY, tile_map_y CCM_MEMORY;
@@ -62,7 +64,7 @@ uint32_t pack_fluid_info(uint8_t translation, uint8_t timing, uint8_t density, u
     uint8_t direction_1, uint8_t strength_1, uint8_t direction_2, uint8_t strength_2)
 {
     // skip bit 12, that specifies WARP.
-    return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((damage&1)<<13)|
+    return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((damage&1)<<12)|
         ((direction_1&3)<<14)|((strength_1&127)<<16)|((direction_2&3)<<23)|((strength_2&127)<<25);
 }
 
@@ -72,25 +74,25 @@ uint32_t pack_warp_info(uint8_t translation, uint8_t timing, uint8_t density,
     switch (load_one_plus_digits)
     {
         case 0:
-            // warp within the level, not load.  skip bit 17, that indicates LOAD
-            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1)<<12)|
-                (warp_directions<<13)|((value&16383)<<18);
+            // warp within the level, not load.  skip bit 12, that indicates LOAD
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1)<<13)|
+                ((value&16383)<<14)|(warp_directions<<28);
         case 1:
             // load, with no numbers
-            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17))|
-                (warp_directions<<13);
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<13))|
+                (warp_directions<<28);
         case 2:
             // load, with one number
-            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<27))|
-                (warp_directions<<13)|((value%10)<<28);
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<13)|(1<<23))|
+                ((value%10)<<24)|(warp_directions<<28);
         case 3:
             // load, with two numbers
-            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<24))|
-                (warp_directions<<13)|((value%100)<<25);
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<13)|(1<<20))|
+                ((value%100)<<21)|(warp_directions<<28);
         case 4:
             // load, with three numbers
-            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<17)|(1<<21))|
-                (warp_directions<<13)|((value%1000)<<22);
+            return ((density&7))|((translation&15)<<4)|((timing&15)<<8)|((1<<12)|(1<<13)|(1<<17))|
+                ((value%1000)<<18)|(warp_directions<<28);
         default:
             message("unexpected value for warp: %d\n", (int)(load_one_plus_digits));
             return 0;

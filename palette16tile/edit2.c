@@ -15,7 +15,7 @@
 
 uint8_t edit2_copying CCM_MEMORY; // 0 for not copying, 1 for sprite, 2 for tile
 uint8_t edit2_copy_location CCM_MEMORY;
-uint8_t edit2_side CCM_MEMORY;
+uint8_t edit2_cursor CCM_MEMORY;
 
 void edit2_init()
 {
@@ -24,6 +24,7 @@ void edit2_init()
 
 void edit2_line()
 {
+    static uint8_t edit2_side = 0;
     if (vga_line < 22)
     {
         if (vga_line/2 == 0)
@@ -45,6 +46,28 @@ void edit2_line()
     if (internal_line == 0 || internal_line == 9)
     {
         memset(draw_buffer, BG_COLOR, 2*SCREEN_W);
+        if (edit2_cursor < 4)
+        {
+            if (line == 12)
+            {
+                memset(&draw_buffer[16+6*9+8*9*edit2_cursor], 229, 9*2);
+            }
+        }
+        else if (line == 13)
+        {
+            if (edit_sprite_not_tile)
+            {
+
+            }
+            else if (tile_info[edit_tile]&8)
+                memset(&draw_buffer[16+7*9], 229, 9*2*5);
+            else if (tile_info[edit_tile]&(1<<13)) // a warp or a load level
+                memset(&draw_buffer[16+6*9+9*10*(edit2_cursor-4)], 229, 9*2*3);
+            else // current
+            {
+                memset(&draw_buffer[16+11*9+9*9*(edit2_cursor-4)], 229, 9*2*2);
+            }
+        }
     }
     else
     {
@@ -140,19 +163,39 @@ void edit2_line()
                 msg[22] = hex[param];
             else
                 msg[22] = hex[16];
-            strcpy((char *)msg+23, " vulnr ");
-            msg[30] = hex[(tile_info[edit_tile]>>12)&15];
-            msg[31] = 0;
+            if (tile_info[edit_tile]&8) // solid
+            {
+                strcpy((char *)msg+23, " vulnr ");
+                msg[30] = hex[(tile_info[edit_tile]>>12)&15];
+                msg[31] = 0;
+            }
+            else if (tile_info[edit_tile]&(1<<13)) // warp
+            {
+                if (tile_info[edit_tile]&(1<<12)) // warp to another level
+                    strcpy((char *)msg+23, " gotolvl");
+                else // warp within level
+                    strcpy((char *)msg+23, " gotopos"); 
+            }
+            else 
+            {
+                // does the water/air tile damage you
+                if (tile_info[edit_tile]&(1<<12)) 
+                    strcpy((char *)msg+23, " damge:Y");
+                else
+                    strcpy((char *)msg+23, " damge:N"); 
+            }
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-            break;
         }
+        break;
         case 13:
         if (edit_sprite_not_tile)
         {
         }
-        else
+        else if (tile_info[edit_tile]&8) // solid block
         {
             uint8_t msg[32];
+            if (edit2_cursor >= 4)
+                edit2_side = edit2_cursor - 4;
             switch (edit2_side)
             {
                 case RIGHT:
@@ -188,6 +231,12 @@ void edit2_line()
                 case SuperSticky:
                     strcpy((char *)msg+7, "super sticky");
                     break;
+                case Bouncy:
+                    strcpy((char *)msg+7, "bouncy");
+                    break;
+                case SuperBouncy:
+                    strcpy((char *)msg+7, "super bouncy");
+                    break;
                 case Damaging:
                     strcpy((char *)msg+7, "damage");
                     break;
@@ -210,12 +259,106 @@ void edit2_line()
                     strcpy((char *)msg+7, "checkpoint");
                     break;
                 case Win:
-                    strcpy((char *)msg+7, "win");
+                    strcpy((char *)msg+7, "win!!");
                     break;
             }
             font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
-            break;
         }
+        else if (tile_info[edit_tile]&(1<<13)) // warp
+        {
+            if (tile_info[edit_tile]&(1<<12)) // external warp
+            {
+                uint8_t msg[32];
+                strcpy((char *)msg, "digits ");
+                int digits = 0, number = 0;
+                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+                {
+                    digits = 3;
+                    number = (tile_info[edit_tile]>>18)&1023;
+                    if (number > 999)
+                        number = 999;
+                }
+                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                {
+                    digits = 2;
+                    number = (tile_info[edit_tile]>>21)&127;
+                    if (number > 99)
+                        number = 99;
+                }
+                else if (tile_info[edit_tile]&(1<<23))
+                {
+                    digits = 1;
+                    number = (tile_info[edit_tile]>>24)&15;
+                    if (number > 9)
+                        number = 9;
+                }
+                msg[7] = '0'+digits;
+                if (!digits)
+                {
+                    msg[8] = 0;
+                }
+                else
+                {
+                    strcpy((char *)msg+8, " number ");
+                    int index = 16+digits;
+                    msg[index] = 0;
+                    while (digits-- > 0)
+                    {
+                        msg[--index] = '0'+number%10;
+                        number /= 10;
+                    }
+                }
+                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+                strcpy((char *)msg, "direxn ");
+                msg[7] = hex[tile_info[edit_tile]>>28];
+                msg[8] = 0;
+                font_render_line_doubled(msg, 16+20*9, internal_line, 65535, BG_COLOR*257);
+            }
+            else
+            {
+                // internal warp
+                int y = (tile_info[edit_tile]>>14)&16383;
+                uint8_t msg[32];
+                int x = y % tile_map_width;
+                y /= tile_map_width;
+                strcpy((char *)msg, "pos X ");
+                msg[8] = '0' + x%10;
+                msg[7] = '0' + (x/10)%10;
+                msg[6] = '0' + ((x/10)/10)%10;
+                strcpy((char *)msg+9, " pos Y ");
+                msg[18] = '0' + y%10;
+                msg[17] = '0' + (y/10)%10;
+                msg[16] = '0' + ((y/10)/10)%10;
+                msg[19] = 0;
+                font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+                strcpy((char *)msg, "direxn ");
+                msg[7] = hex[tile_info[edit_tile]>>28];
+                msg[8] = 0;
+                font_render_line_doubled(msg, 16+20*9, internal_line, 65535, BG_COLOR*257);
+            }
+        } 
+        else // current
+        {
+            uint8_t msg[32];
+            uint32_t current = (tile_info[edit_tile]>>14);
+            if (tile_info[edit_tile]&7)
+                strcpy((char *)msg, "flow angle ");
+            else
+                strcpy((char *)msg, "wind angle ");
+            msg[11] = direction[(current&63)/16];
+            msg[12] = hex[(current&63)%16];
+            strcpy((char *)msg+13, " power ");
+            current >>= 6;
+            msg[20] = '0' + (current&63)/8;
+            msg[21] = '0' + (current&63)%8;
+            strcpy((char *)msg+22, " randm ");
+            current >>= 6;
+            msg[29] = '0' + (current&63)/8;
+            msg[30] = '0' + (current&63)%8;
+            msg[31] = 0;
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+        }
+        break;
         case (NUMBER_LINES-2):
             font_render_line_doubled(game_message, 16, internal_line, 65535, BG_COLOR*257);
             break;
@@ -276,6 +419,7 @@ void edit2_controls()
     }
     if (moved)
     {
+        edit2_cursor = 0;
         game_message[0] = 0;
         if (edit_sprite_not_tile)
         {
@@ -289,25 +433,259 @@ void edit2_controls()
         }
         return;
     }
-    int make_wait = 0;
-    if (GAMEPAD_PRESSING(0, left))
+    if (GAMEPAD_PRESS(0, left))
     {
-        make_wait = 1;
+        if (edit2_cursor)
+            --edit2_cursor;
+        else if (edit_sprite_not_tile)
+        {
+        }
+        else if (tile_info[edit_tile]&8)
+            edit2_cursor = 7;
+        else
+            edit2_cursor = 6;
+        return;
     }
-    if (GAMEPAD_PRESSING(0, right))
+    if (GAMEPAD_PRESS(0, right))
     {
-        make_wait = 1;
+        ++edit2_cursor;
+        if (edit_sprite_not_tile)
+        {
+
+        }
+        else if (tile_info[edit_tile]&8)
+        {
+            if (edit2_cursor > 7)
+                edit2_cursor = 0;
+        }
+        else if (edit2_cursor > 6)
+            edit2_cursor = 0;
+        return;
     }
     if (GAMEPAD_PRESSING(0, up))
     {
-        make_wait = 1;
+        if (edit_sprite_not_tile)
+        {
+
+        }
+        else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
+        {
+            uint32_t param = tile_info[edit_tile]&(15<<(edit2_cursor*4));
+            tile_info[edit_tile] &= ~(15<<(edit2_cursor*4));
+            param = (param+(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
+            tile_info[edit_tile] |= param;
+        }
+        else if (edit2_cursor == 3)
+        {
+            uint32_t param = tile_info[edit_tile]&(3<<12);
+            tile_info[edit_tile] &= ~(3<<12);
+            param = (param+(1<<12))&(3<<12);
+            tile_info[edit_tile] |= param;
+        }
+        else if (tile_info[edit_tile]&(1<<13)) // warp
+        {
+            if (edit2_cursor == 6)
+            {
+                // adjust directional warp
+                uint32_t param = tile_info[edit_tile]&(15<<28);
+                tile_info[edit_tile] &= ~(15<<28);
+                param = (param+(1<<28))&(15<<28);
+                tile_info[edit_tile] |= param; 
+            }
+            else if (tile_info[edit_tile]&(1<<12)) // level warp
+            {
+                int digits = 0;
+                int number = 0, max_number = 0;
+                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+                {
+                    digits = 3;
+                    number = (tile_info[edit_tile]>>18)&1023;
+                    if (number > 999)
+                        number = 999;
+                    max_number = 999;
+                }
+                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                {
+                    digits = 2;
+                    number = (tile_info[edit_tile]>>21)&127;
+                    if (number > 99)
+                        number = 99;
+                    max_number = 99;
+                }
+                else if (tile_info[edit_tile]&(1<<23))
+                {
+                    digits = 1;
+                    number = (tile_info[edit_tile]>>24)&15;
+                    if (number > 9)
+                        number = 9;
+                    max_number = 9;
+                }
+                if (edit2_cursor == 4) // edit digits
+                {
+                    if (++digits == 4)
+                        digits = 0;
+                }
+                else
+                {
+                    if (++number > max_number)
+                        number = 0;
+                }
+                tile_info[edit_tile] &= ~(16383<<14);
+                if (digits)
+                switch (digits)
+                {
+                    case 1:
+                        tile_info[edit_tile] |= (1<<23)|(number<<24);
+                        break;
+                    case 2:
+                        tile_info[edit_tile] |= (1<<20)|(number<<21);
+                        break;
+                    case 3:
+                        tile_info[edit_tile] |= (1<<17)|(number<<18);
+                        break;
+                }
+            }
+            else
+            {
+                int16_t pos = (tile_info[edit_tile]>>14) & (16383);
+                if (edit2_cursor == 4) // internal warp, x coordinate
+                {
+                    if (++pos % tile_map_width == 0)
+                        pos -= tile_map_width;
+                }
+                else // internal warp, y coordinate
+                {
+                    pos += tile_map_width;
+                    if (pos >= tile_map_width*tile_map_height)
+                        pos %= tile_map_width;
+                }
+                tile_info[edit_tile] &= ~(16383<<14);
+                tile_info[edit_tile] |= (pos<<14);
+            }
+        }
+        else // current
+        {
+            uint32_t param = tile_info[edit_tile]&(63<<(edit2_cursor*6-10));
+            tile_info[edit_tile] &= ~(63<<(edit2_cursor*6-10));
+            param = (param+(1<<(edit2_cursor*6-10)))&(63<<(edit2_cursor*6-10));
+            tile_info[edit_tile] |= param;
+        }
+        gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        return;
     }
     if (GAMEPAD_PRESSING(0, down))
     {
-        make_wait = 1;
-    }
-    if (make_wait)
+        if (edit_sprite_not_tile)
+        {
+
+        }
+        else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
+        {
+            uint32_t param = tile_info[edit_tile]&(15<<(edit2_cursor*4));
+            tile_info[edit_tile] &= ~(15<<(edit2_cursor*4));
+            param = (param-(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
+            tile_info[edit_tile] |= param;
+        }
+        else if (edit2_cursor == 3)
+        {
+            uint32_t param = tile_info[edit_tile]&(3<<12);
+            tile_info[edit_tile] &= ~(3<<12);
+            param = (param-(1<<12))&(3<<12);
+            tile_info[edit_tile] |= param;
+        }
+        else if (tile_info[edit_tile]&(1<<13)) // warp
+        {
+            if (edit2_cursor == 6)
+            {
+                // adjust directional warp
+                uint32_t param = tile_info[edit_tile]&(15<<28);
+                tile_info[edit_tile] &= ~(15<<28);
+                param = (param-(1<<28))&(15<<28);
+                tile_info[edit_tile] |= param; 
+            }
+            else if (tile_info[edit_tile]&(1<<12)) // level warp
+            {
+                int digits = 0;
+                int number = 0, max_number = 0;
+                if (tile_info[edit_tile]&(1<<17)) // 3 digits
+                {
+                    digits = 3;
+                    number = (tile_info[edit_tile]>>18)&1023;
+                    if (number > 999)
+                        number = 999;
+                    max_number = 999;
+                }
+                else if (tile_info[edit_tile]&(1<<20)) // 2 digits
+                {
+                    digits = 2;
+                    number = (tile_info[edit_tile]>>21)&127;
+                    if (number > 99)
+                        number = 99;
+                    max_number = 99;
+                }
+                else if (tile_info[edit_tile]&(1<<23))
+                {
+                    digits = 1;
+                    number = (tile_info[edit_tile]>>24)&15;
+                    if (number > 9)
+                        number = 9;
+                    max_number = 9;
+                }
+                if (edit2_cursor == 4) // edit digits
+                {
+                    if (--digits < 0)
+                        digits = 3;
+                }
+                else
+                {
+                    if (--number < 0)
+                        number = max_number;
+                }
+                tile_info[edit_tile] &= ~(16383<<14);
+                if (digits)
+                switch (digits)
+                {
+                    case 1:
+                        tile_info[edit_tile] |= (1<<23)|(number<<24);
+                        break;
+                    case 2:
+                        tile_info[edit_tile] |= (1<<20)|(number<<21);
+                        break;
+                    case 3:
+                        tile_info[edit_tile] |= (1<<17)|(number<<18);
+                        break;
+                }
+            }
+            else
+            {
+                int16_t pos = (tile_info[edit_tile]>>14) & (16383);
+                if (edit2_cursor == 4) // internal warp, x coordinate
+                {
+                    if (pos % tile_map_width == 0)
+                        pos += tile_map_width-1;
+                    else
+                        --pos;
+                }
+                else // internal warp, y coordinate
+                {
+                    pos -= tile_map_width;
+                    if (pos < 0)
+                        pos += tile_map_width*tile_map_height;
+                }
+                tile_info[edit_tile] &= ~(16383<<14);
+                tile_info[edit_tile] |= (pos<<14);
+            }
+        }
+        else // current
+        {
+            uint32_t param = tile_info[edit_tile]&(63<<(edit2_cursor*6-10));
+            tile_info[edit_tile] &= ~(63<<(edit2_cursor*6-10));
+            param = (param-(1<<(edit2_cursor*6-10)))&(63<<(edit2_cursor*6-10));
+            tile_info[edit_tile] |= param;
+        }
         gamepad_press_wait = GAMEPAD_PRESS_WAIT;
+        return;
+    }
 
     if (GAMEPAD_PRESS(0, X))
     {
@@ -385,6 +763,7 @@ void edit2_controls()
         }
         else
         {
+            edit2_cursor = 0;
             previous_visual_mode = EditTileOrSpriteProperties;
             game_switch(ChooseFilename);
         }
@@ -392,6 +771,7 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESS(0, select))
     {
+        edit2_cursor = 0;
         game_message[0] = 0;
         if (edit_sprite_not_tile)
         {
@@ -407,6 +787,7 @@ void edit2_controls()
     }
     if (GAMEPAD_PRESS(0, start))
     {
+        edit2_cursor = 0;
         game_message[0] = 0;
         if (previous_visual_mode)
         {

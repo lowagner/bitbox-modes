@@ -255,7 +255,7 @@ void draw_parade(int line, uint8_t bg_color)
             else
             {
                 // update parade offset
-                if (vga_frame % 32 == 0)
+                if (vga_frame % 64 == 0)
                 {
                     ++parade_offset;
                 }
