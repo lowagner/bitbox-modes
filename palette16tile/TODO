@@ -1,10 +1,29 @@
-tile/sprite property editing
-    tiles:  damage
-        0 tile is required to be no damage, passable.  can be water.
-        1 tile is required to be no damage on top, impassable (although breakable is also possible)
+run.c:
+    tile translation
+    hide sprites which are completely set inside another block with zero velocity.
+        (otherwise assume they are falling)
+    
+    sprites:
+        add velocity to objects
+
+sprite property editing
     sprite:
         0 sprite is hero
         change invisibility color
+
+sprite pattern editing
+    commands:
+        wait
+        look for player
+        change speed
+        jump (literally, not in command)
+        set chase if player within some multiple of speed
+        command goto, if within chase mode
+        command goto, unconditional
+        turn
+        move forward (some number of paces)
+        set edge behavior (turn, fall, jump)
+        randomize command
 
 defaults for tile translation (one sharp pokey one)
 
