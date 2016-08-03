@@ -44,9 +44,12 @@ void run_line()
     if (vga_line >= 2 && vga_line < 10)
     {
         if (run_paused)
-            font_render_no_bg_line_doubled((const uint8_t *)"paused", 16, vga_line-2, 65535);
+        {
+            if (vga_frame/32 % 2)
+                font_render_no_bg_line_doubled((const uint8_t *)"paused", 16, vga_line-2, 65535);
+        }
         else
-            font_render_no_bg_line_doubled((const uint8_t *)"header", 16, vga_line-2, 65535);
+            font_render_no_bg_line_doubled(game_message, 16, vga_line-2, 65535);
     }
 }
 
@@ -71,41 +74,26 @@ void run_controls()
 
     if (vga_frame % 2 == 0)
     {
-        int moved = 0;
         if (GAMEPAD_PRESSED(0, left))
         {
             if (tile_map_x > 16)
-            {
                 --tile_map_x;
-                moved = 1;
-            }
         }
         else if (GAMEPAD_PRESSED(0, right))
         {
-            if (tile_map_x + SCREEN_W + 16 < tile_map_width*16 - 1)
-            {
+            if (tile_map_x + SCREEN_W + 17 < tile_map_width*16)
                 ++tile_map_x;
-                moved = 1;
-            }
         }
         if (GAMEPAD_PRESSED(0, up))
         {
             if (tile_map_y > 16)
-            {
                 --tile_map_y;
-                moved = 1;
-            }
         }
         else if (GAMEPAD_PRESSED(0, down))
         {
-            if (tile_map_y + SCREEN_H + 16 < tile_map_height*16 - 1)
-            {
+            if (tile_map_y + SCREEN_H + 17 < tile_map_height*16)
                 ++tile_map_y;
-                moved = 1;
-            }
         }
-
-        if (moved)
-            update_objects(); 
     }
+    update_objects();
 }

@@ -146,7 +146,7 @@ void anthem_line()
                 font_render_line_doubled((const uint8_t *)"P:", 20, internal_line, 65535, BG_COLOR*257);
                 uint8_t song_current = song_pos ? song_pos-1 : song_length-1;
                 if ((track_pos/4%2 == 0) && song_current >= anthem_song_offset && song_current < anthem_song_offset+16)
-                    font_render_line_doubled((const uint8_t *)"*", 28+16+16*song_current - 16*anthem_song_offset, internal_line, BOX_COLOR, BG_COLOR*257);
+                    font_render_line_doubled((const uint8_t *)"*", 28+16+16*song_current - 16*anthem_song_offset, internal_line, BOX_COLOR&65535, BG_COLOR*257);
             }
             else
                 font_render_line_doubled((const uint8_t *)"P:tracks", 20, internal_line, 65535, BG_COLOR*257);

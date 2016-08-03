@@ -14,7 +14,7 @@ struct object {
     int16_t iy, ix;
     // third 32 bits
     uint8_t draw_order_index;
-    uint8_t z;
+    uint8_t z; // z = 0 is a hidden object.
     uint8_t health;
     uint8_t properties;
     // fourth

@@ -198,10 +198,12 @@ void sprites_line()
     }
     // reset vga16
     vga16+=16;
-    // draw visible sprites
+    // draw on-screen and currently visible (on this line) sprites
     for (int k=first_drawing_index; k<last_drawing_index; ++k)
     {
         struct object *o = &object[draw_order[k]];
+        if (!o->z)
+            continue; // hidden object
         int sprite_draw_row = vga16 - o->iy;
         if (o->ix < 0) // object left of screen but still visible
         {
@@ -244,26 +246,7 @@ void sprites_line()
                         *dst = palette[color]; // &65535; // unnecessary...
                     ++dst; 
                 }
-
             }
-            //int odd = ((-o->ix)%2);
-            //for (int pxl=-o->ix; pxl<16; ++pxl)
-            //{
-            //    uint8_t color;
-            //    if (odd)
-            //    {
-            //        color = ((*src++)>>4); //&15; //unnecessary!
-            //        odd = 0;
-            //    }
-            //    else
-            //    {
-            //        color = ((*src))&15;
-            //        odd = 1;
-            //    }
-            //    if (color != invisible_color)
-            //        *dst = palette[color]; // &65535; // unnecessary...
-            //    ++dst; 
-            //}
         }
         else if (o->ix > SCREEN_W-16)
         {
@@ -293,6 +276,7 @@ void sprites_line()
         }
         else
         {
+            // object is somewhere in the middle of the screen
             uint16_t *dst = draw_buffer + o->ix;
             uint8_t *src = &sprite_draw[o->sprite_index][o->sprite_frame][sprite_draw_row][0]-1;
             uint8_t invisible_color = sprite_info[o->sprite_index][o->sprite_frame] & 31;
@@ -307,25 +291,6 @@ void sprites_line()
                     *dst = palette[color]; // &65535; // unnecessary...
                 ++dst; 
             }
-            //int odd = 0;
-            //// process through the nibbles (half bytes) individually:
-            //for (int pxl=0; pxl<16; ++pxl)
-            //{
-            //    uint8_t color;
-            //    if (odd)
-            //    {
-            //        color = ((*src++)>>4); //&15; //unnecessary!
-            //        odd = 0;
-            //    }
-            //    else
-            //    {
-            //        color = ((*src))&15;
-            //        odd = 1;
-            //    }
-            //    if (color != invisible_color)
-            //        *dst = palette[color]; // &65535; // unnecessary...
-            //    ++dst; 
-            //}
         }
     }
 }
@@ -347,8 +312,10 @@ void sprites_frame()
     // insertion sort all the drawing objects on the map
     for (int j=0; j<drawing_count-1; ++j)
     {
-        for (int k=j+1; k > 0 && ((object[draw_order[k-1]].iy > object[draw_order[k]].iy) ||    
-            ((object[draw_order[k-1]].iy == object[draw_order[k]].iy) && 
+        // move object k as far up as it should be.
+        // lower z is drawn earlier, z=0 means the object is hidden inside a tile.
+        for (int k=j+1; k > 0 && ((object[draw_order[k-1]].iy > object[draw_order[k]].iy) ||
+            ((object[draw_order[k-1]].iy == object[draw_order[k]].iy) &&
              (object[draw_order[k-1]].z > object[draw_order[k]].z)) ); --k)
         {
             swap_draw_order_k_kminus1(k);

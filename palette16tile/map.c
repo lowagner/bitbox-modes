@@ -66,8 +66,7 @@ void map_reset()
     }
    
     for (int k=0; k<MAX_OBJECTS; ++k)
-        //create_object(k%16, rand()%(tile_map_width*16+16)-16, rand()%(tile_map_height*16+16)-16, rand()%256);
-        create_object(k%16, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), rand()%256);
+        create_object(k%16, 16*(1+rand()%(tile_map_width-2)), 16*(1+rand()%(tile_map_height-2)), 2+rand()%128);
 }
 
 void map_line()

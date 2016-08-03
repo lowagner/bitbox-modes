@@ -1,7 +1,9 @@
 run.c:
     tile translation
     hide sprites which are completely set inside another block with zero velocity.
-        (otherwise assume they are falling)
+        - compute a "hidden" property (make z=0 be hidden)
+        - reset when going to map mode (always z=1 or higher)
+        - compute when going to run mode?
     
     sprites:
         add velocity to objects
