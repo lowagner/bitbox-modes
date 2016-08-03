@@ -824,6 +824,8 @@ void instrument_line()
         case 15:
             if (instrument_menu_not_edit && !instrument_bad)
             {
+                if (instrument_copying < 16)
+                    goto maybe_show_instrument;
                 strcpy((char *)buffer, "Y:file ");
                 strcpy((char *)(buffer+7), base_filename);
                 font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);

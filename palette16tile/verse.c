@@ -543,6 +543,8 @@ void verse_line()
         case 14:
             if (verse_menu_not_edit)
             {
+                if (verse_copying < 64)
+                    goto maybe_show_track;
                 strcpy((char *)buffer, "Y:file ");
                 strcpy((char *)(buffer+7), base_filename);
                 font_render_line_doubled(buffer, 96, internal_line, 65535, BG_COLOR*257);
