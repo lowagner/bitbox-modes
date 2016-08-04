@@ -605,6 +605,8 @@ void verse_controls()
         if (switched)
         {
             verse_track = (verse_track+switched)&15;
+            verse_track_pos = 0;
+            verse_track_offset = 0;
             gamepad_press_wait = GAMEPAD_PRESS_WAIT;
             return;
         }
