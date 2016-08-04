@@ -55,11 +55,7 @@ void edit2_line()
         }
         else if (line == 13)
         {
-            if (edit_sprite_not_tile)
-            {
-
-            }
-            else if (tile_info[edit_tile]&8)
+            if (edit_sprite_not_tile || tile_info[edit_tile]&8)
                 memset(&draw_buffer[16+7*9], 229, 9*2*5);
             else if (tile_info[edit_tile]&(1<<13)) // a warp or a load level
                 memset(&draw_buffer[16+6*9+9*10*(edit2_cursor-4)], 229, 9*2*3);
@@ -143,6 +139,28 @@ void edit2_line()
         case 12:
         if (edit_sprite_not_tile)
         {
+            uint8_t msg[32];
+            uint32_t info = sprite_info[edit_sprite/8][edit_sprite%8];
+            if (info&16)
+                strcpy((char *)msg, "block ");
+            else
+                strcpy((char *)msg, "invis ");
+            msg[6] = hex[info&15];
+            strcpy((char *)msg+7,   "   1/m=");
+            msg[14] = hex[(info>>5)&7];
+            strcpy((char *)msg+15,  " vulnr ");
+            msg[22] = hex[(info>>8)&15];
+            strcpy((char *)msg+23, " imprv ");
+            msg[30] = hex[(info>>12)&15];
+            msg[31] = 0;
+            font_render_line_doubled(msg, 16, internal_line, 65535, BG_COLOR*257);
+            if (!(info&16))
+            {
+                uint32_t color = palette[info&15] | (palette[info&15]<<16);
+                uint32_t *dst = (uint32_t *)&draw_buffer[16+7*9+4];
+                for (int c=0; c<7; ++c)
+                    *(++dst) = color;
+            }
         }
         else
         {
@@ -188,11 +206,10 @@ void edit2_line()
         }
         break;
         case 13:
-        if (edit_sprite_not_tile)
+        if (edit_sprite_not_tile || tile_info[edit_tile]&8) // solid block or sprite
         {
-        }
-        else if (tile_info[edit_tile]&8) // solid block
-        {
+            uint32_t info = edit_sprite_not_tile ? sprite_info[edit_sprite/8][edit_sprite%8] :
+                tile_info[edit_tile];
             uint8_t msg[32];
             if (edit2_cursor >= 4)
                 edit2_side = edit2_cursor - 4;
@@ -211,7 +228,7 @@ void edit2_line()
                     strcpy((char *)msg, "bottom ");
                     break;
             }
-            switch ((tile_info[edit_tile]>>(16+4*edit2_side))&15)
+            switch ((info>>(16+4*edit2_side))&15)
             {
                 case Passable:
                     strcpy((char *)msg+7, "passable");
@@ -437,10 +454,7 @@ void edit2_controls()
     {
         if (edit2_cursor)
             --edit2_cursor;
-        else if (edit_sprite_not_tile)
-        {
-        }
-        else if (tile_info[edit_tile]&8)
+        else if (edit_sprite_not_tile || tile_info[edit_tile]&8)
             edit2_cursor = 7;
         else
             edit2_cursor = 6;
@@ -449,11 +463,7 @@ void edit2_controls()
     if (GAMEPAD_PRESS(0, right))
     {
         ++edit2_cursor;
-        if (edit_sprite_not_tile)
-        {
-
-        }
-        else if (tile_info[edit_tile]&8)
+        if (edit_sprite_not_tile || tile_info[edit_tile]&8)
         {
             if (edit2_cursor > 7)
                 edit2_cursor = 0;
@@ -466,7 +476,27 @@ void edit2_controls()
     {
         if (edit_sprite_not_tile)
         {
-
+            if (edit2_cursor == 0)
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
+                param = (param+1)&(31);
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
+            else if (edit2_cursor == 1)
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
+                param = (param+(1<<5))&(7<<5);
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
+            else
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
+                param = (param+(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
         }
         else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
         {
@@ -577,7 +607,27 @@ void edit2_controls()
     {
         if (edit_sprite_not_tile)
         {
-
+            if (edit2_cursor == 0)
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(31);
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(31);
+                param = (param-1)&(31);
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
+            else if (edit2_cursor == 1)
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(7<<5);
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(7<<5);
+                param = (param-(1<<5))&(7<<5);
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
+            else
+            {
+                uint32_t param = sprite_info[edit_sprite/8][edit_sprite%8]&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite/8][edit_sprite%8] &= ~(15<<(edit2_cursor*4));
+                param = (param-(1<<(edit2_cursor*4)))&(15<<(edit2_cursor*4));
+                sprite_info[edit_sprite/8][edit_sprite%8] |= param;
+            }
         }
         else if (tile_info[edit_tile]&8 || (edit2_cursor < 3))
         {
