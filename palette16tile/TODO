@@ -1,33 +1,40 @@
 run.c:
     tile translation
     hide sprites which are completely set inside another block with zero velocity.
-        - compute a "hidden" property (make z=0 be hidden)
+        - compute a "hidden" property (set z=0 to hide) when transitioning to run mode
         - reset when going to map mode (always z=1 or higher)
-        - compute when going to run mode?
     
     sprites:
         add velocity to objects
 
-sprite property editing
-    sprite:
-        0 sprite is hero
-        change invisibility color
+sprite pattern commands:
+    wait
+    look for player
+    change speed
+    set chase if player within some multiple of speed
+    jump (literally, not in command)
+    command goto, if within chase mode
+    command goto, unconditional
+    command goto, if in the air
+    turn
+    move forward (some number of paces)
+    set edge behavior (turn, fall, jump)
+    randomize command
+    follow player input (can reverse it, or only in one direction, etc.)
+    spawn other sprite (projectile)
+    shake screen
+    make noise
 
-sprite pattern editing
-    commands:
-        wait
-        look for player
-        change speed
-        jump (literally, not in command)
-        set chase if player within some multiple of speed
-        command goto, if within chase mode
-        command goto, unconditional
-        turn
-        move forward (some number of paces)
-        set edge behavior (turn, fall, jump)
-        randomize command
-
-defaults for tile translation (one sharp pokey one)
+unlock pattern commands:
+    wait
+    set spawn location x, y (needs 10 bits for each x,y)
+    spawn sprite
+    spawn tile (this can also destroy a tile if you spawn an "air" tile)
+    randomize command
+    set spawn location to player location (2 bits for offset in each direction)
+    set spawn location delta x, y
+    shake screen
+    make noise
 
 game editor
     BG_COLOR 141
