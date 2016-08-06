@@ -121,7 +121,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                 chip_player[i].cmd_index = MAX_INSTRUMENT_LENGTH; // end instrument commmands
             break;
         case SIDE: // s = switch side (L/R)
-            oscillator[i].side = param&3; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R
+            oscillator[i].side = param; // 0 = no side / silence!, 1 = L, 2 = R, 3 = L/R, 4 and higher fade
             break;
         case VOLUME: // v = volume
             chip_player[i].volume = param*17;
@@ -174,7 +174,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
                 case BREAK:
                     break;
                 case SIDE:
-                    instrument[inst].cmd[param] = SIDE | ((rand()%4)<<4);
+                    instrument[inst].cmd[param] = SIDE | ((rand()%16)<<4);
                     break;
                 case WAVEFORM:
                     instrument[inst].cmd[param] = WAVEFORM | ((rand()%(WF_VIOLET+1))<<4);
@@ -359,7 +359,7 @@ void chip_play_track_init(int track)
 
 void _chip_note(uint8_t i, uint8_t note)
 {
-    #ifdef CHIPTUNE_DEBUG
+    #ifdef DEBUG_CHIPTUNE
     message("note %d on player %d\n", (note+12*chip_player[i].octave), i);
     #endif
     // now set some defaults and startup the command index
@@ -400,7 +400,7 @@ void _chip_note(uint8_t i, uint8_t note)
     chip_player[i].vibrato_depth = 0;
     chip_player[i].vibrato_rate = 1;
     chip_player[i].bend = 0;
-    oscillator[i].side = 3; // default to output both L/R
+    oscillator[i].side = 8; // default to output both L/R
     oscillator[i].duty = 0x8000; // default to square wave
 }
 
@@ -773,7 +773,7 @@ static inline uint16_t gen_sample()
         if (!oscillator[i].side || !oscillator[i].volume)
             continue;
         
-        int8_t value; // [-128, 127]
+        int16_t value; // [-128, 127]
 
         switch (oscillator[i].waveform) 
         {
@@ -816,17 +816,40 @@ static inline uint16_t gen_sample()
         // Compute the oscillator phase (position in the waveform) for next time
         oscillator[i].phase += oscillator[i].freq / 4;
 
-        // bit crusher effect
-        value |= ((1<<oscillator[i].bitcrush) - 1); // if bitcrush == 0, does nothing
+        // bit crusher effect; bitcrush == 0 does nothing:
+        if (oscillator[i].bitcrush < 7)
+            value |= ((1<<oscillator[i].bitcrush) - 1);
+        else
+            value &= 85>>(oscillator[i].bitcrush-7);
 
         // addition has range [-8160,7905], roughly +- 2**13
         int16_t add = (oscillator[i].volume * value) >> 2;
         
         // Mix it in the appropriate output channel
-        if (oscillator[i].side & 1)
-            acc[0] += add;
-        if (oscillator[i].side & 2)
-            acc[1] += add;
+        switch (oscillator[i].side)
+        {
+            case 0:
+                acc[0] += add;
+                break;
+            case 8:
+                acc[0] += add;
+                acc[1] += add;
+                break;
+            case 15:
+                acc[1] += add;
+                break;
+            default:
+                if (oscillator[i].side < 8)
+                {
+                    acc[0] += add;
+                    acc[1] += add >> (8 - oscillator[i].side);
+                }
+                else
+                {
+                    acc[0] += add >> (oscillator[i].side - 8);
+                    acc[1] += add;
+                }
+        }
     }
     // Now put the two channels together in the output word
     // acc has roughly +- (4 instr)*2**13  needs to return as 2*[1,251],  (roughly 128 +- 2**7)

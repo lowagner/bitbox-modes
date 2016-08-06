@@ -57,7 +57,7 @@ void instrument_reset()
     int i=0; // isntrument
     int ci = 0; // command index
     instrument[i].octave = 2;
-    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[ci] = SIDE | (8<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SAW<<4); 
     instrument[i].cmd[++ci] = NOTE | (0<<4); 
@@ -65,7 +65,7 @@ void instrument_reset()
     instrument[i].cmd[++ci] = SIDE | (1<<4); 
     instrument[i].cmd[++ci] = NOTE | (4<<4); 
     instrument[i].cmd[++ci] = WAIT | (4<<4); 
-    instrument[i].cmd[++ci] = SIDE | (2<<4); 
+    instrument[i].cmd[++ci] = SIDE | (15<<4); 
     instrument[i].cmd[++ci] = WAIT | (4<<4); 
     instrument[i].cmd[++ci] = NOTE | (7<<4); 
     instrument[i].cmd[++ci] = WAIT | (4<<4); 
@@ -74,7 +74,7 @@ void instrument_reset()
     i = 1;
     ci = 0;
     instrument[i].octave = 3;
-    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[ci] = SIDE | (8<<4); 
     instrument[i].cmd[++ci] = INERTIA | (15<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_SINE<<4); 
@@ -88,7 +88,7 @@ void instrument_reset()
     i = 2;
     ci = 0;
     instrument[i].octave = 4;
-    instrument[i].cmd[ci] = SIDE | (3<<4); 
+    instrument[i].cmd[ci] = SIDE | (8<<4); 
     instrument[i].cmd[++ci] = VOLUME | (15<<4); 
     instrument[i].cmd[++ci] = WAVEFORM | (WF_NOISE<<4); 
     instrument[i].cmd[++ci] = WAIT | (3<<4); 
@@ -119,7 +119,7 @@ void instrument_reset()
     instrument[i].cmd[++ci] = FADE_OUT | (13<<4); // the first sub-instrument is long (8 commands) 
     instrument[i].cmd[++ci] = SIDE | (1<<4); 
     instrument[i].cmd[++ci] = WAIT | (15<<4); 
-    instrument[i].cmd[++ci] = SIDE | (2<<4); 
+    instrument[i].cmd[++ci] = SIDE | (15<<4); 
     instrument[i].cmd[++ci] = FADE_OUT | (10<<4);  // that was the second sub-instrument
     
     instrument[i].cmd[++ci] = WAIT | (3<<4); 
@@ -270,26 +270,31 @@ void instrument_render_command(int j, int y)
     switch (cmd)
     {
         case SIDE:
-            switch (param%4)
+        {    
+            uint8_t L, R=param-1;
+            L = 14-R;
+            if (param == 0)
             {
-                case 0:
-                    cmd = 's';
-                    param = 'h';
-                    break;
-                case 1:
-                    cmd = 'L';
-                    param = ' ';
-                    break;
-                case 2:
-                    cmd = ' ';
-                    param = 'R';
-                    break;
-                case 3:
-                    cmd = 'L';
-                    param = 'R';
-                    break;
+                cmd = 's';
+                param = 'h';
+            }
+            else if (param == 8)
+            {
+                cmd = 'L';
+                param = 'R';
+            }
+            else if (param < 8)
+            {
+                cmd = 'L';
+                param = 240 + R;
+            }
+            else
+            {
+                cmd = 240 + L;
+                param = 'R';
             }
             break;
+        }
         case WAVEFORM:
             switch (param)
             {
@@ -507,9 +512,6 @@ void instrument_adjust_parameter(int direction)
     
     switch (cmd)
     {
-        case SIDE:
-            param = (param+direction)&3;
-            break;
         case WAVEFORM:
             param = param+direction;
             if (param > 240)
@@ -517,6 +519,7 @@ void instrument_adjust_parameter(int direction)
             else if (param > WF_VIOLET)
                 param = WF_SINE;
             break;
+        case SIDE:
         case BREAK:
         case VOLUME:
         case NOTE:

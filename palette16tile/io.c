@@ -709,7 +709,6 @@ FileError io_load_map()
 {
     sprites_init(); // destroy all sprites
 
-    // TODO:  need to load sprite locations in here, too.
     char filename[13];
     if (io_set_extension(filename, "M16"))
         return MountError;
@@ -815,7 +814,6 @@ FileError io_load_map()
 
 FileError io_load_instrument(unsigned int i)
 {
-    // TODO:  need to load sprite locations in here, too.
     char filename[13];
     if (io_set_extension(filename, "I16"))
         return MountError;
