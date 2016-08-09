@@ -172,6 +172,7 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             switch (instrument[inst].cmd[param]&15)
             {
                 case BREAK:
+                    instrument[inst].cmd[param] = BREAK | ((rand()%(track_length/4))<<4);
                     break;
                 case SIDE:
                     instrument[inst].cmd[param] = SIDE | ((rand()%16)<<4);
@@ -541,7 +542,7 @@ static void track_run_command(uint8_t i, uint8_t cmd)
                     *memory = TRACK_OCTAVE | ((rand()%16)<<4);
                     break;
                 case TRACK_INSTRUMENT:
-                    *memory = TRACK_INSTRUMENT | ((rand()%4)<<4);
+                    *memory = TRACK_INSTRUMENT | ((rand()%16)<<4);
                     break;
                 case TRACK_VOLUME:
                     *memory = TRACK_VOLUME | ((rand()%16)<<4);
