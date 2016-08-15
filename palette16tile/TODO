@@ -8,21 +8,21 @@ run.c:
         add velocity to objects
 
 sprite pattern commands:
+    end
     wait
-    look for player
-    change speed
-    set chase if player within some multiple of speed
-    jump (literally, not in command)
-    command goto, if within chase mode
-    command goto, unconditional
-    command goto, if in the air
-    turn
-    move forward (some number of paces)
-    set edge behavior (turn, fall, jump)
+    look for player, change direction based on argument
+    set speed
+    stop/turn/run/jump/fire (literally, not in command)
+    if not in air, goto
+    if not running, goto
+    if not firing, goto
+    set edge behavior (stop, turn, fall, jump, stop if slow enough or fall, stop if slow enough or jump, etc.)
     randomize command
-    follow player input (can reverse it, or only in one direction, etc.)
+    handle player directional input (1 bit player for player 1, 2=left/right, 4=up/down, 8=mirrored)
+    handle player special input (1 bit for player 1, 2=jump, 4=run, 8=fire)
     spawn other sprite (projectile)
-    shake screen
+    spawn other tile
+    set shake screen
     make noise
 
 unlock pattern commands:
