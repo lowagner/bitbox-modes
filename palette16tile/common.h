@@ -65,4 +65,6 @@ extern const uint8_t direction[4];
 
 void draw_parade(int line, uint8_t bg_color);
 void game_switch(VisualMode new_visual_mode);
+
+uint8_t randomize(uint8_t arg);
 #endif

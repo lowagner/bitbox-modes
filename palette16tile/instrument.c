@@ -396,7 +396,7 @@ void instrument_render_command(int j, int y)
             break;
         case RANDOMIZE:
             cmd = 'R';
-            param = hex[param];
+            param = 224 + param;
             break;
         case JUMP:
             cmd = 'J';
@@ -741,7 +741,7 @@ void instrument_line()
                     strcpy((char *)buffer, "change in duty");
                     break;
                 case RANDOMIZE:
-                    strcpy((char *)buffer, "randomize command");
+                    strcpy((char *)buffer, "randomize next cmd");
                     break;
                 case JUMP:
                     strcpy((char *)buffer, "jump to command");
