@@ -213,7 +213,7 @@ void anthem_line()
                     *(++dst) = color_choice[0];
                 }
             }
-            if (i == verse_player)
+            if (anthem_menu_not_edit == 0 && i == verse_player)
             {
                 const uint16_t color = (anthem_song_offset + 15 == anthem_song_pos) ? 
                     BOX_COLOR :
