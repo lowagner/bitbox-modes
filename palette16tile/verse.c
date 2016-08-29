@@ -26,6 +26,7 @@ uint8_t verse_last_painted CCM_MEMORY;
 uint8_t verse_show_track CCM_MEMORY;
 uint8_t verse_player CCM_MEMORY;
 uint8_t verse_command_copy CCM_MEMORY;
+uint8_t verse_bad CCM_MEMORY;
 
 void verse_init()
 {
@@ -33,6 +34,7 @@ void verse_init()
     verse_track_pos = 0;
     verse_track_offset = 0;
     verse_command_copy = rand()%16;
+    verse_bad = 0;
 }
 
 void verse_reset()
@@ -85,9 +87,11 @@ void verse_short_command_message(uint8_t *buffer, uint8_t cmd)
         case TRACK_LENGTH:
             strcpy((char *)buffer, "track length");
             break;
-        case TRACK_RANDOMIZE0:
-        case TRACK_RANDOMIZE1:
+        case TRACK_RANDOMIZE:
             strcpy((char *)buffer, "randomize");
+            break;
+        case TRACK_JUMP:
+            strcpy((char *)buffer, "jump");
             break;
     }
 }
@@ -240,12 +244,13 @@ void verse_render_command(int j, int y)
             else
                 param = 'g';
             break;
-        case TRACK_RANDOMIZE1:
-            param += 16;
-            // DO NOT BREAK
-        case TRACK_RANDOMIZE0:
+        case TRACK_RANDOMIZE:
             cmd = 'R';
-            param = hex[param];
+            param = 224 + param;
+            break;
+        case TRACK_JUMP:
+            cmd = 'J';
+            param = hex[2*param];
             break;
     }
     
@@ -312,6 +317,24 @@ void verse_render_command(int j, int y)
     }
 }
 
+int _check_verse();
+
+void check_verse()
+{
+    // check if that parameter broke something
+    if (_check_verse())
+    {
+        verse_bad = 1; 
+        strcpy((char *)game_message, "bad jump, need wait in loop.");
+    }
+    else
+    {
+        verse_bad = 0; 
+        game_message[0] = 0;
+    }
+    chip_kill();
+}
+
 void verse_adjust_parameter(int direction)
 {
     if (!direction)
@@ -319,38 +342,85 @@ void verse_adjust_parameter(int direction)
     uint8_t cmd = chip_track[verse_track][verse_player][verse_track_pos];
     uint8_t param = cmd>>4;
     cmd &= 15;
-    switch (cmd)
-    {
-        case TRACK_BREAK:
-        case TRACK_OCTAVE:
-        case TRACK_INSTRUMENT:
-        case TRACK_VOLUME:
-        case TRACK_NOTE:
-        case TRACK_WAIT:
-        case TRACK_NOTE_WAIT:
-        case TRACK_FADE_IN:
-        case TRACK_FADE_OUT:
-        case TRACK_INERTIA:
-        case TRACK_VIBRATO:
-        case TRACK_TRANSPOSE:
-        case TRACK_SPEED:
-        case TRACK_LENGTH:
-            param = (param + direction)&15;
-            break;
-        case TRACK_RANDOMIZE0:
-            param += direction;
-            if (param >= 16) // 
-                cmd = TRACK_RANDOMIZE1;
-            param &= 15;
-            break;
-        case TRACK_RANDOMIZE1:
-            param += direction;
-            if (param >= 16) // 
-                cmd = TRACK_RANDOMIZE0;
-            param &= 15;
-            break;
-    }
+    param = (param + direction)&15;
     chip_track[verse_track][verse_player][verse_track_pos] = cmd | (param<<4);
+
+    check_verse();
+}
+
+int _check_verse()
+{
+    // check for a JUMP which loops back on itself without waiting at least a little bit.
+    // return 1 if so, 0 if not.
+    int j=0; // current command index
+    int j_last_jump = -1;
+    int found_wait = 0;
+    for (int k=0; k<64; ++k)
+    {
+        if (j >= 32) // got to the end
+            return 0;
+        if (j_last_jump >= 0)
+        {
+            if (j == j_last_jump) // we found our loop-back point
+                return !(found_wait); // did we find a wait?
+            int j_next_jump = -1;
+            switch (chip_track[verse_track][verse_player][j]&15)
+            {
+                case TRACK_JUMP:
+                    j_next_jump = 2*(chip_track[verse_track][verse_player][j]>>4);
+                    if (j_next_jump == j_last_jump) // jumping forward to the original jump
+                    {
+                        message("jumped to the old jump\n");
+                        return !(found_wait);
+                    }
+                    else if (j_next_jump > j_last_jump) // jumping past original jump
+                    {
+                        message("This probably shouldn't happen.\n");
+                        j_last_jump = -1; // can't look for loops...
+                    }
+                    else
+                    {
+                        message("jumped backwards again?\n");
+                        j_last_jump = j;
+                        found_wait = 0;
+                    }
+                    j = j_next_jump;
+                    break;
+                case TRACK_WAIT:
+                case TRACK_NOTE_WAIT:
+                    message("saw wait at j=%d\n", j);
+                    found_wait = 1;
+                    ++j;
+                    break;
+                default:
+                    ++j;
+            }
+        }
+        else
+        {
+            if ((chip_track[verse_track][verse_player][j]&15) != TRACK_JUMP)
+                ++j;
+            else
+            {
+                j_last_jump = j;
+                j = 2*(chip_track[verse_track][verse_player][j]>>4);
+                if (j > j_last_jump)
+                {
+                    message("This probably shouldn't happen??\n");
+                    j_last_jump = -1; // don't care, we moved ahead
+                }
+                else if (j == j_last_jump)
+                {
+                    message("jumped to itself\n");
+                    return 1; // this is bad
+                }
+                else
+                    found_wait = 0;
+            }
+        }
+    }
+    message("couldn't finish after 32 iterations. congratulations.\nprobably looping back on self, but with waits.");
+    return 0;
 }
 
 void verse_line()
@@ -449,9 +519,11 @@ void verse_line()
                 case TRACK_LENGTH:
                     strcpy((char *)buffer, "track length / 4");
                     break;
-                case TRACK_RANDOMIZE0:
-                case TRACK_RANDOMIZE1:
-                    strcpy((char *)buffer, "randomize command");
+                case TRACK_RANDOMIZE:
+                    strcpy((char *)buffer, "randomize next cmd");
+                    break;
+                case TRACK_JUMP:
+                    strcpy((char *)buffer, "jump to cmd index");
                     break;
             }
             font_render_line_doubled(buffer, 102, internal_line, 65535, BG_COLOR*257);
@@ -692,6 +764,7 @@ void verse_controls()
         {
             uint8_t *memory = &chip_track[verse_track][verse_player][verse_track_pos];
             *memory = ((*memory+movement)&15)|((*memory)&240);
+            check_verse();
         }
         if (GAMEPAD_PRESSING(0, down))
         {
@@ -756,6 +829,7 @@ void verse_controls()
                     break;
             }
             chip_track[verse_track][verse_player][MAX_TRACK_LENGTH-1] = TRACK_BREAK;
+            check_verse();
             return;
         }
 
@@ -772,9 +846,13 @@ void verse_controls()
                 chip_track[verse_track][verse_player][j] = chip_track[verse_track][verse_player][j-1];
             }
             chip_track[verse_track][verse_player][verse_track_pos] = verse_command_copy;
+            check_verse();
             return;
         }
         
+        if (verse_bad) // can't do anything else until you fix this
+            return;
+
         if (GAMEPAD_PRESS(0, A))
         {
             // play all instruments (or stop them all)

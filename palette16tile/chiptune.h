@@ -145,7 +145,11 @@ enum
 #define TRACK_TRANSPOSE 11
 #define TRACK_SPEED 12
 #define TRACK_LENGTH 13
-#define TRACK_RANDOMIZE0 14
-#define TRACK_RANDOMIZE1 15
+#define TRACK_RANDOMIZE 14
+#define TRACK_JUMP 15
+
+uint8_t instrument_max_index(uint8_t i, uint8_t j);
+int instrument_jump_bad(uint8_t inst, uint8_t max_index, uint8_t jump_from_index, uint8_t j);
+int track_jump_bad(uint8_t t, uint8_t i, uint8_t jump_from_index, uint8_t j);
 
 #endif

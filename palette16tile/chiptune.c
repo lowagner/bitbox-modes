@@ -109,6 +109,73 @@ static const int8_t sine_table[] = {
     -71, -60, -49, -37, -25, -12
 };
 
+uint8_t instrument_max_index(uint8_t i, uint8_t j)
+{
+    if (instrument[i].is_drum)
+    {
+        if (j < 2*MAX_DRUM_LENGTH)
+            return 2*MAX_DRUM_LENGTH;
+        else if (j < 3*MAX_DRUM_LENGTH)
+            return 3*MAX_DRUM_LENGTH;
+    }
+    return MAX_INSTRUMENT_LENGTH;
+}
+
+int instrument_jump_bad(uint8_t inst, uint8_t max_index, uint8_t jump_from_index, uint8_t j)
+{
+    // double check that this is an ok jump
+    for (int k=0; k<20; ++k)
+    {
+        if (j >= max_index) // GOOD
+            return 0;
+        else if (j == jump_from_index) // NOT GOOD
+            return 1;
+        switch (instrument[inst].cmd[j]&15)
+        {
+            case JUMP:
+                j = instrument[inst].cmd[j]>>4;
+                break;
+            case WAIT:
+                return 0;
+            case BREAK:
+                if ((instrument[inst].cmd[j]>>4) == 0)
+                    return 0;
+            default:
+                ++j;
+        }
+    }
+    // do not proceed if no wait was found:
+    return 1;
+}
+
+int track_jump_bad(uint8_t t, uint8_t i, uint8_t jump_from_index, uint8_t j)
+{
+    // double check that this is an ok jump
+    for (int k=0; k<36; ++k)
+    {
+        if (j >= MAX_TRACK_LENGTH) // GOOD
+            return 0;
+        else if (j == jump_from_index) // NOT GOOD
+            return 1;
+        switch (chip_track[t][i][j]&15)
+        {
+            case TRACK_JUMP:
+                j = 2*(chip_track[t][i][j]>>4);
+                break;
+            case TRACK_WAIT:
+            case TRACK_NOTE_WAIT:
+                return 0;
+            case TRACK_BREAK:
+                if ((chip_track[t][i][j]>>4) == 0)
+                    return 0;
+            default:
+                ++j;
+        }
+    }
+    // do not proceed if no wait was found:
+    return 1;
+}
+
 uint8_t randomize(uint8_t arg)
 {
     switch (arg)
@@ -219,39 +286,15 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
         case RANDOMIZE:
         {
             uint8_t next_index = chip_player[i].cmd_index;
-            uint8_t max_index = instrument[inst].is_drum ? chip_player[i].max_drum_index :
-                MAX_INSTRUMENT_LENGTH;
+            uint8_t max_index = instrument_max_index(inst, next_index-1);
             if (next_index >= max_index)
                 break;
             uint8_t random = randomize(param);
-            if ((instrument[inst].cmd[next_index]&15) == JUMP)
+            if ((instrument[inst].cmd[next_index]&15) == JUMP &&
+                instrument_jump_bad(inst, max_index, next_index, random))
             {
-                // double check that this is an ok jump
-                int j=random;
-                for (int k=0; k<32; ++k)
-                {
-                    if (j >= max_index) // GOOD
-                        goto instrument_jump_ok;
-                    else if (j == next_index) // NOT GOOD
-                        break;
-                    switch (instrument[inst].cmd[j]&15)
-                    {
-                        case JUMP:
-                            j = instrument[inst].cmd[j]>>4;
-                            break;
-                        case WAIT:
-                            goto instrument_jump_ok;
-                        case BREAK:
-                            if ((instrument[inst].cmd[j]>>4) == 0)
-                                goto instrument_jump_ok;
-                        default:
-                            ++j;
-                    }
-                }
-                // do not proceed if no wait was found:
                 break;
             }
-            instrument_jump_ok:
             instrument[inst].cmd[next_index] = 
                 (instrument[inst].cmd[next_index]&15) | (random<<4);
             break;
@@ -518,69 +561,23 @@ static void track_run_command(uint8_t i, uint8_t cmd)
             else // zero is a special case:  16 quarter notes
                 track_length = 64;
             break;
-        case TRACK_RANDOMIZE1: // 
-            param += 16;
-            // DO NOT BREAK
-        case TRACK_RANDOMIZE0:
+        case TRACK_RANDOMIZE:
         {
-            uint8_t *memory = &chip_track[chip_player[i].track_index][i][param];
-            switch ((*memory)&15)
-            {
-                case TRACK_BREAK:
-                    *memory = TRACK_BREAK | ((rand()%(track_length/4))<<4);
-                    break;
-                case TRACK_OCTAVE:
-                    *memory = TRACK_OCTAVE | ((rand()%16)<<4);
-                    break;
-                case TRACK_INSTRUMENT:
-                    *memory = TRACK_INSTRUMENT | ((rand()%16)<<4);
-                    break;
-                case TRACK_VOLUME:
-                    *memory = TRACK_VOLUME | ((rand()%16)<<4);
-                    break;
-                case TRACK_NOTE:
-                    *memory = TRACK_NOTE | ((rand()%16)<<4);
-                    break;
-                case TRACK_WAIT:
-                    *memory = TRACK_WAIT | ((rand()%16)<<4);
-                    break;
-                case TRACK_NOTE_WAIT:
-                    *memory = TRACK_NOTE_WAIT | ((rand()%16)<<4);
-                    break;
-                case TRACK_FADE_IN:
-                    *memory = TRACK_FADE_IN | ((1 + rand()%15)<<4);
-                    break;
-                case TRACK_FADE_OUT:
-                    *memory = TRACK_FADE_OUT | ((rand()%16)<<4);
-                    break;
-                case TRACK_INERTIA:
-                    *memory = TRACK_INERTIA | ((rand()%16)<<4);
-                    break;
-                case TRACK_VIBRATO:
-                    *memory = TRACK_VIBRATO | ((rand()%16)<<4);
-                    break;
-                case TRACK_TRANSPOSE:
-                    *memory = TRACK_TRANSPOSE | ((rand()%16)<<4);
-                    break;
-                case TRACK_SPEED:
-                    *memory = TRACK_SPEED | ((rand()%16)<<4);
-                    break;
-                case TRACK_LENGTH:
-                    *memory = TRACK_LENGTH | ((rand()%16)<<4);
-                    break;
-                case TRACK_RANDOMIZE0:
-                case TRACK_RANDOMIZE1:
-                {
-                    uint8_t pos = rand()%32;
-                    if (pos >= 16)
-                        *memory = TRACK_RANDOMIZE1 | (pos-16)<<4;
-                    else
-                        *memory = TRACK_RANDOMIZE0 | (pos<<4);
-                    break;
-                }
-            }
+            uint8_t next_index = chip_player[i].track_cmd_index;
+            if (next_index >= MAX_TRACK_LENGTH)
+                break;
+            uint8_t random = randomize(param);
+            uint8_t t = chip_player[i].track_index;
+            if ((chip_track[t][i][next_index]&15) == TRACK_JUMP && 
+                track_jump_bad(t, i, next_index, 2*random))
+                break;
+            chip_track[t][i][next_index] = 
+                (chip_track[t][i][next_index]&15) | (random<<4);
             break;
         }
+        case TRACK_JUMP: // 
+            chip_player[i].track_cmd_index = 2*param;
+            break;
     }
 }
 
