@@ -290,10 +290,16 @@ static void instrument_run_command(uint8_t i, uint8_t inst, uint8_t cmd)
             if (next_index >= max_index)
                 break;
             uint8_t random = randomize(param);
-            if ((instrument[inst].cmd[next_index]&15) == JUMP &&
-                instrument_jump_bad(inst, max_index, next_index, random))
+            if ((instrument[inst].cmd[next_index]&15) == JUMP)
             {
-                break;
+                if (instrument_jump_bad(inst, max_index, next_index, random))
+                    break; // do not continue, do not allow this number as a jump
+            }
+            else if ((instrument[inst].cmd[next_index]&15) == WAVEFORM)
+            {
+                random %= 8;
+                if (random == 7)
+                    random = 4 + rand()%3;
             }
             instrument[inst].cmd[next_index] = 
                 (instrument[inst].cmd[next_index]&15) | (random<<4);
