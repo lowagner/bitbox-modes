@@ -181,6 +181,8 @@ Controls:
 
 ## palette16tile
 
+DEPRECATED!  see https://github.com/lowagner/bitbox-16 for the latest.
+
 **resolution:** 320x240 with a 16 color palette, 16 16x16 background tiles, and 16 sprites 16x16 with 8 frames,
 and some 8192 bytes for a tile map.  Tried to keep everything under 32kB, in case we want to port it to micro.
 

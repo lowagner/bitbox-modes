@@ -1,10 +1,7 @@
-G16
+16
 
 chiptune.c:
     add more player(s) for sfx.
-    switch RANDOMIZE to randomize next command.
-        the argument now specifies constraints/minimum/max values,
-        depending on the next command.
 
 run.c:
     tile translation

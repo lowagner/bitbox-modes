@@ -22,7 +22,6 @@ uint8_t verse_track_pos CCM_MEMORY;
 uint8_t verse_track_offset CCM_MEMORY;
 uint8_t verse_menu_not_edit CCM_MEMORY;
 uint8_t verse_copying CCM_MEMORY;
-uint8_t verse_last_painted CCM_MEMORY;
 uint8_t verse_show_track CCM_MEMORY;
 uint8_t verse_player CCM_MEMORY;
 uint8_t verse_command_copy CCM_MEMORY;
