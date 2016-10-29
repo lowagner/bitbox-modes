@@ -12,17 +12,14 @@ uint16_t row_color3[Nx+2] CCM_MEMORY;
 uint16_t *row_current CCM_MEMORY, *row_above CCM_MEMORY, *row_below CCM_MEMORY;
 
 int box_count CCM_MEMORY;
-uint8_t y_draw_index CCM_MEMORY;
 uint8_t y_draw_order[MAX_BOXES] CCM_MEMORY; 
-uint8_t first_active_index; // head of currently active boxes, or MAX_BOXES if none. 
+#define Y_DRAW_INDEX y_draw_order[0]
 
 /*
  y draw order:
     
-    box[y_draw_order[0]] is the first box to be drawn on screen
-    box[y_draw_order[1]] is the second box
-    y_draw_order[x_draw_order[0]] to y_draw_order[x_draw_order[current_box_count-1]]
-        are the currently drawn boxes in order
+    box[y_draw_order[1]] is the first box to be drawn on screen
+    box[y_draw_order[2]] is the second box
 */
 
 void_fn_2int* graph_line_callback;
@@ -75,12 +72,12 @@ void graph_frame()
     }
 
     // sort the draw orders by y appearing first!
-    for (int j=0; j+1<box_count; ++j)
+    for (int j=1; j<box_count; ++j)
     {
         uint8_t y_tos = y_draw_order[j+1]; // top of current stack, push it down if...
         int16_t tos_top = box[y_tos].y; // this value is smaller than others below it
         int k=j;
-        for (; k>=0 && (box[y_draw_order[k]].y > tos_top ||
+        for (; k>=1 && (box[y_draw_order[k]].y > tos_top ||
             (box[y_draw_order[k]].y == tos_top && box[y_draw_order[k]].x > box[y_tos].x));
             --k)
         {
@@ -91,13 +88,13 @@ void graph_frame()
         y_draw_order[k+1] = y_tos;
     }
     //message("ordering:\n");
-    //for (int j=0; j<MAX_BOXES; ++j)
+    //for (int j=1; j<=MAX_BOXES; ++j)
     //    message(" box %d\n", y_draw_order[j]);
-    first_active_index = MAX_BOXES;
-    y_draw_index = 0;
-    while (y_draw_index < box_count && (box[y_draw_order[y_draw_index]].y+box[y_draw_order[y_draw_index]].height*10 <= 0))
+    box[0].next = 0; // set head of list
+    Y_DRAW_INDEX = 1;
+    while (Y_DRAW_INDEX <= box_count && (box[y_draw_order[Y_DRAW_INDEX]].y+box[y_draw_order[Y_DRAW_INDEX]].height*10 <= 0))
     {
-        ++y_draw_index;
+        ++Y_DRAW_INDEX;
     }
 }
 // --------------------------------------------------------------
@@ -109,14 +106,14 @@ void graph_line()
         // do background update stuff
         if (vga_line % 2 == 0)
         {
-            if (first_active_index >= MAX_BOXES)
+            uint8_t current = box[0].next;
+            if (!current)
             {
                 if (graph_line_callback)
                     graph_line_callback(0, Nx);
             }
             else if (partial_graph_line_callback)
             {
-                uint8_t current = first_active_index;
                 int iR = ((int)box[current].x); 
                 // update the left pixels:
                 if (iR)
@@ -127,7 +124,7 @@ void graph_line()
                 int iL = iR + 4*((int)box[current].width) + 4;
         
                 // update between each text box
-                while ((current=box[current].next) < MAX_BOXES)
+                while ((current=box[current].next))
                 {
                     iR = ((int)box[current].x); 
                     
@@ -185,79 +182,44 @@ void graph_line()
         }
         return;
     }
-
+    
     int16_t vga16 = (int16_t) vga_line;
     // add any boxes which should be drawn
-    if (y_draw_index < box_count)
-    while (1)
+    while (Y_DRAW_INDEX <= box_count)
     {
-        uint8_t current = y_draw_order[y_draw_index];
-        //if (current >= MAX_BOXES)
-        //{
-        //    //message("got current %d from draw order %d\n", y_draw_order[y_draw_index], y_draw_index);
-        //    //message("weird, current bigger than bxoes\n");    
-        //    die(1,5);
-        //}
+        uint8_t current = y_draw_order[Y_DRAW_INDEX];
         if (box[current].y > vga16)
             break;
-        //message("got current %d from draw order %d\n", y_draw_order[y_draw_index], y_draw_index);
-        // add current to active draw list...
-        if ((first_active_index >= MAX_BOXES) || 
-            (box[current].x < box[first_active_index].x))
+        // current needs to be added to singly linked list
+        uint8_t previous = 0;
+        uint8_t next = box[0].next;
+        while ((next) && (box[next].x < box[current].x))
         {
-            //message("adding box %d to head at line %d\n", current, vga_line);
-            // setup current as the head of the active draw list
-            box[current].next = first_active_index;
-            first_active_index = current;
+            previous = next;
+            next = box[next].next;
         }
-        else
-        {
-            // move current where it needs to be
-            uint8_t previous = first_active_index;
-            uint8_t next = box[first_active_index].next;
-            while ((next<MAX_BOXES) && (box[next].x < box[current].x))
-            {
-                previous = next;
-                next = box[next].next;
-            }
-            //message("adding box %d between %d and %d at line %d\n", current, previous, next, vga_line);
-            box[previous].next = current;
-            box[current].next = next;
-        }
-        if (++y_draw_index >= box_count)
-            break;
+        box[previous].next = current;
+        box[current].next = next;
+        ++Y_DRAW_INDEX;
     }
     // remove any boxes which have finished drawing
-    if (first_active_index < MAX_BOXES)
+    if (box[0].next)
     {
-        // check the head of the list for removals... 
-        while ((box[first_active_index].y+box[first_active_index].height*10 <= vga_line))
-        {
-            //message("removing box %d from head at line %d\n", first_active_index, vga_line);
-            // push up head of list
-            first_active_index = box[first_active_index].next;
-            // run the loop again just in case the next one is finished
-            if (first_active_index >= MAX_BOXES)
-                // unless we're out of boxes
-                goto no_boxes;
-        }
-        // check the rest of the list
-        uint8_t previous = first_active_index;
-        uint8_t current = box[first_active_index].next;
-        while (current < MAX_BOXES)
+        uint8_t previous = 0;
+        uint8_t current = box[0].next;
+        while (current)
         {
             if ((box[current].y+box[current].height*10 <= vga_line))
-            {
-                //message("removing box %d at line %d\n", first_active_index, vga_line);
                 // remove current from the draw list
                 box[previous].next = box[current].next;
-            }
             else
                 previous = current;
             current = box[current].next;
         }
+        if (!box[0].next)
+            goto no_boxes;
     }
-    else // if (first_active_index >= MAX_BOXES) // none to draw...
+    else // none to draw...
     no_boxes:
     {
         uint32_t *dst = (uint32_t*) draw_buffer;
@@ -279,8 +241,8 @@ void graph_line()
     int i=0; // super pixel i
     // draw to the buffer
     uint32_t *dst = ((uint32_t*) draw_buffer);
-    uint8_t current = first_active_index;
-    do
+    uint8_t current = box[0].next;
+    do // we know that current != 0 since we would have gone to "no_boxes" above.
     {
         // draw superpixels left of the text box
         for (; i<((int)box[current].x); ++i)
@@ -593,7 +555,7 @@ void graph_line()
             }
         }
         current = box[current].next;
-    } while (current < MAX_BOXES);
+    } while (current);
 
     // finished TEXT.  now move onto right superpixels
     for (; i<Nx; ++i)
