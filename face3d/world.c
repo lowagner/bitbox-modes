@@ -104,12 +104,12 @@ static inline void swap_y_draw_order_j_jplus1(int j)
 {
     int face_jplus1 = y_draw_order[j+1];
     int face_j = y_draw_order[j];
+    
+    y_draw_order[j+1] = face_j;
+    y_draw_order[j] = face_jplus1;
 
     face[face_jplus1].draw_order = j;
     face[face_j].draw_order = j+1;
-
-    y_draw_order[j+1] = face_j;
-    y_draw_order[j] = face_jplus1;
 }
 
 static inline void sort_faces_y()
@@ -344,6 +344,7 @@ inline void compute_face(uint8_t k)
         fk->visible = new_visible;
         if (!new_visible) // now not visible
         {
+            message("removing face %d (ordered %d) from view\n", k, face[k].draw_order);
             // remove face from y_draw_order
             for (int j = face[k].draw_order; j<DRAW_COUNT; ++j)
                 y_draw_order[j] = y_draw_order[j+1];
@@ -363,7 +364,10 @@ inline void compute_face(uint8_t k)
             face[k].draw_order = DRAW_COUNT;
         }
         else
+        {
             message("too many faces on screen... shouldn't be possible\n");
+            return;
+        }
     }
     
     uint8_t order = face[k].vertex_order;
@@ -440,9 +444,7 @@ void graph_frame()
     face[0].next = 0; // set head of list
     y_draw_index = 1;
     while (y_draw_index <= DRAW_COUNT && FACE_BOTTOM(y_draw_order[y_draw_index]) <= 0)
-    {
         ++y_draw_index;
-    }
 }
 
 static inline void insert_face(uint8_t current)
@@ -497,8 +499,8 @@ static inline void insert_face(uint8_t current)
 
             if (current_minx <= next_minx)
                 break;
+            // else the singly linked list needs to move forward
         }
-            
         previous = next;
     }
     face[previous].next = current;
@@ -507,11 +509,10 @@ static inline void insert_face(uint8_t current)
 
 void graph_line() 
 {
+    memset(draw_buffer, 0, 2*SCREEN_W);
     // add any new faces to the board, sort left to right
     while (y_draw_index <= DRAW_COUNT && FACE_TOP(y_draw_order[y_draw_index]) <= vga_line)
-    {
         insert_face(y_draw_order[y_draw_index++]);
-    }
 
     // remove any dead faces, draw the 
     uint8_t previous = 0;
@@ -526,7 +527,41 @@ void graph_line()
         }
         previous = current;
         // draw current face
-
+        
+        int32_t y1 = FACE_TOP(current);
+        int32_t x1 = FACE_TOP_X(current);
+        int32_t y2 = FACE_MIDDLE_Y(current);
+        int32_t x2 = FACE_MIDDLE_X(current);
+        int32_t y3 = FACE_BOTTOM(current);
+        int32_t x3 = FACE_BOTTOM_X(current);
+        int32_t x13 = x3 + (int)( (float)(x1-x3)*(y3-vga_line)/(y3-y1) );
+        int32_t xother;
+        if (vga_line < y2)
+            xother = x2 + (int)( (float)(x1-x2)*(y2-vga_line)/(y2-y1) ); // x12
+        else
+            xother = x3 + (int)( (float)(x2-x3)*(y3-vga_line)/(y3-y2) ); // x23
+        int32_t xmin, xmax;
+        if (xother < x13)
+        {
+            xmin = xother;
+            xmax = x13;
+        }
+        else
+        {
+            xmin = x13;
+            xmax = xother;
+        }
+        if (xmin < 0 || xmax >= SCREEN_W)
+            continue;
+        if (xmin < 0)
+            xmin = 0;
+        if (xmax > SCREEN_W)
+            xmax = SCREEN_W;
+        uint16_t color = face[current].color;
+        for (int x=xmin; x<xmax; ++x)
+        {
+            draw_buffer[x] = color;
+        }
     }
 
 }
