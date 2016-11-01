@@ -1,4 +1,3 @@
-#include "nonsimple.h"
 #include "bb3d.h"
 #include "world.h"
 
@@ -75,6 +74,6 @@ void game_frame()
         // need to still update the view matrix of the camera,
         get_view(&camera);
         // and then apply the matrix to all vertex positions:
-        world_draw();
+        world_update();
     }
 }

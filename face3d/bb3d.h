@@ -19,16 +19,17 @@ struct vertex {
     };
     union {
         struct {
-            int image[2]; // coordinates for the image
+            int32_t image[2]; // coordinates for the image
             float image_z; // remaining z-coordinate
         };
         struct {
-            int ix, iy; // coordinates for the image
+            int32_t ix, iy; // coordinates for the image
             float iz; // remaining z-coordinate
         };
     };
     uint8_t edge[CONNECTED];
-    uint16_t attributes;
+    uint8_t attributes;
+    uint8_t pad;
 };
 
 struct face; // define after defining the edge...
@@ -39,14 +40,21 @@ struct edge {
 };
 
 struct face {
-    uint8_t visible; // = is_ccw(v1->image, v2->image, v3->image)
-    uint8_t v1, v2, v3;
-
-    uint8_t next;
-    uint8_t e1, e2, e3;
-
+    uint8_t vertex_order; // 
+    union {
+        struct {
+            uint8_t v1, v2, v3;
+        };
+        struct {
+            uint8_t v[3];
+        };
+    };
     uint16_t color;
-    uint16_t attributes;
+    uint8_t next;
+    uint8_t visible; // = is_ccw(v1->image, v2->image, v3->image)
+
+    uint8_t draw_order;
+    uint8_t e1, e2, e3;
 };
 
 typedef struct _Camera {
@@ -89,7 +97,7 @@ inline float dot(float *vector1, float *vector2)
     return vector1[0]*vector2[0] + vector1[1]*vector2[1] + vector1[2]*vector2[2];
 }
 
-inline int is_ccw(int *p1, int *p2, int *p3)
+inline int is_ccw(int32_t *p1, int32_t *p2, int32_t *p3)
 {
     // calculates whether p1-p2-p3 (as a face) is ccw oriented, assuming IMAGE coordinates.
     // (p2-p1) x (p3-p2) should be positive.

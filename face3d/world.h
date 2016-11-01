@@ -12,7 +12,7 @@ extern int numv; // number of vertices
 extern int nume; // number of edges
 extern int numf; // number of faces
 
-void world_draw();
+void world_update();
 void world_init();
 
 #endif

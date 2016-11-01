@@ -1,7 +1,9 @@
 #include "world.h"
 #include <stdlib.h> // rand
 #include <math.h> // sin and cos
-#include "nonsimple.h"
+
+#define SCREEN_W 320
+#define SCREEN_H 240
 
 struct vertex vertex[256] CCM_MEMORY; // array of vertices
 struct edge edge[256] CCM_MEMORY;
@@ -10,6 +12,19 @@ struct face face[256] CCM_MEMORY;
 int numv CCM_MEMORY; // number of vertices
 int nume CCM_MEMORY; // number of edges
 int numf CCM_MEMORY; // number of faces
+
+uint8_t y_draw_order[256] CCM_MEMORY; 
+#define DRAW_COUNT y_draw_order[0]
+int y_draw_index CCM_MEMORY;
+
+#define FACE_TOP(k) vertex[face[k].v[face[k].vertex_order&3]].iy
+#define FACE_BOTTOM(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].iy
+
+#define FACE_TOP_X(k) vertex[face[k].v[face[k].vertex_order&3]].ix
+#define FACE_BOTTOM_X(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].ix
+
+#define FACE_MIDDLE_X(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].ix
+#define FACE_MIDDLE_Y(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].iy
 
 uint16_t edge_color; 
 
@@ -85,12 +100,43 @@ static inline uint8_t find_common_edge(uint8_t vi, uint8_t vj)
     return 0;
 }
 
+static inline void swap_y_draw_order_j_jplus1(int j)
+{
+    int face_jplus1 = y_draw_order[j+1];
+    int face_j = y_draw_order[j];
+
+    face[face_jplus1].draw_order = j;
+    face[face_j].draw_order = j+1;
+
+    y_draw_order[j+1] = face_j;
+    y_draw_order[j] = face_jplus1;
+}
+
+static inline void sort_faces_y()
+{
+    for (int i=2; i<=DRAW_COUNT; ++i)
+    {
+        uint8_t tos = y_draw_order[i];
+        if (!tos)
+        {
+            message("unexpected null y_draw_order at %d\n", tos);
+            return;
+        }
+        int32_t tos_value = vertex[face[tos].v1].iy;
+        for (int j=i-1; (j>0) && (tos_value < vertex[face[y_draw_order[j]].v1].iy); --j)
+            swap_y_draw_order_j_jplus1(j);
+    }
+}
 
 void world_init()
 {
     edge_color = RGB(200,200,200);
 
     srand(vga_frame);
+
+    DRAW_COUNT = 0;
+    y_draw_index = 1;
+    y_draw_order[1] = 0;
 
     numv = 42;
 
@@ -183,7 +229,9 @@ void world_init()
             face[++numf] = (struct face) { 
                 .v1 = i, .v2 = j, .v3 = k, 
                 .e1 = e1, .e2 = e2, .e3 = e3,
-                .visible = 0, .color = random_color() 
+                .visible = 0, 
+                .vertex_order = 0 | (1<<2) | (2<<4),
+                .color = random_color() 
             };
         }
         else
@@ -191,7 +239,9 @@ void world_init()
             face[++numf] = (struct face) { 
                 .v1 = i, .v2 = k, .v3 = j,  // note swap here.
                 .e1 = e1, .e2 = e2, .e3 = e3,
-                .visible = 0, .color = random_color() 
+                .visible = 0, 
+                .vertex_order = 0 | (1<<2) | (2<<4),
+                .color = random_color() 
             };
         }
         // notify each edge that it has a new face:
@@ -227,7 +277,7 @@ void world_init()
     get_view(&camera);
 
     // get the vertices' screen positions:
-    world_draw();
+    world_update();
 }
 
 inline uint16_t get_face_color(uint16_t color, float multiplier)
@@ -236,14 +286,6 @@ inline uint16_t get_face_color(uint16_t color, float multiplier)
     return ((int)((color>>10)*multiplier)<<10) |
            ((int)(((color>>5)&31)*multiplier)<<5) |
            ((int)((color&31)*multiplier));
-}
-
-inline void draw_face(uint8_t fi)
-{
-    //float *p1, *p2, *p3; // image coordinates of the triangle
-    superpixel[vertex[face[fi].v1].iy][vertex[face[fi].v1].ix] = face[fi].color; 
-    superpixel[vertex[face[fi].v2].iy][vertex[face[fi].v2].ix] = face[fi].color; 
-    superpixel[vertex[face[fi].v3].iy][vertex[face[fi].v3].ix] = face[fi].color;
 }
 
 inline void get_coordinates(uint8_t vi)
@@ -260,179 +302,231 @@ inline void get_coordinates(uint8_t vi)
     vertex[vi].iz = view[2]; // allow for testing behindness
 }
 
-inline void order_edge(uint8_t ei)
+inline void order_edge(uint8_t ej)
 {
-    if (vertex[edge[ei].p1].iy == vertex[edge[ei].p2].iy)
-    {   // horizontal line
-        // enforce p2->ix >= p1->ix
-        if (vertex[edge[ei].p2].ix < vertex[edge[ei].p1].ix) // sort left-to-right
+    if (vertex[edge[ej].p2].iy <= vertex[edge[ej].p1].iy)
+    {
+        if (vertex[edge[ej].p2].iy == vertex[edge[ej].p1].iy)
+            return;
+        uint8_t p2 = edge[ej].p2;
+        edge[ej].p2 = edge[ej].p1;
+        edge[ej].p1 = p2;
+    }
+
+    // find which vertex is not p1 or p2 in each face, to order f1 and f2
+    // take cross product of edge with other vertex.
+    // f1 should be "left of" f2, so cross((p2-p1), p3) for f1 should be negative
+    // note that in case of y1 == y2,
+    // we could have x2 > x1 for the top most face to be first, but
+    // that shouldn't happen in practice
+    int p3;
+    if (face[edge[ej].f1].v1 != edge[ej].p1 && face[edge[ej].f1].v1 != edge[ej].p2)
+        p3 = 0;
+    else if (face[edge[ej].f1].v2 != edge[ej].p1 && face[edge[ej].f1].v2 != edge[ej].p2)
+        p3 = 1;
+    else //if (face[edge[ej].f1].v3 != edge[ej].p1 && face[edge[ej].f1].v3 != edge[ej].p2)
+        p3 = 2;
+    if (is_ccw(vertex[edge[ej].p1].image, vertex[edge[ej].p2].image, vertex[face[edge[ej].f1].v[p3]].image))
+    {
+        // switch f2 and f1
+        uint8_t f2 = edge[ej].f2;
+        edge[ej].f2 = edge[ej].f1;
+        edge[ej].f1 = f2; 
+    }
+}
+
+inline void compute_face(uint8_t k)
+{
+    struct face *fk = &face[k];
+    int new_visible = is_ccw(vertex[fk->v1].image, vertex[fk->v2].image, vertex[fk->v3].image);
+    if (fk->visible) // was originally visible
+    {
+        fk->visible = new_visible;
+        if (!new_visible) // now not visible
         {
-            uint8_t old_p1 = edge[ei].p1;
-            edge[ei].p1 = edge[ei].p2;
-            edge[ei].p2 = old_p1;
+            // remove face from y_draw_order
+            for (int j = face[k].draw_order; j<DRAW_COUNT; ++j)
+                y_draw_order[j] = y_draw_order[j+1];
+            --DRAW_COUNT;
+            return;
+        }
+    }
+    else // wasn't visible
+    {
+        fk->visible = new_visible;
+        if (!new_visible) // still not visible
+            return;
+        // now visible, need to add face to y_draw_order
+        if (DRAW_COUNT < 255)
+        {
+            y_draw_order[++DRAW_COUNT] = k;
+            face[k].draw_order = DRAW_COUNT;
+        }
+        else
+            message("too many faces on screen... shouldn't be possible\n");
+    }
+    
+    uint8_t order = face[k].vertex_order;
+    int32_t v1 = vertex[face[k].v[order&3]].iy;
+    int32_t v2 = vertex[face[k].v[(order>>2)&3]].iy;
+    int32_t v3 = vertex[face[k].v[(order>>4)&3]].iy;
+
+    if (v1 <= v2)
+    {
+        // v1 <= v2
+        if (v2 <= v3)
+        {
+            // v1 <= v2 <= v3
+            // vertex_order is good. 
+        } 
+        else if (v1 <= v3)
+        {
+            // v1 <= v3 < v2
+            // need to swap order 2 and 3:
+            face[k].vertex_order = (order&3) | ((order&(3<<4))>>2) | ((order&(3<<2))<<2);
+        }
+        else
+        {
+            // v3 < v1 <= v2
+            face[k].vertex_order = ((order>>4)&3) | ((order&3)<<2) | ((order&(3<<2))<<2);
         }
     }
     else
-    // enforce p1.y < p2.y:
-    if (vertex[edge[ei].p2].iy < vertex[edge[ei].p1].iy)
     {
-        uint8_t old_p1 = edge[ei].p1;
-        edge[ei].p1 = edge[ei].p2;
-        edge[ei].p2 = old_p1;
+        // v2 < v1
+        if (v1 <= v3)
+        {
+            // v2 < v1 <= v3
+            face[k].vertex_order = ((order>>2)&3) | ((order&3)<<2) | (order&(3<<4));
+        }
+        else if (v2 <= v3)
+        {
+            // v2 <= v3 < v1
+            face[k].vertex_order = ((order>>2)&3) | ((order&(3<<4))>>2) | ((order&3)<<4);
+        }
+        else
+        {
+            // v3 < v2 < v1
+            face[k].vertex_order = ((order>>4)&3) | (order&(3<<2)) | ((order&3)<<4);
+        }
     }
 }
 
-inline void draw_edge(uint8_t ei)
-{
-    if (vertex[edge[ei].p1].iy == vertex[edge[ei].p2].iy)
-    {   // horizontal line.  p1.ix is guaranteed to be <= p2.ix
-        for (uint16_t *draw = &superpixel[vertex[edge[ei].p1].iy][vertex[edge[ei].p1].ix];
-             draw <= &superpixel[vertex[edge[ei].p1].iy][vertex[edge[ei].p2].ix]; draw++)
-            *draw = edge_color;
-        return; // finished drawing horizontal line.
-    }
 
-    // otherwise the line has some vertical displacement
-    if (vertex[edge[ei].p2].ix == vertex[edge[ei].p1].ix)
-    {   // straight vertical line
-        // draw it.  p1.iy is guaranteed to be <= p2.iy
-        for (int j=vertex[edge[ei].p1].iy; j<=vertex[edge[ei].p2].iy; ++j)
-            superpixel[j][vertex[edge[ei].p1].ix] = edge_color;
-        return; // finished drawing vertical line.
-    }
-
-    // otherwise we have a diagonal line
-    int dy = vertex[edge[ei].p2].iy - vertex[edge[ei].p1].iy; // guaranteed not to be zero
-    int dx; // abs(edge[ei].p2->ix - edge[ei].p1->ix);
-    if (vertex[edge[ei].p2].ix > vertex[edge[ei].p1].ix)
-    {   // x2 > x1
-        dx = vertex[edge[ei].p2].ix - vertex[edge[ei].p1].ix;
-        int error = (dx>dy ? dx : -dy)/2;
-        int x = vertex[edge[ei].p1].ix;
-        int y = vertex[edge[ei].p1].iy;
-        for (; y < vertex[edge[ei].p2].iy; ++y)
-        {
-            if (x == vertex[edge[ei].p2].ix) // we have achieved the final x coordinate
-                superpixel[y][x] = edge_color;
-            else // x2 > x1
-            {
-                if (error < dy) // draw just one point
-                {
-                    if (error > -dx) // move x
-                    {
-                        superpixel[y][x++] = edge_color;
-                        error += dx - dy;
-                    }
-                    else // don't move x
-                    {
-                        superpixel[y][x] = edge_color;
-                        error += dx;
-                    }
-                }
-                else 
-                //error > -dx and error >= dy
-                {
-                    int xleft, xright;
-                    int moveover = (error)/dy;
-                    error -= dy * (moveover+1);
-                    xleft = x;
-                    xright = xleft + moveover;
-                    x = xright + 1;
-                    if (xright > vertex[edge[ei].p2].ix)
-                        xright = vertex[edge[ei].p2].ix;
-                    // for going down in y
-                    error += dx;
-
-                    for (int x2=xleft; x2<=xright; ++x2)
-                        superpixel[y][x2] = edge_color;
-                }
-            }
-        }
-        for (; x <= vertex[edge[ei].p2].ix; ++x)
-            superpixel[y][x] = edge_color;
-    }
-    else // x2 < x1
-    {
-        dx = -vertex[edge[ei].p2].ix + vertex[edge[ei].p1].ix;
-        int error = (dx>dy ? dx : -dy)/2;
-        int x = vertex[edge[ei].p1].ix;
-        int y = vertex[edge[ei].p1].iy;
-        for (; y < vertex[edge[ei].p2].iy; ++y)
-        {
-            if (x == vertex[edge[ei].p2].ix) // we have achieved the final x coordinate
-                superpixel[y][x] = edge_color;
-            else // x2 > x1 or x1 < x2
-            {
-                if (error < dy) // draw just one point
-                {
-                    if (error > -dx) // move x
-                    {
-                        superpixel[y][x--] = edge_color;
-                        error += dx - dy;
-                    }
-                    else // don't move x
-                    {
-                        superpixel[y][x] = edge_color;
-                        error += dx;
-                    }
-                }
-                else 
-                //error > -dx and error >= dy
-                {
-                    int xleft, xright;
-                    int moveover = (error)/dy;
-                    error -= dy * (moveover+1);
-                    // moving left
-                    xright = x;
-                    xleft = xright - moveover;
-                    x = xleft - 1;
-                    if (xleft < vertex[edge[ei].p2].ix)
-                        xleft = vertex[edge[ei].p2].ix;
-                    // for going down in y
-                    error += dx;
-
-                    for (int x2=xleft; x2<=xright; ++x2)
-                        superpixel[y][x2] = edge_color;
-                }
-            }
-        }
-        for (; x >= vertex[edge[ei].p2].ix; --x)
-            superpixel[y][x] = edge_color;
-    }
-}
-
-void world_draw()
+void world_update()
 {
     // clear screen
-    clear();
     // first get vertices
     for (int i=1; i<=numv; ++i)
         get_coordinates(i);
 
-    // order edges internally:
+    // order the edges
     for (int j=1; j<=nume; ++j)
         order_edge(j);
 
     // then compute which faces are visible:
     for (int k=1; k<=numf; ++k)
-    {
-        struct face *fk = &face[k];
-        fk->visible = is_ccw(vertex[fk->v1].image, vertex[fk->v2].image, vertex[fk->v3].image);
-        if (fk->visible)
-        {   
-        }
-    }
-
-    // draw all the visible edges:
-    for (int j=1; j<=nume; ++j)
-        // if one of the faces between the edges is visible...
-        if ((edge[j].f1 && face[edge[j].f1].visible) || (edge[j].f2 && face[edge[j].f2].visible))
-            // draw the edge:
-            draw_edge(j);
-
-    // fill in the faces with the given color:
-    for (int k=1; k<=numf; ++k)
-        if (face[k].visible)
-            draw_face(k);
+        compute_face(k);
+    
+    // sort the draw orders by y appearing first!
+    sort_faces_y();
 }
 
+void graph_frame() 
+{
+    //message("ordering:\n");
+    //for (int j=1; j<=MAX_BOXES; ++j)
+    //    message(" box %d\n", y_draw_order[j]);
+    face[0].next = 0; // set head of list
+    y_draw_index = 1;
+    while (y_draw_index <= DRAW_COUNT && FACE_BOTTOM(y_draw_order[y_draw_index]) <= 0)
+    {
+        ++y_draw_index;
+    }
+}
+
+static inline void insert_face(uint8_t current)
+{
+    /*
+    add face[current] to singly linked list
+
+    assume the whole list is sorted correctly already, just fill in current.
+    */
+    uint8_t previous = 0;
+    uint8_t next = 0;
+    while ((next = face[next].next))
+    {
+        // check for any edge equality
+        uint8_t ej = 0;
+        if (face[current].e1 == face[next].e1)
+            ej = face[current].e1;
+        else if (face[current].e1 == face[next].e2)
+            ej = face[current].e1;
+        else if (face[current].e1 == face[next].e3)
+            ej = face[current].e1;
+        else if (face[current].e2 == face[next].e1)
+            ej = face[current].e2;
+        else if (face[current].e2 == face[next].e2)
+            ej = face[current].e2;
+        else if (face[current].e2 == face[next].e3)
+            ej = face[current].e2;
+        else if (face[current].e3 == face[next].e1)
+            ej = face[current].e3;
+        else if (face[current].e3 == face[next].e2)
+            ej = face[current].e3;
+        else if (face[current].e3 == face[next].e3)
+            ej = face[current].e3;
+        if (ej)
+        {
+            // common edge
+            if (current != edge[ej].f1) // current is not the first face
+            {
+                previous = next;
+                next = face[next].next;
+            }
+            break;
+        }
+        else // no common edge
+        {
+            // see if current is left of next
+            int32_t current_minx = (vertex[face[current].v1].ix < vertex[face[current].v2].ix) ? vertex[face[current].v1].ix : vertex[face[current].v2].ix;
+            current_minx = (current_minx < vertex[face[current].v3].ix) ? current_minx : vertex[face[current].v3].ix;
+            
+            int32_t next_minx = (vertex[face[next].v1].ix < vertex[face[next].v2].ix) ? vertex[face[next].v1].ix : vertex[face[next].v2].ix;
+            next_minx = (next_minx < vertex[face[next].v3].ix) ? next_minx : vertex[face[next].v3].ix;
+
+            if (current_minx <= next_minx)
+                break;
+        }
+            
+        previous = next;
+    }
+    face[previous].next = current;
+    face[current].next = next;
+}
+
+void graph_line() 
+{
+    // add any new faces to the board, sort left to right
+    while (y_draw_index <= DRAW_COUNT && FACE_TOP(y_draw_order[y_draw_index]) <= vga_line)
+    {
+        insert_face(y_draw_order[y_draw_index++]);
+    }
+
+    // remove any dead faces, draw the 
+    uint8_t previous = 0;
+    uint8_t current = 0;
+    while ((current = face[current].next))
+    {
+        if (FACE_BOTTOM(current) <= vga_line)
+        {
+            // remove this face from being actively drawn
+            face[previous].next = face[current].next;
+            continue;
+        }
+        previous = current;
+        // draw current face
+
+    }
+
+}
