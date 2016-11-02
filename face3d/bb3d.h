@@ -4,9 +4,7 @@
 #include "math.h" // sqrt
 #include "stdint.h" // uint8_t
 
-struct edge; // define after defining the vertex...
-
-#define CONNECTED 6 // max number of edges connected to any vertex
+#define CONNECTED 6 // max number of vertices connected to any vertex
 
 struct vertex {
     union {
@@ -27,34 +25,21 @@ struct vertex {
             float iz; // remaining z-coordinate
         };
     };
-    uint8_t edge[CONNECTED];
+    uint8_t cxn[CONNECTED]; // connections
+    uint8_t visible;
     uint8_t attributes;
-    uint8_t pad;
-};
-
-struct face; // define after defining the edge...
-
-struct edge {
-    uint8_t p1, p2;
-    uint8_t f1, f2;
 };
 
 struct face {
-    uint8_t vertex_order; // 
-    union {
-        struct {
-            uint8_t v1, v2, v3;
-        };
-        struct {
-            uint8_t v[3];
-        };
-    };
+    uint8_t next; // 
+    uint8_t v1, v2, v3; // vertices ordered ccw to view
+
     uint16_t color;
-    uint8_t next;
     uint8_t visible; // = is_ccw(v1->image, v2->image, v3->image)
+    uint8_t attributes;
 
     uint8_t draw_order;
-    uint8_t e1, e2, e3;
+    uint8_t o1, o2, o3; // vertices ordered from top to bottom
 };
 
 typedef struct _Camera {
