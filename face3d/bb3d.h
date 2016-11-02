@@ -115,6 +115,14 @@ void cross(float *vector_out, float *vector1, float *vector2);
 // unsafe cross:  vector_out should be unique, different than vector1 or vector2:
 void cross0(float *vector_out, float *vector1, float *vector2);
 
+inline void get_normal(float *vout, float *v1, float *v2, float *v3)
+{
+    float v12[3] = { v2[0]-v1[0], v2[1]-v1[1], v2[2]-v1[2] };
+    float v23[3] = { v3[0]-v2[0], v3[1]-v2[1], v3[2]-v2[2] };
+    cross0(vout, v12, v23);
+    normalize(vout, vout);
+}
+
 // safe matrix multiply:  vector_out = matrix * vector,
 // vector_out could be the same as vector:
 void matrix_multiply_vector(float *vector_out, float *matrix, float *vector);

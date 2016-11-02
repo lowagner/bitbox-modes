@@ -69,7 +69,7 @@ void game_frame()
             // fix the camera at four units away from the origin
             normalize(camera.viewer, camera.viewer);
             for (int i=0; i<3; ++i)
-                camera.viewer[i] *= CAMERA_DISTANCE;
+                camera.viewer[i] *= camera_distance;
         }
         // need to still update the view matrix of the camera,
         get_view(&camera);

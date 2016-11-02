@@ -32,8 +32,11 @@ int32_t matrix_changed; // remove this later
 uint16_t edge_color; 
 
 Camera camera;
+float camera_distance;
 
 #define PI 3.14159265358979323f
+
+uint16_t face_color[256];
 
 uint16_t random_color()
 {
@@ -133,9 +136,9 @@ static inline void sort_faces_y()
 
 void world_init()
 {
-    edge_color = RGB(200,200,200);
+    camera_distance = 3;
 
-    srand(vga_frame);
+    edge_color = RGB(200,200,200);
 
     DRAW_COUNT = 0;
     y_draw_index = 1;
@@ -234,7 +237,7 @@ void world_init()
                 .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
                 .vertex_order = 0 | (1<<2) | (2<<4),
-                .color = random_color() 
+                .color = face_color[k]
             };
         }
         else
@@ -244,7 +247,7 @@ void world_init()
                 .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
                 .vertex_order = 0 | (1<<2) | (2<<4),
-                .color = random_color() 
+                .color = face_color[k]
             };
         }
         // notify each edge that it has a new face:
@@ -271,13 +274,17 @@ void world_init()
     message("got faces %d and edges %d\n", numf, nume);
     // setup the camera
     camera = (Camera) {
-        .viewer = {0,0,CAMERA_DISTANCE},
+        .viewer = {0,0,camera_distance},
         .viewee = {0,0,0},
         .down = {0,1,0},
         .magnification = 110
     };
     // get the view of the camera:
     get_view(&camera);
+    
+    srand(vga_frame);
+    for (int i=1; i<=numf; ++i)
+        face_color[i] = random_color();
 
     // get the vertices' screen positions:
     world_update();
@@ -340,12 +347,6 @@ inline void order_edge(uint8_t ej)
 
 inline void compute_face(uint8_t k)
 {
-    if (k == 54)
-    message("face %d:%d is (%d,%d,%d) got %d (%d, %d), (%d, %d), (%d, %d)\n", 
-        k, face[k].visible, (face[k].color&31), (face[k].color>>5)&31, (face[k].color>>10)&31, face[k].draw_order,
-        FACE_TOP_X(k), FACE_TOP(k),
-        FACE_MIDDLE_X(k), FACE_MIDDLE_Y(k),
-        FACE_BOTTOM_X(k), FACE_BOTTOM(k));
     struct face *fk = &face[k];
     int new_visible = is_ccw(vertex[fk->v1].image, vertex[fk->v2].image, vertex[fk->v3].image);
     if (fk->visible) // was originally visible
@@ -354,7 +355,6 @@ inline void compute_face(uint8_t k)
         if (!new_visible) // now not visible
         {
             // remove face from y_draw_order
-            message("removing face %d from draw order %d\n", k, face[k].draw_order);
             for (int j = face[k].draw_order; j<DRAW_COUNT; ++j)
             {
                 y_draw_order[j] = y_draw_order[j+1];
@@ -372,7 +372,6 @@ inline void compute_face(uint8_t k)
         // now visible, need to add face to y_draw_order
         if (DRAW_COUNT < 255)
         {
-            message("adding face %d\n", k);
             y_draw_order[++DRAW_COUNT] = k;
             face[k].draw_order = DRAW_COUNT;
         }
@@ -427,6 +426,13 @@ inline void compute_face(uint8_t k)
             face[k].vertex_order = ((order>>4)&3) | (order&(3<<2)) | ((order&3)<<4);
         }
     }
+    float normal[3];
+    get_normal(normal, vertex[face[k].v1].world, vertex[face[k].v2].world, vertex[face[k].v3].world);
+    float multiplier = dot(normal, camera.forward);
+    if (multiplier < 0)
+        message("weird!");
+    else
+        face[k].color = get_face_color(face_color[k], multiplier);
 }
 
 
@@ -448,9 +454,6 @@ void world_update()
     // sort the draw orders by y appearing first!
     sort_faces_y();
     matrix_changed = 1;
-    message("update\n");
-    for (int j=1; j<=DRAW_COUNT; ++j)
-        message("first appearance order %d got face %d\n", j, y_draw_order[j]);
 }
 
 void graph_frame() 
@@ -559,15 +562,6 @@ void graph_line()
         int32_t x2 = FACE_MIDDLE_X(current);
         int32_t y3 = FACE_BOTTOM(current);
         int32_t x3 = FACE_BOTTOM_X(current);
-        if (current == 54 && matrix_changed)
-        {
-            message("line %d ", vga_line);
-            if (vga_line + 1 == y3)
-            {
-                message("\n");
-                matrix_changed = 0;
-            }
-        }
         int32_t x13 = x3 + (int)( (float)(x1-x3)*(y3-vga_line)/(y3-y1) );
         int32_t xother;
         if (vga_line < y2)

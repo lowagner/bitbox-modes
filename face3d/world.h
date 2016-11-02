@@ -2,7 +2,7 @@
 #define WORLD_H
 #include "bb3d.h"
 
-#define CAMERA_DISTANCE 3.0f
+extern float camera_distance;
 
 extern struct vertex vertex[256]; // array of vertices
 extern struct edge edge[256];
