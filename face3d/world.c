@@ -1,6 +1,7 @@
 #include "world.h"
 #include <stdlib.h> // rand
 #include <math.h> // sin and cos
+#include <string.h> // memset 
 
 #define SCREEN_W 320
 #define SCREEN_H 240
@@ -17,14 +18,16 @@ uint8_t y_draw_order[256] CCM_MEMORY;
 #define DRAW_COUNT y_draw_order[0]
 int y_draw_index CCM_MEMORY;
 
-#define FACE_TOP(k) vertex[face[k].v[face[k].vertex_order&3]].iy
-#define FACE_BOTTOM(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].iy
+int32_t matrix_changed; // remove this later
 
 #define FACE_TOP_X(k) vertex[face[k].v[face[k].vertex_order&3]].ix
-#define FACE_BOTTOM_X(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].ix
+#define FACE_TOP(k) vertex[face[k].v[face[k].vertex_order&3]].iy
 
 #define FACE_MIDDLE_X(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].ix
 #define FACE_MIDDLE_Y(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].iy
+
+#define FACE_BOTTOM_X(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].ix
+#define FACE_BOTTOM(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].iy
 
 uint16_t edge_color; 
 
@@ -122,8 +125,8 @@ static inline void sort_faces_y()
             message("unexpected null y_draw_order at %d\n", tos);
             return;
         }
-        int32_t tos_value = vertex[face[tos].v1].iy;
-        for (int j=i-1; (j>0) && (tos_value < vertex[face[y_draw_order[j]].v1].iy); --j)
+        int32_t tos_value = FACE_TOP(tos);
+        for (int j=i-1; (j>0) && (tos_value < FACE_TOP(y_draw_order[j])); --j)
             swap_y_draw_order_j_jplus1(j);
     }
 }
@@ -268,7 +271,7 @@ void world_init()
     message("got faces %d and edges %d\n", numf, nume);
     // setup the camera
     camera = (Camera) {
-        .viewer = {0,0,4},
+        .viewer = {0,0,CAMERA_DISTANCE},
         .viewee = {0,0,0},
         .down = {0,1,0},
         .magnification = 110
@@ -344,7 +347,6 @@ inline void compute_face(uint8_t k)
         fk->visible = new_visible;
         if (!new_visible) // now not visible
         {
-            message("removing face %d (ordered %d) from view\n", k, face[k].draw_order);
             // remove face from y_draw_order
             for (int j = face[k].draw_order; j<DRAW_COUNT; ++j)
                 y_draw_order[j] = y_draw_order[j+1];
@@ -414,6 +416,12 @@ inline void compute_face(uint8_t k)
             face[k].vertex_order = ((order>>4)&3) | (order&(3<<2)) | ((order&3)<<4);
         }
     }
+    if (k == 37)
+    message("face %d is (%d,%d,%d) got (%d, %d), (%d, %d), (%d, %d)\n", 
+        k, (face[k].color&31), (face[k].color>>5)&31, (face[k].color>>10)&31,
+        FACE_TOP_X(k), FACE_TOP(k),
+        FACE_MIDDLE_X(k), FACE_MIDDLE_Y(k),
+        FACE_BOTTOM_X(k), FACE_BOTTOM(k));
 }
 
 
@@ -434,6 +442,7 @@ void world_update()
     
     // sort the draw orders by y appearing first!
     sort_faces_y();
+    matrix_changed = 1;
 }
 
 void graph_frame() 
@@ -453,11 +462,17 @@ static inline void insert_face(uint8_t current)
     add face[current] to singly linked list
 
     assume the whole list is sorted correctly already, just fill in current.
+
     */
+    face[current].next = face[0].next;
+    face[0].next = current;
+/*
     uint8_t previous = 0;
     uint8_t next = 0;
     while ((next = face[next].next))
     {
+        if (FACE_TOP(current) > FACE_TOP(next)
+
         // check for any edge equality
         uint8_t ej = 0;
         if (face[current].e1 == face[next].e1)
@@ -505,10 +520,13 @@ static inline void insert_face(uint8_t current)
     }
     face[previous].next = current;
     face[current].next = next;
+*/
 }
 
 void graph_line() 
 {
+    if (vga_odd)
+        return;
     memset(draw_buffer, 0, 2*SCREEN_W);
     // add any new faces to the board, sort left to right
     while (y_draw_index <= DRAW_COUNT && FACE_TOP(y_draw_order[y_draw_index]) <= vga_line)
@@ -523,11 +541,10 @@ void graph_line()
         {
             // remove this face from being actively drawn
             face[previous].next = face[current].next;
+            // don't update previous.
             continue;
         }
-        previous = current;
         // draw current face
-        
         int32_t y1 = FACE_TOP(current);
         int32_t x1 = FACE_TOP_X(current);
         int32_t y2 = FACE_MIDDLE_Y(current);
@@ -540,6 +557,15 @@ void graph_line()
             xother = x2 + (int)( (float)(x1-x2)*(y2-vga_line)/(y2-y1) ); // x12
         else
             xother = x3 + (int)( (float)(x2-x3)*(y3-vga_line)/(y3-y2) ); // x23
+        if (current == 37 && matrix_changed)
+        {
+            if (vga_line == y1)
+                message("first line: ");
+            message("vga line %d, xother %d and x13 %d\n", vga_line, xother, x13);
+            if (vga_line + 1 == y3)
+                matrix_changed = 0;
+        }
+        previous = current;
         int32_t xmin, xmax;
         if (xother < x13)
         {
@@ -551,7 +577,7 @@ void graph_line()
             xmin = x13;
             xmax = xother;
         }
-        if (xmin < 0 || xmax >= SCREEN_W)
+        if (xmax < 0 || xmin >= SCREEN_W)
             continue;
         if (xmin < 0)
             xmin = 0;
