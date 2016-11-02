@@ -31,8 +31,8 @@ int32_t matrix_changed; // remove this later
 
 uint16_t edge_color; 
 
-Camera camera;
-float camera_distance;
+Camera camera CCM_MEMORY;
+float camera_distance CCM_MEMORY;
 
 #define PI 3.14159265358979323f
 
@@ -236,8 +236,7 @@ void world_init()
                 .v1 = i, .v2 = j, .v3 = k, 
                 .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
-                .vertex_order = 0 | (1<<2) | (2<<4),
-                .color = face_color[k]
+                .vertex_order = 0 | (1<<2) | (2<<4)
             };
         }
         else
@@ -246,8 +245,7 @@ void world_init()
                 .v1 = i, .v2 = k, .v3 = j,  // note swap here.
                 .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
-                .vertex_order = 0 | (1<<2) | (2<<4),
-                .color = face_color[k]
+                .vertex_order = 0 | (1<<2) | (2<<4)
             };
         }
         // notify each edge that it has a new face:

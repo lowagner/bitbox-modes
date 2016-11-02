@@ -6,8 +6,6 @@
 #define SCREEN_W 640
 #define SCREEN_H 480
 
-float camera_distance CCM_MEMORY;
-
 struct vertex vertex[256] CCM_MEMORY; // array of vertices
 struct edge edge[256] CCM_MEMORY;
 struct face face[256] CCM_MEMORY;
@@ -34,6 +32,7 @@ int32_t matrix_changed; // remove this later
 uint16_t edge_color; 
 
 Camera camera;
+float camera_distance;
 
 #define PI 3.14159265358979323f
 
