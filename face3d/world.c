@@ -340,6 +340,12 @@ inline void order_edge(uint8_t ej)
 
 inline void compute_face(uint8_t k)
 {
+    if (k == 54)
+    message("face %d:%d is (%d,%d,%d) got %d (%d, %d), (%d, %d), (%d, %d)\n", 
+        k, face[k].visible, (face[k].color&31), (face[k].color>>5)&31, (face[k].color>>10)&31, face[k].draw_order,
+        FACE_TOP_X(k), FACE_TOP(k),
+        FACE_MIDDLE_X(k), FACE_MIDDLE_Y(k),
+        FACE_BOTTOM_X(k), FACE_BOTTOM(k));
     struct face *fk = &face[k];
     int new_visible = is_ccw(vertex[fk->v1].image, vertex[fk->v2].image, vertex[fk->v3].image);
     if (fk->visible) // was originally visible
@@ -348,8 +354,12 @@ inline void compute_face(uint8_t k)
         if (!new_visible) // now not visible
         {
             // remove face from y_draw_order
+            message("removing face %d from draw order %d\n", k, face[k].draw_order);
             for (int j = face[k].draw_order; j<DRAW_COUNT; ++j)
+            {
                 y_draw_order[j] = y_draw_order[j+1];
+                face[y_draw_order[j]].draw_order = j;
+            }
             --DRAW_COUNT;
             return;
         }
@@ -362,6 +372,7 @@ inline void compute_face(uint8_t k)
         // now visible, need to add face to y_draw_order
         if (DRAW_COUNT < 255)
         {
+            message("adding face %d\n", k);
             y_draw_order[++DRAW_COUNT] = k;
             face[k].draw_order = DRAW_COUNT;
         }
@@ -416,12 +427,6 @@ inline void compute_face(uint8_t k)
             face[k].vertex_order = ((order>>4)&3) | (order&(3<<2)) | ((order&3)<<4);
         }
     }
-    if (k == 37)
-    message("face %d is (%d,%d,%d) got (%d, %d), (%d, %d), (%d, %d)\n", 
-        k, (face[k].color&31), (face[k].color>>5)&31, (face[k].color>>10)&31,
-        FACE_TOP_X(k), FACE_TOP(k),
-        FACE_MIDDLE_X(k), FACE_MIDDLE_Y(k),
-        FACE_BOTTOM_X(k), FACE_BOTTOM(k));
 }
 
 
@@ -443,6 +448,9 @@ void world_update()
     // sort the draw orders by y appearing first!
     sort_faces_y();
     matrix_changed = 1;
+    message("update\n");
+    for (int j=1; j<=DRAW_COUNT; ++j)
+        message("first appearance order %d got face %d\n", j, y_draw_order[j]);
 }
 
 void graph_frame() 
@@ -551,20 +559,21 @@ void graph_line()
         int32_t x2 = FACE_MIDDLE_X(current);
         int32_t y3 = FACE_BOTTOM(current);
         int32_t x3 = FACE_BOTTOM_X(current);
+        if (current == 54 && matrix_changed)
+        {
+            message("line %d ", vga_line);
+            if (vga_line + 1 == y3)
+            {
+                message("\n");
+                matrix_changed = 0;
+            }
+        }
         int32_t x13 = x3 + (int)( (float)(x1-x3)*(y3-vga_line)/(y3-y1) );
         int32_t xother;
         if (vga_line < y2)
             xother = x2 + (int)( (float)(x1-x2)*(y2-vga_line)/(y2-y1) ); // x12
         else
             xother = x3 + (int)( (float)(x2-x3)*(y3-vga_line)/(y3-y2) ); // x23
-        if (current == 37 && matrix_changed)
-        {
-            if (vga_line == y1)
-                message("first line: ");
-            message("vga line %d, xother %d and x13 %d\n", vga_line, xother, x13);
-            if (vga_line + 1 == y3)
-                matrix_changed = 0;
-        }
         previous = current;
         int32_t xmin, xmax;
         if (xother < x13)
@@ -584,10 +593,12 @@ void graph_line()
         if (xmax > SCREEN_W)
             xmax = SCREEN_W;
         uint16_t color = face[current].color;
+        if (current == 54)
         for (int x=xmin; x<xmax; ++x)
-        {
+            draw_buffer[x] = (x%2) ? color : 65535;
+        else
+        for (int x=xmin; x<xmax; ++x)
             draw_buffer[x] = color;
-        }
     }
 
 }
