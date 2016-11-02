@@ -7,11 +7,9 @@
 #define SCREEN_H 480
 
 struct vertex vertex[256] CCM_MEMORY; // array of vertices
-struct edge edge[256] CCM_MEMORY;
 struct face face[256] CCM_MEMORY;
 
 int numv CCM_MEMORY; // number of vertices
-int nume CCM_MEMORY; // number of edges
 int numf CCM_MEMORY; // number of faces
 
 uint8_t y_draw_order[256] CCM_MEMORY; 
@@ -20,19 +18,17 @@ int y_draw_index CCM_MEMORY;
 
 int32_t matrix_changed; // remove this later
 
-#define FACE_TOP_X(k) vertex[face[k].v[face[k].vertex_order&3]].ix
-#define FACE_TOP(k) vertex[face[k].v[face[k].vertex_order&3]].iy
+#define FACE_TOP_X(k) vertex[face[k].o1].ix
+#define FACE_TOP(k) vertex[face[k].o1].iy
 
-#define FACE_MIDDLE_X(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].ix
-#define FACE_MIDDLE_Y(k) vertex[face[k].v[(face[k].vertex_order>>2)&3]].iy
+#define FACE_MIDDLE_X(k) vertex[face[k].o2].ix
+#define FACE_MIDDLE_Y(k) vertex[face[k].o2].iy
 
-#define FACE_BOTTOM_X(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].ix
-#define FACE_BOTTOM(k) vertex[face[k].v[(face[k].vertex_order>>4)&3]].iy
+#define FACE_BOTTOM_X(k) vertex[face[k].o3].ix
+#define FACE_BOTTOM(k) vertex[face[k].o3].iy
 
-uint16_t edge_color; 
-
-Camera camera;
-float camera_distance;
+Camera camera CCM_MEMORY;
+float camera_distance CCM_MEMORY;
 
 #define PI 3.14159265358979323f
 
@@ -71,39 +67,32 @@ inline float distance2(float *p1, float *p2)
 }
 
 
-static inline uint8_t connect_vertex_to_edge(uint8_t vi, uint8_t ei)
+static inline uint8_t connect_vertex_to_vertex(uint8_t vi, uint8_t vj)
 {
+    int retval = 0;
     struct vertex *vv = &vertex[vi];
     int i=0;
-    while (i < CONNECTED && vv->edge[i])
+    while (i < CONNECTED && vv->cxn[i])
         ++i;
     if (i < CONNECTED)
-        vv->edge[i] = ei;
+        vv->cxn[i] = vj;
     else
     {
         message("too many vertices nearby, please increase CONNECTED (bb3d.h)\n");
-        return 1;
+        retval |= 1;
     }
-    return 0;
-}
-
-static inline uint8_t find_common_edge(uint8_t vi, uint8_t vj)
-{
-    struct vertex *v1 = &vertex[vi];
-    struct vertex *v2 = &vertex[vj];
-    for (int i=0; i<CONNECTED; ++i)
+    vv = &vertex[vj];
+    i=0;
+    while (i < CONNECTED && vv->cxn[i])
+        ++i;
+    if (i < CONNECTED)
+        vv->cxn[i] = vi;
+    else
     {
-        if (!v1->edge[i])
-            break;
-        for (int j=0; j<CONNECTED; ++j)
-        {
-            if (!v2->edge[j])
-                break;
-            if (v1->edge[i] == v2->edge[j])
-                return v1->edge[i];
-        }
+        message("too many vertices nearby, please increase CONNECTED (bb3d.h)\n");
+        retval |= 2;
     }
-    return 0;
+    return retval;
 }
 
 static inline void swap_y_draw_order_j_jplus1(int j)
@@ -137,8 +126,6 @@ static inline void sort_faces_y()
 void world_init()
 {
     camera_distance = 3;
-
-    edge_color = RGB(200,200,200);
 
     DRAW_COUNT = 0;
     y_draw_index = 1;
@@ -191,7 +178,6 @@ void world_init()
     for (int i=1; i<=numv; ++i)
         message("vertex %d:  (x,y,z) = (%f, %f, %f)\n", i, vertex[i].x, vertex[i].y, vertex[i].z);
 
-    nume = 0;
     numf = 0;
 
     // lazily determine the edges.
@@ -200,15 +186,8 @@ void world_init()
     // vertices closer than this are connected:
     if (distance2(vertex[i].world, vertex[j].world) < 1.04f) 
     {
-        //message("edge %d to %d, distance %f\n", i, j, distance2(vertex[i].world, vertex[j].world));
-        edge[++nume] = (struct edge) { 
-            .p1 = i, .p2 = j,
-            .f1 = 0, .f2 = 0
-        };
-        if (connect_vertex_to_edge(i, nume))
-            message("couldn't connect edge %d to vertex %d\n", nume, i);
-        if (connect_vertex_to_edge(j, nume))
-            message("couldn't connect edge %d to vertex %d\n", nume, j);
+        if (connect_vertex_to_vertex(i, j))
+            message("couldn't connect vertex %d to vertex %d\n", j, i);
     }
 
     // lazily determine faces:
@@ -219,10 +198,6 @@ void world_init()
         (distance2(vertex[j].world, vertex[k].world) < 1.04f) &&
         (distance2(vertex[k].world, vertex[i].world) < 1.04f))
     {
-        // find the common edge in i-j, j-k, and k-i:
-        uint8_t e1 = find_common_edge(i, j);
-        uint8_t e2 = find_common_edge(j, k);
-        uint8_t e3 = find_common_edge(k, i);
         float vij[3], vjk[3], normal[3];
         for (int l=0; l<3; ++l)
         {
@@ -234,42 +209,21 @@ void world_init()
         {
             face[++numf] = (struct face) { 
                 .v1 = i, .v2 = j, .v3 = k, 
-                .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
-                .vertex_order = 0 | (1<<2) | (2<<4)
+                .o1 = i, .o2 = j, .o3 = k
             };
         }
         else
         {
             face[++numf] = (struct face) { 
                 .v1 = i, .v2 = k, .v3 = j,  // note swap here.
-                .e1 = e1, .e2 = e2, .e3 = e3,
                 .visible = 0, 
-                .vertex_order = 0 | (1<<2) | (2<<4)
+                .o1 = i, .o2 = j, .o3 = k
             };
         }
-        // notify each edge that it has a new face:
-        if (!edge[e1].f1)
-            edge[e1].f1 = numf;
-        else if (!edge[e1].f2)
-            edge[e1].f2 = numf;
-        else
-            message("your edge got connected to too many faces somehow!\n");
-        if (!edge[e2].f1)
-            edge[e2].f1 = numf;
-        else if (!edge[e2].f2)
-            edge[e2].f2 = numf;
-        else
-            message("your edge got connected to too many faces somehow!\n");
-        if (!edge[e3].f1)
-            edge[e3].f1 = numf;
-        else if (!edge[e3].f2)
-            edge[e3].f2 = numf;
-        else
-            message("your edge got connected to too many faces somehow!\n");
     }
 
-    message("got faces %d and edges %d\n", numf, nume);
+    message("got faces %d and vertices %d\n", numf, numv);
     // setup the camera
     camera = (Camera) {
         .viewer = {0,0,camera_distance},
@@ -310,39 +264,6 @@ inline void get_coordinates(uint8_t vi)
     vertex[vi].iz = view[2]; // allow for testing behindness
 }
 
-inline void order_edge(uint8_t ej)
-{
-    if (vertex[edge[ej].p2].iy <= vertex[edge[ej].p1].iy)
-    {
-        if (vertex[edge[ej].p2].iy == vertex[edge[ej].p1].iy)
-            return;
-        uint8_t p2 = edge[ej].p2;
-        edge[ej].p2 = edge[ej].p1;
-        edge[ej].p1 = p2;
-    }
-
-    // find which vertex is not p1 or p2 in each face, to order f1 and f2
-    // take cross product of edge with other vertex.
-    // f1 should be "left of" f2, so cross((p2-p1), p3) for f1 should be negative
-    // note that in case of y1 == y2,
-    // we could have x2 > x1 for the top most face to be first, but
-    // that shouldn't happen in practice
-    int p3;
-    if (face[edge[ej].f1].v1 != edge[ej].p1 && face[edge[ej].f1].v1 != edge[ej].p2)
-        p3 = 0;
-    else if (face[edge[ej].f1].v2 != edge[ej].p1 && face[edge[ej].f1].v2 != edge[ej].p2)
-        p3 = 1;
-    else //if (face[edge[ej].f1].v3 != edge[ej].p1 && face[edge[ej].f1].v3 != edge[ej].p2)
-        p3 = 2;
-    if (is_ccw(vertex[edge[ej].p1].image, vertex[edge[ej].p2].image, vertex[face[edge[ej].f1].v[p3]].image))
-    {
-        // switch f2 and f1
-        uint8_t f2 = edge[ej].f2;
-        edge[ej].f2 = edge[ej].f1;
-        edge[ej].f1 = f2; 
-    }
-}
-
 inline void compute_face(uint8_t k)
 {
     struct face *fk = &face[k];
@@ -380,48 +301,59 @@ inline void compute_face(uint8_t k)
         }
     }
     
-    uint8_t order = face[k].vertex_order;
-    int32_t v1 = vertex[face[k].v[order&3]].iy;
-    int32_t v2 = vertex[face[k].v[(order>>2)&3]].iy;
-    int32_t v3 = vertex[face[k].v[(order>>4)&3]].iy;
+    int32_t o1 = vertex[face[k].o1].iy;
+    int32_t o2 = vertex[face[k].o2].iy;
+    int32_t o3 = vertex[face[k].o3].iy;
 
-    if (v1 <= v2)
+    if (o1 <= o2)
     {
-        // v1 <= v2
-        if (v2 <= v3)
+        // o1 <= o2
+        if (o2 <= o3)
         {
-            // v1 <= v2 <= v3
+            // o1 <= o2 <= o3
             // vertex_order is good. 
         } 
-        else if (v1 <= v3)
+        else if (o1 <= o3)
         {
-            // v1 <= v3 < v2
+            // o1 <= o3 < o2
             // need to swap order 2 and 3:
-            face[k].vertex_order = (order&3) | ((order&(3<<4))>>2) | ((order&(3<<2))<<2);
+            uint8_t old_o2 = face[k].o2;
+            face[k].o2 = face[k].o3;
+            face[k].o3 = old_o2;
         }
         else
         {
-            // v3 < v1 <= v2
-            face[k].vertex_order = ((order>>4)&3) | ((order&3)<<2) | ((order&(3<<2))<<2);
+            // o3 < o1 <= o2
+            uint8_t old_o2 = face[k].o2;
+            face[k].o2 = face[k].o1;
+            face[k].o1 = face[k].o3;
+            face[k].o3 = old_o2;
         }
     }
     else
     {
-        // v2 < v1
-        if (v1 <= v3)
+        // o2 < o1
+        if (o1 <= o3)
         {
-            // v2 < v1 <= v3
-            face[k].vertex_order = ((order>>2)&3) | ((order&3)<<2) | (order&(3<<4));
+            // o2 < o1 <= o3
+            uint8_t old_o2 = face[k].o2;
+            face[k].o2 = face[k].o1;
+            face[k].o1 = old_o2;
         }
-        else if (v2 <= v3)
+        else if (o2 <= o3)
         {
-            // v2 <= v3 < v1
-            face[k].vertex_order = ((order>>2)&3) | ((order&(3<<4))>>2) | ((order&3)<<4);
+            // o2 <= o3 < o1
+            uint8_t old_o2 = face[k].o2;
+            face[k].o2 = face[k].o3;
+            face[k].o3 = face[k].o1;
+            face[k].o1 = old_o2;
         }
         else
         {
-            // v3 < v2 < v1
-            face[k].vertex_order = ((order>>4)&3) | (order&(3<<2)) | ((order&3)<<4);
+            // o3 < o2 < o1
+            uint8_t old_o1 = face[k].o1;
+            face[k].o1 = face[k].o3;
+            face[k].o3 = old_o1;
         }
     }
     float normal[3];
@@ -440,10 +372,6 @@ void world_update()
     // first get vertices
     for (int i=1; i<=numv; ++i)
         get_coordinates(i);
-
-    // order the edges
-    for (int j=1; j<=nume; ++j)
-        order_edge(j);
 
     // then compute which faces are visible:
     for (int k=1; k<=numf; ++k)
@@ -470,66 +398,11 @@ static inline void insert_face(uint8_t current)
     /*
     add face[current] to singly linked list
 
-    assume the whole list is sorted correctly already, just fill in current.
-
+    assume the whole list is sorted correctly already, just fill in current,
+    TODO based on Z.  
     */
     face[current].next = face[0].next;
     face[0].next = current;
-/*
-    uint8_t previous = 0;
-    uint8_t next = 0;
-    while ((next = face[next].next))
-    {
-        if (FACE_TOP(current) > FACE_TOP(next)
-
-        // check for any edge equality
-        uint8_t ej = 0;
-        if (face[current].e1 == face[next].e1)
-            ej = face[current].e1;
-        else if (face[current].e1 == face[next].e2)
-            ej = face[current].e1;
-        else if (face[current].e1 == face[next].e3)
-            ej = face[current].e1;
-        else if (face[current].e2 == face[next].e1)
-            ej = face[current].e2;
-        else if (face[current].e2 == face[next].e2)
-            ej = face[current].e2;
-        else if (face[current].e2 == face[next].e3)
-            ej = face[current].e2;
-        else if (face[current].e3 == face[next].e1)
-            ej = face[current].e3;
-        else if (face[current].e3 == face[next].e2)
-            ej = face[current].e3;
-        else if (face[current].e3 == face[next].e3)
-            ej = face[current].e3;
-        if (ej)
-        {
-            // common edge
-            if (current != edge[ej].f1) // current is not the first face
-            {
-                previous = next;
-                next = face[next].next;
-            }
-            break;
-        }
-        else // no common edge
-        {
-            // see if current is left of next
-            int32_t current_minx = (vertex[face[current].v1].ix < vertex[face[current].v2].ix) ? vertex[face[current].v1].ix : vertex[face[current].v2].ix;
-            current_minx = (current_minx < vertex[face[current].v3].ix) ? current_minx : vertex[face[current].v3].ix;
-            
-            int32_t next_minx = (vertex[face[next].v1].ix < vertex[face[next].v2].ix) ? vertex[face[next].v1].ix : vertex[face[next].v2].ix;
-            next_minx = (next_minx < vertex[face[next].v3].ix) ? next_minx : vertex[face[next].v3].ix;
-
-            if (current_minx <= next_minx)
-                break;
-            // else the singly linked list needs to move forward
-        }
-        previous = next;
-    }
-    face[previous].next = current;
-    face[current].next = next;
-*/
 }
 
 void graph_line() 
