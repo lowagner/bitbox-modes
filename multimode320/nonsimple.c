@@ -101,6 +101,10 @@ void graph_frame()
 
 void graph_line() 
 {
+    if (vga_line == 0 && !vga_odd)
+    {
+        graph_frame();
+    }
     if (vga_odd)
     {
         // do background update stuff

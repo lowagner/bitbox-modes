@@ -81,8 +81,6 @@ void game_init()
 
 void game_frame()
 {
-    kbd_emulate_gamepad();
-    
     int x = 80 + round(40*cos(vga_frame*0.05));;
     int y = 60 + round(40*sin(vga_frame*0.05));;
     superpixel[y][x] = RGB(0,0,255);

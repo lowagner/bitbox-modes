@@ -7,10 +7,10 @@ NAME = mult320
 GAME_C_FILES = main.c nonsimple.c fonts.c
 GAME_H_FILES = nonsimple.h
 
-GAME_C_OPTS += -DVGAMODE_320
+GAME_C_OPTS += -DVGA_MODE=320
 
 # see this file for options
-include $(BITBOX)/lib/bitbox.mk
+include $(BITBOX)/kernel/bitbox.mk
 
 
 clean::
