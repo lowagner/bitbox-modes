@@ -9,8 +9,6 @@ void game_init()
 
 void game_frame()
 {
-    kbd_emulate_gamepad();
-
     // move camera to arrow keys (or d-pad):
     const float delta = 0.1;
     const float delta_rot = 0.01;
@@ -76,4 +74,5 @@ void game_frame()
         // and then apply the matrix to all vertex positions:
         world_update();
     }
+    graph_frame();
 }

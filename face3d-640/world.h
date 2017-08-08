@@ -3,7 +3,7 @@
 #include "bb3d.h"
 
 extern float camera_distance;
-
+void graph_frame();
 extern struct vertex vertex[256]; // array of vertices
 extern struct face face[256];
 
